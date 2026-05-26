@@ -4,6 +4,7 @@
 
 import asyncio
 import threading
+import time
 from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -33,7 +34,7 @@ from openviking.storage.queuefs.semantic_msg import SemanticMsg, build_semantic_
 from openviking.storage.queuefs.semantic_queue import is_semantic_msg_stale
 from openviking.storage.queuefs.semantic_lock import SemanticLockScope
 from openviking.storage.queuefs.semantic_sidecar import write_semantic_sidecars
-from openviking.storage.transaction import NO_LOCK, LockLease
+from openviking.storage.transaction import NO_LOCK, LockLease, get_lock_manager
 from openviking.storage.viking_fs import get_viking_fs
 from openviking.telemetry import bind_telemetry, bind_telemetry_stage, resolve_telemetry
 from openviking.telemetry.request_wait_tracker import get_request_wait_tracker
@@ -194,7 +195,15 @@ class SemanticProcessor(DequeueHandlerBase):
     async def _check_file_content_changed(
         self, file_path: str, target_file: str, ctx: Optional[RequestContext] = None
     ) -> bool:
-        """Check if file content has changed compared to target file."""
+        """Check if file content has changed compared to target file.
+
+        Uses size + modTime as the primary heuristic (like `rsync -t`). Only
+        falls back to a full content read when modTime is unavailable on
+        either side. The old "always read both files and compare bytes"
+        behavior is prohibitively expensive on S3 (1 HEAD + 1 GET per file
+        per check) and offers no correctness benefit over mtime when both
+        sides record their timestamps.
+        """
         viking_fs = get_viking_fs()
         try:
             current_stat = await viking_fs.stat(file_path, ctx=ctx)
@@ -203,6 +212,12 @@ class SemanticProcessor(DequeueHandlerBase):
             target_size = target_stat.get("size") if isinstance(target_stat, dict) else None
             if current_size is not None and target_size is not None and current_size != target_size:
                 return True
+            current_mtime = (
+                current_stat.get("modTime") if isinstance(current_stat, dict) else None
+            )
+            target_mtime = target_stat.get("modTime") if isinstance(target_stat, dict) else None
+            if current_mtime is not None and target_mtime is not None:
+                return current_mtime != target_mtime
             current_content = await viking_fs.read_file(file_path, ctx=ctx)
             target_content = await viking_fs.read_file(target_file, ctx=ctx)
             return current_content != target_content
@@ -666,14 +681,28 @@ class SemanticProcessor(DequeueHandlerBase):
         diff = DiffResult()
         lock_handle = lock.handle
 
+        # Perf instrumentation (Stage 1B): bracket the recursive sync so we can
+        # finally see where the silent post-semantic phase spends its 8 minutes.
+        _t_sync_start = time.monotonic()
+        _op_totals: Dict[str, Dict[str, float]] = {}
+
+        def _track(op: str, started: float) -> None:
+            elapsed_ms = (time.monotonic() - started) * 1000
+            slot = _op_totals.setdefault(op, {"count": 0.0, "ms": 0.0})
+            slot["count"] += 1
+            slot["ms"] += elapsed_ms
+
         async def list_children(dir_uri: str) -> Tuple[Dict[str, str], Dict[str, str]]:
             files: Dict[str, str] = {}
             dirs: Dict[str, str] = {}
+            _t = time.monotonic()
             try:
                 entries = await viking_fs.ls(dir_uri, show_all_hidden=True, ctx=ctx)
             except Exception as e:
+                _track("ls", _t)
                 logger.error(f"[SyncDiff] Failed to list {dir_uri}: {e}")
                 return files, dirs
+            _track("ls", _t)
 
             for entry in entries:
                 name = entry.get("name", "")
@@ -688,10 +717,61 @@ class SemanticProcessor(DequeueHandlerBase):
                     files[name] = item_uri
             return files, dirs
 
+        # Fix #2: parallelise per-name mv calls (added files and added dirs)
+        # inside sync_dir. Default Python semaphore + asyncio.gather; concurrency
+        # capped so we don't fan out to hundreds of parallel S3 client calls.
+        _MV_CONCURRENCY = 16
+        _mv_sem = asyncio.Semaphore(_MV_CONCURRENCY)
+
+        async def _gather_mv_added(items: List[Tuple[str, str, str]]) -> None:
+            """Run a batch of mv calls in parallel. Each item is (root, target, kind)
+            where kind is 'file' or 'dir'."""
+            if not items:
+                return
+            _t_batch = time.monotonic()
+
+            async def _one(root: str, target: str, kind: str) -> Optional[str]:
+                async with _mv_sem:
+                    _t = time.monotonic()
+                    try:
+                        await viking_fs.mv(
+                            root,
+                            target,
+                            ctx=ctx,
+                            lock_handle=lock_handle,
+                        )
+                        return None
+                    except Exception as e:
+                        logger.error(
+                            f"[SyncDiff] Failed to move added {kind}: {root} -> {target}, error={e}"
+                        )
+                        return f"{kind} {root} -> {target}: {e}"
+                    finally:
+                        _track(f"mv_added_{kind}", _t)
+
+            results = await asyncio.gather(*[_one(r, t, k) for r, t, k in items])
+            failures = [r for r in results if r]
+            logger.info(
+                "[SyncDiff] step=mv_added_batch count=%d kinds=%s wall_ms=%.1f failures=%d",
+                len(items),
+                "+".join(sorted({k for _, _, k in items})) or "-",
+                (time.monotonic() - _t_batch) * 1000,
+                len(failures),
+            )
+            # Fail loudly: a swallowed mv failure leaves the resource incomplete
+            # (missing files) while the task still reports success. Surface it.
+            if failures:
+                raise RuntimeError(
+                    f"[SyncDiff] {len(failures)} of {len(items)} added mv(s) failed: "
+                    + "; ".join(failures[:5])
+                )
+
         async def sync_dir(root_dir: str, target_dir: str) -> None:
             root_files, root_dirs = await list_children(root_dir)
             target_files, target_dirs = await list_children(target_dir)
+            pending_added: List[Tuple[str, str, str]] = []  # (root, target, kind)
 
+            _t = time.monotonic()
             try:
                 await viking_fs._mv_vector_store_l0_l1(
                     root_dir,
@@ -703,6 +783,7 @@ class SemanticProcessor(DequeueHandlerBase):
                 logger.error(
                     f"[SyncDiff] Failed to move L0/L1 index: {root_dir} -> {target_dir}, error={e}"
                 )
+            _track("mv_vector_store_l0_l1", _t)
 
             file_names = set(root_files.keys()) | set(target_files.keys())
             for name in sorted(file_names):
@@ -711,6 +792,7 @@ class SemanticProcessor(DequeueHandlerBase):
 
                 if root_file and name in target_dirs:
                     target_conflict_dir = target_dirs[name]
+                    _t = time.monotonic()
                     try:
                         await viking_fs.rm(
                             target_conflict_dir,
@@ -724,9 +806,11 @@ class SemanticProcessor(DequeueHandlerBase):
                         logger.error(
                             f"[SyncDiff] Failed to delete directory for file conflict: {target_conflict_dir}, error={e}"
                         )
+                    _track("rm_dir_conflict", _t)
                     target_file = None
 
                 if target_file and name in root_dirs and not root_file:
+                    _t = time.monotonic()
                     try:
                         await viking_fs.rm(target_file, ctx=ctx, lock_handle=lock_handle)
                         diff.deleted_files.append(target_file)
@@ -735,14 +819,17 @@ class SemanticProcessor(DequeueHandlerBase):
                         logger.error(
                             f"[SyncDiff] Failed to delete file for dir conflict: {target_file}, error={e}"
                         )
+                    _track("rm_file_conflict", _t)
                     continue
 
                 if target_file and not root_file:
+                    _t = time.monotonic()
                     try:
                         await viking_fs.rm(target_file, ctx=ctx, lock_handle=lock_handle)
                         diff.deleted_files.append(target_file)
                     except Exception as e:
                         logger.error(f"[SyncDiff] Failed to delete file: {target_file}, error={e}")
+                    _track("rm_file_removed", _t)
                     continue
 
                 if root_file and target_file:
@@ -750,6 +837,7 @@ class SemanticProcessor(DequeueHandlerBase):
                     if file_change_status and root_file in file_change_status:
                         changed = file_change_status[root_file]
                     else:
+                        _t = time.monotonic()
                         try:
                             changed = await self._check_file_content_changed(
                                 root_file, target_file, ctx=ctx
@@ -759,14 +847,18 @@ class SemanticProcessor(DequeueHandlerBase):
                                 f"[SyncDiff] Failed to compare file content for {root_file}: {e}, treating as unchanged"
                             )
                             changed = False
+                        _track("check_changed", _t)
                     if changed:
                         diff.updated_files.append(root_file)
+                        _t = time.monotonic()
                         try:
                             await viking_fs.rm(target_file, ctx=ctx, lock_handle=lock_handle)
                         except Exception as e:
                             logger.error(
                                 f"[SyncDiff] Failed to remove old file before update: {target_file}, error={e}"
                             )
+                        _track("rm_before_update", _t)
+                        _t = time.monotonic()
                         try:
                             await viking_fs.mv(
                                 root_file,
@@ -778,22 +870,16 @@ class SemanticProcessor(DequeueHandlerBase):
                             logger.error(
                                 f"[SyncDiff] Failed to move updated file: {root_file} -> {target_file}, error={e}"
                             )
+                        _track("mv_updated", _t)
                     continue
 
                 if root_file and not target_file:
                     diff.added_files.append(root_file)
                     target_file_uri = VikingURI(target_dir).join(name).uri
-                    try:
-                        await viking_fs.mv(
-                            root_file,
-                            target_file_uri,
-                            ctx=ctx,
-                            lock_handle=lock_handle,
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"[SyncDiff] Failed to move added file: {root_file} -> {target_file_uri}, error={e}"
-                        )
+                    # Defer the mv to a batched parallel gather at the end of
+                    # sync_dir; per-file moves on S3 Express otherwise serialize
+                    # at ~17 s each (see plan Stage 1B).
+                    pending_added.append((root_file, target_file_uri, "file"))
 
             dir_names = set(root_dirs.keys()) | set(target_dirs.keys())
             for name in sorted(dir_names):
@@ -802,6 +888,7 @@ class SemanticProcessor(DequeueHandlerBase):
 
                 if root_subdir and name in target_files:
                     target_conflict_file = target_files[name]
+                    _t = time.monotonic()
                     try:
                         await viking_fs.rm(
                             target_conflict_file,
@@ -814,9 +901,11 @@ class SemanticProcessor(DequeueHandlerBase):
                         logger.error(
                             f"[SyncDiff] Failed to delete file for dir conflict: {target_conflict_file}, error={e}"
                         )
+                    _track("rm_file_dir_conflict", _t)
                     target_subdir = None
 
                 if target_subdir and not root_subdir:
+                    _t = time.monotonic()
                     try:
                         await viking_fs.rm(
                             target_subdir,
@@ -829,42 +918,101 @@ class SemanticProcessor(DequeueHandlerBase):
                         logger.error(
                             f"[SyncDiff] Failed to delete directory: {target_subdir}, error={e}"
                         )
+                    _track("rm_dir_removed", _t)
                     continue
 
                 if root_subdir and not target_subdir:
                     diff.added_dirs.append(root_subdir)
                     target_subdir_uri = VikingURI(target_dir).join(name).uri
-                    try:
-                        await viking_fs.mv(
-                            root_subdir,
-                            target_subdir_uri,
-                            ctx=ctx,
-                            lock_handle=lock_handle,
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"[SyncDiff] Failed to move added directory: {root_subdir} -> {target_subdir_uri}, error={e}"
-                        )
+                    # Defer dir mvs the same way as file mvs above so multiple
+                    # subtrees can move concurrently.
+                    pending_added.append((root_subdir, target_subdir_uri, "dir"))
                     continue
 
                 if root_subdir and target_subdir:
                     await sync_dir(root_subdir, target_subdir)
 
-        target_exists = await viking_fs.exists(target_uri, ctx=ctx)
-        if not target_exists:
-            parent_uri = VikingURI(target_uri).parent
-            if parent_uri:
-                await viking_fs.mkdir(parent_uri.uri, exist_ok=True, ctx=ctx)
-            diff.added_dirs.append(root_uri)
-            await viking_fs.mv(root_uri, target_uri, ctx=ctx, lock_handle=lock_handle)
-            return diff
+            # Drain the parallel mv batch for this directory.
+            await _gather_mv_added(pending_added)
 
-        await sync_dir(root_uri, target_uri)
+        def _emit_sync_breakdown(branch: str) -> None:
+            parts = " ".join(
+                f"{op}={int(v['count'])}/{v['ms']:.0f}ms"
+                for op, v in sorted(_op_totals.items())
+            )
+            logger.info(
+                "[SyncDiff] step=summary branch=%s wall_ms=%.1f ops=[%s]",
+                branch,
+                (time.monotonic() - _t_sync_start) * 1000,
+                parts,
+            )
+
+        # Pre-acquire a TREE lock over the temp source root. Every per-entry mv
+        # below acquires a src lock under viking://temp/...; without an owned
+        # ancestor tree there, acquire_exact_path does ~20 serial S3 reads
+        # walking temp ancestors (~10s/file on Express). The dst side is already
+        # covered by the handed-off resources tree lock. Registering this tree
+        # lock on the handle populates lock_types so the src-side ancestor walk
+        # hits the in-memory cache instead. Release before delete_temp.
+        temp_tree_locks: List[str] = []
+        if lock_handle is not None:
+            try:
+                root_path = viking_fs._uri_to_path(root_uri, ctx=ctx)
+                locks_before = set(lock_handle.locks)
+                if await get_lock_manager().acquire_tree(lock_handle, root_path):
+                    temp_tree_locks = [
+                        lp for lp in lock_handle.locks if lp not in locks_before
+                    ]
+                else:
+                    logger.warning(
+                        "[SyncDiff] Could not pre-acquire temp tree lock for %s; "
+                        "per-file mv will use the slow ancestor-walk path",
+                        root_path,
+                    )
+            except Exception as e:
+                logger.warning("[SyncDiff] temp tree lock pre-acquire failed: %s", e)
+
+        async def _release_temp_tree_locks() -> None:
+            nonlocal temp_tree_locks
+            if not temp_tree_locks:
+                return
+            to_release = temp_tree_locks
+            temp_tree_locks = []
+            try:
+                await get_lock_manager().release_selected(lock_handle, to_release)
+            except Exception as e:
+                logger.warning("[SyncDiff] failed to release temp tree lock: %s", e)
+
         try:
-            await viking_fs.delete_temp(root_uri, ctx=ctx)
-        except Exception as e:
-            logger.error(f"[SyncDiff] Failed to delete root directory {root_uri}: {e}")
-        return diff
+            _t = time.monotonic()
+            target_exists = await viking_fs.exists(target_uri, ctx=ctx)
+            _track("exists", _t)
+            if not target_exists:
+                parent_uri = VikingURI(target_uri).parent
+                if parent_uri:
+                    _t = time.monotonic()
+                    await viking_fs.mkdir(parent_uri.uri, exist_ok=True, ctx=ctx)
+                    _track("mkdir_parent", _t)
+                diff.added_dirs.append(root_uri)
+                _t = time.monotonic()
+                await viking_fs.mv(root_uri, target_uri, ctx=ctx, lock_handle=lock_handle)
+                _track("mv_root_no_target", _t)
+                _emit_sync_breakdown("no_target")
+                return diff
+
+            await sync_dir(root_uri, target_uri)
+            # Release the temp tree lock before delete_temp removes the temp dir.
+            await _release_temp_tree_locks()
+            _t = time.monotonic()
+            try:
+                await viking_fs.delete_temp(root_uri, ctx=ctx)
+            except Exception as e:
+                logger.error(f"[SyncDiff] Failed to delete root directory {root_uri}: {e}")
+            _track("delete_temp", _t)
+            _emit_sync_breakdown("incremental")
+            return diff
+        finally:
+            await _release_temp_tree_locks()
 
     async def _collect_children_abstracts(
         self, children_uris: List[str], ctx: Optional[RequestContext] = None
@@ -891,23 +1039,66 @@ class SemanticProcessor(DequeueHandlerBase):
         vlm = get_openviking_config().vlm
         active_ctx = ctx or self._current_ctx
 
+        # Perf instrumentation (Stage 1A): accumulate per-step ms so the final
+        # log line shows where this file's summary actually spent its time.
+        _t_call_start = time.monotonic()
+        _agfs_ms = 0.0
+        _sem_wait_ms = 0.0
+        _llm_ms = 0.0
+        _llm_calls = 0
+
+        async def _llm_under_sem(prompt_text: str) -> str:
+            nonlocal _sem_wait_ms, _llm_ms, _llm_calls
+            _t_sem_acq_start = time.monotonic()
+            async with llm_sem:
+                _t_sem_acq_end = time.monotonic()
+                _sem_wait_ms += (_t_sem_acq_end - _t_sem_acq_start) * 1000
+                with bind_telemetry_stage("resource_summarize"):
+                    out = await vlm.get_completion_async(prompt_text)
+                _llm_ms += (time.monotonic() - _t_sem_acq_end) * 1000
+                _llm_calls += 1
+                return out
+
+        def _emit(branch: str) -> None:
+            logger.info(
+                "[summary] file=%s branch=%s wall_ms=%.1f agfs_ms=%.1f sem_wait_ms=%.1f llm_ms=%.1f llm_calls=%d",
+                file_path,
+                branch,
+                (time.monotonic() - _t_call_start) * 1000,
+                _agfs_ms,
+                _sem_wait_ms,
+                _llm_ms,
+                _llm_calls,
+            )
+
+        _t_read_start = time.monotonic()
         content = await viking_fs.read_file(file_path, ctx=active_ctx)
+        _agfs_ms += (time.monotonic() - _t_read_start) * 1000
         if isinstance(content, bytes):
             # Try to decode with error handling for text files
             try:
                 content = content.decode("utf-8")
             except UnicodeDecodeError:
                 logger.warning(f"Failed to decode file as UTF-8, skipping: {file_path}")
+                _emit("decode_fail")
                 return {"name": file_name, "summary": ""}
 
         # Limit content length
         max_chars = get_openviking_config().semantic.max_file_content_chars
+        # Capture the pre-truncation slice to hand off to the embedding stage
+        # so it does not have to fetch the same file from AGFS a second time.
+        # On S3 each redundant read is 1 HEAD + 1 GET; for a 100-file ingest
+        # this saves ~200 round trips. We cap at the same max_chars budget the
+        # summary uses (which is comfortably larger than typical embedding
+        # token budgets), so downstream token-aware truncation still works.
+        prefetched_text = content[:max_chars]
         if len(content) > max_chars:
             content = content[:max_chars] + "\n...(truncated)"
 
         # Generate summary
         if not vlm.is_available():
             logger.warning("VLM not available, using empty summary")
+            _emit("vlm_unavailable")
             return {"name": file_name, "summary": ""}
 
         from openviking.session.memory.utils.language import resolve_output_language
@@ -930,7 +1121,12 @@ class SemanticProcessor(DequeueHandlerBase):
                     if len(skeleton_text) > max_skeleton_chars:
                         skeleton_text = skeleton_text[:max_skeleton_chars]
                     if code_mode == "ast":
-                        return {"name": file_name, "summary": skeleton_text}
+                        _emit("ast_skeleton")
+                        return {
+                            "name": file_name,
+                            "summary": skeleton_text,
+                            "_prefetched_text": prefetched_text,
+                        }
                     else:  # ast_llm
                         prompt = render_prompt(
                             "semantic.code_ast_summary",
@@ -940,10 +1136,13 @@ class SemanticProcessor(DequeueHandlerBase):
                                 "output_language": output_language,
                             },
                         )
-                        async with llm_sem:
-                            with bind_telemetry_stage("resource_summarize"):
-                                summary = await vlm.get_completion_async(prompt)
-                        return {"name": file_name, "summary": summary.strip()}
+                        summary = await _llm_under_sem(prompt)
+                        _emit("ast_llm")
+                        return {
+                            "name": file_name,
+                            "summary": summary.strip(),
+                            "_prefetched_text": prefetched_text,
+                        }
                 if skeleton_text is None:
                     logger.info("AST unsupported language, fallback to LLM: %s", file_path)
                 else:
@@ -954,10 +1153,13 @@ class SemanticProcessor(DequeueHandlerBase):
                 "semantic.code_summary",
                 {"file_name": file_name, "content": content, "output_language": output_language},
             )
-            async with llm_sem:
-                with bind_telemetry_stage("resource_summarize"):
-                    summary = await vlm.get_completion_async(prompt)
-            return {"name": file_name, "summary": summary.strip()}
+            summary = await _llm_under_sem(prompt)
+            _emit("code_llm")
+            return {
+                "name": file_name,
+                "summary": summary.strip(),
+                "_prefetched_text": prefetched_text,
+            }
 
         elif file_type == FILE_TYPE_DOCUMENTATION:
             prompt_id = "semantic.document_summary"
@@ -969,10 +1171,13 @@ class SemanticProcessor(DequeueHandlerBase):
             {"file_name": file_name, "content": content, "output_language": output_language},
         )
 
-        async with llm_sem:
-            with bind_telemetry_stage("resource_summarize"):
-                summary = await vlm.get_completion_async(prompt)
-        return {"name": file_name, "summary": summary.strip()}
+        summary = await _llm_under_sem(prompt)
+        _emit("doc_or_other_llm")
+        return {
+            "name": file_name,
+            "summary": summary.strip(),
+            "_prefetched_text": prefetched_text,
+        }
 
     async def _generate_single_file_summary(
         self,
@@ -1392,6 +1597,7 @@ class SemanticProcessor(DequeueHandlerBase):
         ctx: Optional[RequestContext] = None,
         semantic_msg_id: Optional[str] = None,
         use_summary: bool = False,
+        prefetched_text: Optional[str] = None,
     ) -> None:
         """Vectorize a single file using its content or summary."""
         from openviking.utils.embedding_utils import vectorize_file
@@ -1405,4 +1611,5 @@ class SemanticProcessor(DequeueHandlerBase):
             ctx=active_ctx,
             semantic_msg_id=semantic_msg_id,
             use_summary=use_summary,
+            prefetched_text=prefetched_text,
         )

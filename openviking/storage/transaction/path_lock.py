@@ -25,6 +25,14 @@ _READ_ONLY_TREE_LOCK_TYPES = {"P", "S"}
 _POLL_INTERVAL = 0.2
 _WAIT_LOG_INTERVAL = 10.0
 
+# Reconcile tolerance: `_read_token` collapses transient backend read errors
+# (timeouts, S3 Express throttling) into None, indistinguishable from "lock
+# genuinely gone". Before declaring a lock we believe we hold as lost — which
+# permanently evicts the handle — re-check a few times. Genuine foreign
+# ownership is stable and returns immediately; a transient blip recovers.
+_RECONCILE_CONFIRM_ATTEMPTS = 3
+_RECONCILE_CONFIRM_DELAY = 0.05
+
 
 @dataclass
 class LockRefreshResult:
@@ -225,9 +233,31 @@ class PathLockEngine:
     def collect_lost_owner_locks(self, owner: LockOwner) -> list[str]:
         lost_paths: list[str] = []
         for lock_path in list(owner.locks):
-            if not self.is_lock_owned_by(lock_path, owner.id):
+            if self._confirm_lock_lost(lock_path, owner.id):
                 lost_paths.append(lock_path)
         return lost_paths
+
+    def _confirm_lock_lost(self, lock_path: str, owner_id: str) -> bool:
+        """Whether *owner_id* has definitively lost *lock_path*.
+
+        `_read_token` swallows transient backend read errors into None, which is
+        indistinguishable from a genuinely-absent lock. Treating that None as
+        "lost" permanently evicts a handle that still validly holds the lock —
+        the SyncDiff handoff-lock failure. So only declare loss when it is
+        stable: a different owner returns immediately (real loss); an
+        unreadable/absent token is re-checked before we give up the lock.
+        """
+        for attempt in range(_RECONCILE_CONFIRM_ATTEMPTS):
+            current_owner, _ = self._read_owner_and_type(lock_path)
+            if current_owner == owner_id:
+                return False
+            if current_owner is not None:
+                # Stable foreign owner — genuinely lost, no need to retry.
+                return True
+            # current_owner is None: token absent or a transient read error.
+            if attempt + 1 < _RECONCILE_CONFIRM_ATTEMPTS:
+                time.sleep(_RECONCILE_CONFIRM_DELAY)
+        return True
 
     async def _is_locked_by_other(self, lock_path: str, owner_id: str) -> bool:
         token = await self._run_sync(self._read_token, lock_path)

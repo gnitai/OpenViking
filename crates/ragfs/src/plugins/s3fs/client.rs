@@ -4,6 +4,7 @@
 //! Supports AWS S3 and S3-compatible services (MinIO, LocalStack, TOS).
 
 use crate::core::{ConfigValue, Error, Result};
+use aws_sdk_s3::config::retry::RetryConfig;
 use aws_sdk_s3::config::{BehaviorVersion, Credentials, Region};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
@@ -157,6 +158,98 @@ fn aws_datetime_to_systemtime(dt: &aws_sdk_s3::primitives::DateTime) -> SystemTi
     }
 }
 
+/// Validate the AZ-ID portion of an S3 Express directory bucket name.
+///
+/// AZ IDs look like `use1-az4`, `usw2-az1`, `apne1-az3`: 3–4 lowercase letters,
+/// digits, then literal `-az`, then digits. Zone *names* (e.g. `us-east-1a`)
+/// are NOT accepted — Express requires the AZ ID.
+fn is_valid_az_id(s: &str) -> bool {
+    let mut chars = s.chars().peekable();
+    // 3–4 lowercase letters
+    let mut letters = 0;
+    while let Some(&c) = chars.peek() {
+        if c.is_ascii_lowercase() {
+            chars.next();
+            letters += 1;
+            if letters > 4 {
+                return false;
+            }
+        } else {
+            break;
+        }
+    }
+    if !(3..=4).contains(&letters) {
+        return false;
+    }
+    // 1+ digits
+    let mut region_digits = 0;
+    while let Some(&c) = chars.peek() {
+        if c.is_ascii_digit() {
+            chars.next();
+            region_digits += 1;
+        } else {
+            break;
+        }
+    }
+    if region_digits == 0 {
+        return false;
+    }
+    // literal "-az"
+    for expected in ['-', 'a', 'z'] {
+        match chars.next() {
+            Some(c) if c == expected => {}
+            _ => return false,
+        }
+    }
+    // 1+ digits
+    let mut az_digits = 0;
+    for c in chars {
+        if c.is_ascii_digit() {
+            az_digits += 1;
+        } else {
+            return false;
+        }
+    }
+    az_digits > 0
+}
+
+/// Parse the AZ ID out of an S3 Express directory bucket name, or return
+/// `None` if `bucket` is not Express-shaped.
+///
+/// Expects `<base>--<az-id>--x-s3`. Returns `Some(<az-id>)` when the trailing
+/// segment is `--x-s3` and the segment before it is a syntactically valid
+/// AZ ID. Otherwise returns `None`.
+pub fn parse_express_bucket_name(bucket: &str) -> Option<&str> {
+    let stem = bucket.strip_suffix("--x-s3")?;
+    let (_base, az_id) = stem.rsplit_once("--")?;
+    if az_id.is_empty() || !is_valid_az_id(az_id) {
+        return None;
+    }
+    Some(az_id)
+}
+
+/// Validate an S3 Express config: the configured AZ ID must match the AZ ID
+/// segment embedded in the bucket name.
+pub fn validate_express_config(bucket: &str, az_id: &str) -> Result<()> {
+    if !is_valid_az_id(az_id) {
+        return Err(Error::config(format!(
+            "availability_zone_id '{}' is not a valid AZ ID (expected form like 'use1-az4', not the zone name 'us-east-1a')",
+            az_id
+        )));
+    }
+    match parse_express_bucket_name(bucket) {
+        Some(parsed) if parsed == az_id => Ok(()),
+        Some(parsed) => Err(Error::config(format!(
+            "bucket '{}' encodes AZ ID '{}' but availability_zone_id is set to '{}'",
+            bucket, parsed, az_id
+        ))),
+        None => Err(Error::config(format!(
+            "bucket '{}' is not a valid S3 Express directory bucket name (expected '<base>--<az-id>--x-s3')",
+            bucket
+        ))),
+    }
+}
+
 /// S3 Client wrapper
 pub struct S3Client {
     client: Client,
@@ -165,6 +258,8 @@ pub struct S3Client {
     normalize_encoding_chars: String,
     marker_mode: DirectoryMarkerMode,
     disable_batch_delete: bool,
+    is_express: bool,
+    availability_zone_id: String,
 }
 
 impl S3Client {
@@ -221,10 +316,32 @@ impl S3Client {
             .and_then(|v| v.as_string())
             .map(|s| s.to_string());
 
+        let is_express = config
+            .get("express")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        let availability_zone_id = config
+            .get("availability_zone_id")
+            .and_then(|v| v.as_string())
+            .unwrap_or("")
+            .to_string();
+
+        if is_express {
+            validate_express_config(&bucket, &availability_zone_id)?;
+        } else if parse_express_bucket_name(&bucket).is_some() {
+            return Err(Error::config(format!(
+                "bucket '{}' looks like an S3 Express directory bucket (suffix '--x-s3'); set `express: true` and `availability_zone_id` to use it",
+                bucket
+            )));
+        }
+
+        // Express mandates virtual-hosted-style addressing on the zonal endpoint.
+        // For non-Express buckets we keep the historical default (path-style on).
         let use_path_style = config
             .get("use_path_style")
             .and_then(|v| v.as_bool())
-            .unwrap_or(true);
+            .unwrap_or(!is_express);
 
         let prefix = config
             .get("prefix")
@@ -249,15 +366,36 @@ impl S3Client {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
-        // Build S3 config
+        // Total attempts per request (1 initial + retries). S3 Express returns
+        // 503 SlowDown when the per-prefix request rate is exceeded during the
+        // parallel rename fan-out; the SDK default of 3 standard attempts did
+        // not survive those bursts.
+        let max_retry_attempts = config
+            .get("max_retry_attempts")
+            .and_then(|v| v.as_int())
+            .map(|n| n.clamp(1, 20) as u32)
+            .unwrap_or(5);
+
+        // Build S3 config.
+        //
+        // For S3 Express directory buckets the SDK resolves the zonal endpoint
+        // from the bucket-name suffix and signs with session credentials via
+        // CreateSession. Custom endpoints and forced path-style would misroute
+        // those calls, so we skip both for express clients.
+        // Adaptive retry: exponential backoff + jitter on transient errors
+        // (timeouts, 5xx, connection resets) plus a client-side rate limiter
+        // that throttles back when the service signals SlowDown — the right
+        // policy for the bursty parallel rename/head traffic on S3 Express.
         let mut s3_config_builder = aws_sdk_s3::Config::builder()
             .behavior_version(BehaviorVersion::latest())
             .region(Region::new(region))
-            .force_path_style(use_path_style);
+            .retry_config(RetryConfig::adaptive().with_max_attempts(max_retry_attempts));
 
-        // Set endpoint if provided (MinIO, LocalStack, TOS)
-        if let Some(ep) = endpoint {
-            s3_config_builder = s3_config_builder.endpoint_url(ep.to_string());
+        if !is_express {
+            s3_config_builder = s3_config_builder.force_path_style(use_path_style);
+            if let Some(ep) = endpoint {
+                s3_config_builder = s3_config_builder.endpoint_url(ep.to_string());
+            }
         }
 
         // Set credentials if provided, otherwise SDK uses default chain
@@ -276,6 +414,8 @@ impl S3Client {
             normalize_encoding_chars,
             marker_mode,
             disable_batch_delete,
+            is_express,
+            availability_zone_id,
         })
     }
 
@@ -360,7 +500,15 @@ impl S3Client {
             .body(ByteStream::from(data))
             .send()
             .await
-            .map_err(|e| Error::internal(format!("S3 PutObject error: {}", e)))?;
+            .map_err(|e| {
+                let mut msg = format!("S3 PutObject error: {}", e);
+                let mut src: Option<&dyn std::error::Error> = std::error::Error::source(&e);
+                while let Some(cause) = src {
+                    msg.push_str(&format!(" :: {}", cause));
+                    src = cause.source();
+                }
+                Error::internal(msg)
+            })?;
 
         Ok(())
     }
@@ -462,7 +610,10 @@ impl S3Client {
                     Ok(None)
                 } else {
                     Err(Error::internal(format!(
-                        "S3 HeadObject error: {}",
+                        "S3 HeadObject error on key '{}': {} (code={:?}) (detail: {:?})",
+                        key,
+                        service_err,
+                        service_err.meta().code(),
                         service_err
                     )))
                 }
@@ -561,21 +712,43 @@ impl S3Client {
         Ok(())
     }
 
-    /// Check if a directory exists (either marker or any children)
+    /// Atomically rename an object within the same directory bucket
+    /// (metadata-only, no data movement; completes in milliseconds).
+    /// S3 Express One Zone only — callers must gate on `is_express()`.
+    /// Does not work on keys ending in `/` (directory markers).
+    pub async fn rename_object(&self, src_key: &str, dst_key: &str) -> Result<()> {
+        // The `x-amz-rename-source` header is the bare source object key
+        // within the same bucket — no bucket prefix and no leading slash
+        // (a leading slash is treated as part of the key and yields NoSuchKey).
+        self.client
+            .rename_object()
+            .bucket(&self.bucket)
+            .key(dst_key)
+            .rename_source(src_key)
+            .send()
+            .await
+            .map_err(|e| {
+                Error::internal(format!(
+                    "S3 RenameObject error: {}",
+                    aws_sdk_s3::error::DisplayErrorContext(&e)
+                ))
+            })?;
+
+        Ok(())
+    }
+
+    /// Check if a directory exists (either marker or any children).
+    /// Uses a single LIST call: the marker itself shows up in `contents()`
+    /// (its key ends with `/`), and any child files/dirs show up in
+    /// `contents()` / `common_prefixes()`. One round trip is enough.
     pub async fn directory_exists(&self, path: &str) -> Result<bool> {
         let dir_key = self.build_key(path);
         let dir_key_slash = if dir_key.ends_with('/') {
-            dir_key.clone()
+            dir_key
         } else {
             format!("{}/", dir_key)
         };
 
-        // Check if directory marker exists
-        if self.head_object(&dir_key_slash).await?.is_some() {
-            return Ok(true);
-        }
-
-        // Check if any objects exist with this prefix
         let resp = self
             .client
             .list_objects_v2()
@@ -657,6 +830,16 @@ impl S3Client {
     pub fn bucket(&self) -> &str {
         &self.bucket
     }
+
+    /// Whether this client is configured for an S3 Express directory bucket.
+    pub fn is_express(&self) -> bool {
+        self.is_express
+    }
+
+    /// AZ ID this Express client is bound to (empty string for non-Express).
+    pub fn availability_zone_id(&self) -> &str {
+        &self.availability_zone_id
+    }
 }
 
 #[cfg(test)]
@@ -676,6 +859,8 @@ mod tests {
             normalize_encoding_chars: normalize_encoding_chars.to_string(),
             marker_mode: DirectoryMarkerMode::Empty,
             disable_batch_delete: false,
+            is_express: false,
+            availability_zone_id: String::new(),
         }
     }
 

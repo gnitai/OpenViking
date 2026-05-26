@@ -224,3 +224,61 @@ class TestLockTypeCache:
         )
 
         await lm.release(parent_handle)
+
+
+class TestReconcileTransientRead:
+    """A transient S3 read error (a token momentarily reading as None while the
+    lock is still validly held on disk) must NOT permanently evict the owning
+    handle.
+
+    The handoff lease exposes its handle via `get_handle`, which runs
+    `_reconcile_handle`. One swallowed read error used to drop the handle's only
+    lock and pop it from the manager, after which `lock.handle` returned None
+    forever. SyncDiff then fell back to a fresh per-mv handle that could not own
+    the inherited TREE lock, so every destination lock acquisition timed out."""
+
+    async def test_transient_read_does_not_evict_owned_handle(self, lm, test_dir):
+        handle = lm.create_handle()
+        await lm.acquire_tree(handle, test_dir)
+        lock_path = handle.locks[0]
+        handle_id = handle.id
+
+        # _read_token swallows transient S3 errors into None; simulate exactly
+        # one such blip on the ownership re-check inside reconcile.
+        real_read = lm._path_lock._read_token
+        state = {"failed": False}
+
+        def flaky_read(p):
+            if p == lock_path and not state["failed"]:
+                state["failed"] = True
+                return None
+            return real_read(p)
+
+        lm._path_lock._read_token = flaky_read
+
+        current = lm.get_handle(handle_id)
+
+        assert current is not None, (
+            "a transient read error evicted a handle that still owns its lock"
+        )
+        assert lock_path in current.locks
+        assert lm.get_handle(handle_id) is not None
+
+        lm._path_lock._read_token = real_read
+        await lm.release(handle)
+
+    async def test_definitively_foreign_lock_is_still_lost(self, agfs_client, lm, test_dir):
+        """A lock that is genuinely owned by a different id must still be
+        reconciled away — the transient-read tolerance must not mask real loss."""
+        handle = lm.create_handle()
+        await lm.acquire_tree(handle, test_dir)
+        lock_path = handle.locks[0]
+
+        # Overwrite the on-disk token with a different, stable owner.
+        from openviking.storage.transaction.path_lock import _make_fencing_token
+
+        agfs_client.write(lock_path, _make_fencing_token("someone-else", "T").encode("utf-8"))
+
+        assert lm.get_handle(handle.id) is None, (
+            "a stably foreign-owned lock must still be treated as lost"
+        )

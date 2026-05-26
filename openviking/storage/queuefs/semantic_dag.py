@@ -3,12 +3,13 @@
 """Semantic DAG executor with event-driven lazy dispatch."""
 
 import asyncio
+import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Dict, List, Optional
 
 from openviking.server.identity import RequestContext
 from openviking.storage.queuefs.semantic_sidecar import write_semantic_sidecars
-from openviking.storage.transaction import NO_LOCK, LockLease
+from openviking.storage.transaction import NO_LOCK, LockLease, get_lock_manager
 from openviking.storage.viking_fs import get_viking_fs
 from openviking.telemetry.request_wait_tracker import get_request_wait_tracker
 from openviking_cli.utils import VikingURI
@@ -61,6 +62,10 @@ class VectorizeTask:
     summary_dict: Optional[Dict[str, str]] = None
     parent_uri: Optional[str] = None
     use_summary: bool = False
+    # Cached text content captured during semantic summary so the embedding
+    # stage does not have to re-read the same file from AGFS (1 HEAD + 1 GET
+    # per file on S3). Only populated for text files.
+    prefetched_text: Optional[str] = None
     # For directory tasks
     abstract: Optional[str] = None
     overview: Optional[str] = None
@@ -86,6 +91,7 @@ class SemanticDagExecutor:
         skip_vectorization: bool = False,
         coalesce_key: str = "",
         coalesce_version: int = 0,
+        write_concurrency: int = 8,
     ):
         self._processor = processor
         self._context_type = context_type
@@ -107,6 +113,10 @@ class SemanticDagExecutor:
             path for key in ("added", "modified", "deleted") for path in self._changes.get(key, [])
         }
         self._llm_sem = asyncio.Semaphore(max_concurrent_llm)
+        # Bound how many directories flush their sidecars to storage at once.
+        # Locks are now cheap (temp-tree pre-acquire), so all sibling dirs would
+        # otherwise burst their writes concurrently and throttle S3 Express.
+        self._write_sem = asyncio.Semaphore(max(1, write_concurrency))
         self._viking_fs = get_viking_fs()
         self._nodes: Dict[str, DirNode] = {}
         self._parent: Dict[str, Optional[str]] = {}
@@ -120,6 +130,19 @@ class SemanticDagExecutor:
         self._dir_change_status: Dict[str, bool] = {}
         self._overview_cache: Dict[str, Dict[str, str]] = {}
         self._overview_cache_lock = asyncio.Lock()
+        # Perf instrumentation: aggregate the (uninstrumented) bottom-up directory
+        # overview roll-up so the post-summary silent gap is visible at a glance.
+        self._rollup_t0: Optional[float] = None
+        self._overview_acc: Dict[str, float] = {
+            "dirs": 0,
+            "lock": 0.0,
+            "llm": 0.0,
+            "read_existing": 0.0,
+            "children": 0.0,
+            "write": 0.0,
+            "unchanged": 0,
+            "generated": 0,
+        }
 
     def _create_on_complete_callback(self) -> Callable[[], Awaitable[None]]:
         """Create on_complete callback for incremental update or full update."""
@@ -169,12 +192,52 @@ class SemanticDagExecutor:
         self._root_uri = root_uri
         self._root_done = asyncio.Event()
 
+        # Pre-acquire a TREE lock over the temp root for the duration of the
+        # bottom-up overview roll-up. Each per-directory write_semantic_sidecars
+        # takes a LockContext exact-acquire on temp sidecar paths; without an
+        # owned ancestor tree there, acquire does a serial S3 ancestor walk
+        # (measured ~20-35s/dir on Express — the dominant cost of the
+        # post-summary gap). Registering this tree lock on the handle populates
+        # lock_types so those acquires hit the in-memory cache. Released once
+        # the roll-up finishes — before SyncDiff (on_complete) re-acquires its
+        # own temp tree lock. Mirrors SyncDiff Change 1 in semantic_processor.
+        temp_tree_locks: List[str] = []
+        handle = getattr(self._lock, "handle", None)
+        if handle is not None:
+            try:
+                root_path = self._viking_fs._uri_to_path(root_uri, ctx=self._ctx)
+                locks_before = set(handle.locks)
+                if await get_lock_manager().acquire_tree(handle, root_path):
+                    temp_tree_locks = [
+                        lp for lp in handle.locks if lp not in locks_before
+                    ]
+                else:
+                    logger.warning(
+                        "[overview] temp tree pre-acquire returned False for %s; "
+                        "roll-up uses slow ancestor walk",
+                        root_path,
+                    )
+            except Exception as e:
+                logger.warning("[overview] temp tree pre-acquire failed: %s", e)
+
+        async def _release_temp_tree_locks() -> None:
+            nonlocal temp_tree_locks
+            if not temp_tree_locks:
+                return
+            to_release, temp_tree_locks = temp_tree_locks, []
+            try:
+                await get_lock_manager().release_selected(handle, to_release)
+            except Exception as e:
+                logger.warning("[overview] failed to release temp tree lock: %s", e)
+
         try:
             await self._dispatch_dir(root_uri, parent_uri=None)
             await self._root_done.wait()
         except Exception:
             await self._lock.close()
             raise
+        finally:
+            await _release_temp_tree_locks()
 
         original_on_complete = self._create_on_complete_callback()
 
@@ -216,6 +279,7 @@ class SemanticDagExecutor:
                             ctx=task.ctx,
                             semantic_msg_id=task.semantic_msg_id,
                             use_summary=task.use_summary,
+                            prefetched_text=task.prefetched_text,
                         )
                     )
                 else:
@@ -354,6 +418,17 @@ class SemanticDagExecutor:
             target_size = target_stat.get("size") if isinstance(target_stat, dict) else None
             if current_size is not None and target_size is not None and current_size != target_size:
                 return True
+            # Use size + modTime as the primary heuristic (rsync -t style).
+            # On S3, the previous content-equality check cost 1 HEAD + 1 GET
+            # per side per file -- 400+ extra round trips for a 100-file
+            # incremental update. Only fall back to full content compare when
+            # modTime is unavailable on either side.
+            current_mtime = (
+                current_stat.get("modTime") if isinstance(current_stat, dict) else None
+            )
+            target_mtime = target_stat.get("modTime") if isinstance(target_stat, dict) else None
+            if current_mtime is not None and target_mtime is not None:
+                return current_mtime != target_mtime
             current_content = await self._viking_fs.read_file(file_path, ctx=self._ctx)
             target_content = await self._viking_fs.read_file(target_path, ctx=self._ctx)
             return current_content != target_content
@@ -471,6 +546,11 @@ class SemanticDagExecutor:
 
         file_name = file_path.split("/")[-1]
         need_vectorize = True
+        # Perf instrumentation (Stage 1A): bracket the whole task so we can see
+        # how long each file spends in the summary phase end-to-end. Pair this
+        # with the per-step breakdown in semantic_processor._generate_text_summary.
+        _t_task_start = time.monotonic()
+        logger.info("[summary] phase=start file=%s", file_path)
         try:
             summary_dict = None
             if self._incremental_update:
@@ -495,6 +575,21 @@ class SemanticDagExecutor:
         finally:
             self._stats.done_nodes += 1
             self._stats.in_progress_nodes = max(0, self._stats.in_progress_nodes - 1)
+            logger.info(
+                "[summary] phase=done file=%s wall_ms=%.1f need_vectorize=%s",
+                file_path,
+                (time.monotonic() - _t_task_start) * 1000,
+                need_vectorize,
+            )
+
+        # Strip the internal `_prefetched_text` payload that the text summary
+        # generator attaches so the embedding stage can skip a second AGFS
+        # read. We pull it out *before* enqueueing the vectorize task and
+        # *before* the dict is recorded in the parent node's file_summaries
+        # (which is serialized into .overview.md downstream).
+        prefetched_text = summary_dict.pop("_prefetched_text", None) if isinstance(
+            summary_dict, dict
+        ) else None
 
         try:
             if need_vectorize:
@@ -509,6 +604,7 @@ class SemanticDagExecutor:
                     summary_dict=summary_dict,
                     parent_uri=parent_uri,
                     use_summary=use_summary,
+                    prefetched_text=prefetched_text,
                 )
                 await self._add_vectorize_task(task)
         except Exception as e:
@@ -575,11 +671,15 @@ class SemanticDagExecutor:
     def stale(self) -> bool:
         return self._stale
 
-    async def _finalize_children_abstracts(self, node: DirNode) -> List[Dict[str, str]]:
+    async def _finalize_children_abstracts(
+        self, node: DirNode
+    ) -> tuple[List[Dict[str, str]], int]:
         results: List[Dict[str, str]] = []
+        abstract_misses = 0
         for idx, child_uri in enumerate(node.children_dirs):
             item = node.children_abstracts[idx]
             if item is None:
+                abstract_misses += 1
                 try:
                     abstract = await self._viking_fs.abstract(child_uri, ctx=self._ctx)
                 except Exception:
@@ -587,7 +687,7 @@ class SemanticDagExecutor:
                 results.append({"name": child_uri.split("/")[-1], "abstract": abstract})
             else:
                 results.append(item)
-        return results
+        return results, abstract_misses
 
     def _is_stale(self) -> bool:
         from openviking.storage.queuefs.semantic_queue import is_semantic_coalesce_stale
@@ -599,6 +699,7 @@ class SemanticDagExecutor:
         dir_uri: str,
         overview: str,
         abstract: str,
+        timing: Optional[Dict[str, float]] = None,
     ) -> bool:
         wrote = await write_semantic_sidecars(
             viking_fs=self._viking_fs,
@@ -609,6 +710,7 @@ class SemanticDagExecutor:
             is_stale=self._is_stale,
             lock=self._lock,
             log_prefix="[SemanticDag]",
+            timing=timing,
         )
         if not wrote:
             self._stale = True
@@ -621,35 +723,64 @@ class SemanticDagExecutor:
         need_vectorize = True
         children_changed = True
         abstract = ""
+        # Perf instrumentation (no logic change): bracket each step of the
+        # bottom-up directory roll-up — the silent gap after leaf summaries.
+        _t_task = time.monotonic()
+        if self._rollup_t0 is None:
+            self._rollup_t0 = _t_task
+        incr_ms = read_ms = children_ms = llm_ms = sidecar_ms = 0.0
+        abstract_misses = 0
+        branch = "generated"
+        sidecar_timing: Dict[str, float] = {}
         try:
             overview = None
             abstract = None
             if self._incremental_update:
+                _t = time.monotonic()
                 children_changed = await self._check_dir_children_changed(
                     dir_uri, node.file_paths, node.children_dirs
                 )
+                incr_ms = (time.monotonic() - _t) * 1000
 
                 if not children_changed:
                     need_vectorize = False
+                    _t = time.monotonic()
                     overview, abstract = await self._read_existing_overview_abstract(dir_uri)
+                    read_ms = (time.monotonic() - _t) * 1000
             if overview is None or abstract is None:
+                _t = time.monotonic()
                 async with node.lock:
                     file_summaries = self._finalize_file_summaries(node)
-                    children_abstracts = await self._finalize_children_abstracts(node)
+                    children_abstracts, abstract_misses = (
+                        await self._finalize_children_abstracts(node)
+                    )
+                children_ms = (time.monotonic() - _t) * 1000
+                _t = time.monotonic()
                 async with self._llm_sem:
                     overview = await self._processor._generate_overview(
                         dir_uri, file_summaries, children_abstracts
                     )
+                llm_ms = (time.monotonic() - _t) * 1000
                 abstract = self._processor._extract_abstract_from_overview(overview)
                 overview, abstract = self._processor._enforce_size_limits(overview, abstract)
+            else:
+                branch = "unchanged_reread"
 
-            # Write directly, protected by the outer semantic lock.
+            # Write directly, protected by the outer semantic lock. Bound the
+            # number of directories writing at once (self._write_sem) so the
+            # roll-up doesn't saturate S3 Express. sidecar_ms includes any time
+            # spent queued on the write semaphore.
+            _t = time.monotonic()
             try:
-                wrote = await self._write_directory_semantics(dir_uri, overview, abstract)
+                async with self._write_sem:
+                    wrote = await self._write_directory_semantics(
+                        dir_uri, overview, abstract, timing=sidecar_timing
+                    )
                 if not wrote:
                     need_vectorize = False
             except Exception:
                 logger.info(f"[SemanticDag] {dir_uri} write failed, skipping")
+            sidecar_ms = (time.monotonic() - _t) * 1000
 
             try:
                 if need_vectorize:
@@ -671,11 +802,44 @@ class SemanticDagExecutor:
         finally:
             self._stats.done_nodes += 1
             self._stats.in_progress_nodes = max(0, self._stats.in_progress_nodes - 1)
+            total_ms = (time.monotonic() - _t_task) * 1000
+            lock_acquire_ms = sidecar_timing.get("lock_acquire_ms", 0.0)
+            write_only_ms = sidecar_timing.get("write_ms", 0.0)
+            rel = dir_uri[len(self._root_uri):].strip("/") if self._root_uri else ""
+            depth = 0 if not rel else rel.count("/") + 1
+            self._overview_acc["dirs"] += 1
+            self._overview_acc["lock"] += lock_acquire_ms
+            self._overview_acc["llm"] += llm_ms
+            self._overview_acc["read_existing"] += read_ms
+            self._overview_acc["children"] += children_ms
+            self._overview_acc["write"] += write_only_ms
+            if branch == "unchanged_reread":
+                self._overview_acc["unchanged"] += 1
+            else:
+                self._overview_acc["generated"] += 1
+            logger.info(
+                "[overview] dir=%s branch=%s depth=%d total_ms=%.1f incr_ms=%.1f "
+                "read_ms=%.1f children_ms=%.1f abstract_misses=%d llm_ms=%.1f "
+                "sidecar_ms=%.1f lock_acquire_ms=%.1f write_ms=%.1f",
+                dir_uri, branch, depth, total_ms, incr_ms, read_ms, children_ms,
+                abstract_misses, llm_ms, sidecar_ms, lock_acquire_ms, write_only_ms,
+            )
 
         self._dir_change_status[dir_uri] = children_changed
 
         parent_uri = self._parent.get(dir_uri)
         if parent_uri is None:
+            acc = self._overview_acc
+            rollup_ms = (
+                (time.monotonic() - self._rollup_t0) * 1000 if self._rollup_t0 else 0.0
+            )
+            logger.info(
+                "[overview_rollup] total_ms=%.1f dirs=%d ops=[lock=%.1f llm=%.1f "
+                "read_existing=%.1f children=%.1f write=%.1f] "
+                "branches=[unchanged=%d generated=%d]",
+                rollup_ms, acc["dirs"], acc["lock"], acc["llm"], acc["read_existing"],
+                acc["children"], acc["write"], acc["unchanged"], acc["generated"],
+            )
             if self._root_done:
                 self._root_done.set()
             return

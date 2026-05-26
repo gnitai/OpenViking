@@ -406,3 +406,71 @@ async fn test_express_roundtrip_live() {
         .await
         .expect("delete_object failed");
 }
+
+/// Validates the atomic `RenameObject` path (and the `rename_source` header
+/// format) against a real S3 Express directory bucket: PUT a source object,
+/// rename it to a different prefix, assert the source is gone and the
+/// destination has the original bytes.
+///
+/// Same env-var gating as `test_express_roundtrip_live`.
+#[tokio::test]
+#[cfg_attr(not(feature = "s3-express-live"), ignore)]
+async fn test_express_rename_object_live() {
+    let bucket = match std::env::var("AWS_TEST_S3_EXPRESS_BUCKET") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("AWS_TEST_S3_EXPRESS_BUCKET not set; skipping live express test");
+            return;
+        }
+    };
+    let az = match std::env::var("AWS_TEST_S3_EXPRESS_AZ") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("AWS_TEST_S3_EXPRESS_AZ not set; skipping live express test");
+            return;
+        }
+    };
+    let region = match std::env::var("AWS_TEST_S3_EXPRESS_REGION") {
+        Ok(v) => v,
+        Err(_) => {
+            eprintln!("AWS_TEST_S3_EXPRESS_REGION not set; skipping live express test");
+            return;
+        }
+    };
+
+    let mut params = HashMap::new();
+    params.insert("bucket".to_string(), s(&bucket));
+    params.insert("region".to_string(), s(&region));
+    params.insert("express".to_string(), b(true));
+    params.insert("availability_zone_id".to_string(), s(&az));
+    if let Ok(ak) = std::env::var("AWS_ACCESS_KEY_ID") {
+        params.insert("access_key_id".to_string(), s(&ak));
+    }
+    if let Ok(sk) = std::env::var("AWS_SECRET_ACCESS_KEY") {
+        params.insert("secret_access_key".to_string(), s(&sk));
+    }
+
+    let client = S3Client::new(&params)
+        .await
+        .expect("S3Client::new should succeed for live express config");
+
+    let id = uuid::Uuid::new_v4();
+    let src = format!("ragfs-express-rename/{}/src.txt", id);
+    let dst = format!("ragfs-express-rename/{}/sub/dst.txt", id);
+    let body = b"rename me atomically".to_vec();
+
+    client.put_object(&src, body.clone()).await.expect("put_object failed");
+
+    client
+        .rename_object(&src, &dst)
+        .await
+        .expect("rename_object failed (check rename_source header format)");
+
+    let src_head = client.head_object(&src).await.expect("head src failed");
+    assert!(src_head.is_none(), "source object should be gone after rename");
+
+    let read = client.get_object(&dst).await.expect("get dst failed");
+    assert_eq!(read, body, "destination must hold original bytes");
+
+    client.delete_object(&dst).await.ok();
+}

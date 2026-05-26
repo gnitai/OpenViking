@@ -16,6 +16,9 @@
 pub mod cache;
 pub mod client;
 
+#[cfg(test)]
+mod tests_express;
+
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
@@ -289,6 +292,14 @@ impl S3FileSystem {
 
     /// Default concurrency window for parallel grep.
     fn default_grep_concurrency() -> usize {
+        std::thread::available_parallelism()
+            .map(|n| (n.get() * 2).clamp(16, 100))
+            .unwrap_or(16)
+    }
+
+    /// Default concurrency window for parallel per-object copies/renames
+    /// during a directory move.
+    fn default_copy_concurrency() -> usize {
         std::thread::available_parallelism()
             .map(|n| (n.get() * 2).clamp(16, 100))
             .unwrap_or(16)
@@ -611,8 +622,15 @@ impl FileSystem for S3FileSystem {
 
         let key = self.client.build_key(&normalized);
 
-        // Check if it's a file
-        if let Some(meta) = self.client.head_object(&key).await? {
+        // Fire HEAD (file probe) and LIST (directory probe) in parallel.
+        // On S3 each round trip is 100+ms; serial execution dominates the
+        // semantic-walker pipeline that calls stat once per file/dir.
+        let head_fut = self.client.head_object(&key);
+        let dir_fut = self.client.directory_exists(&normalized);
+        let (head_res, dir_res) = tokio::join!(head_fut, dir_fut);
+
+        // Prefer file hit if HEAD returned a non-marker object
+        if let Ok(Some(meta)) = &head_res {
             if !meta.is_dir_marker {
                 let info = FileInfo {
                     name: Self::file_name(&normalized),
@@ -628,24 +646,33 @@ impl FileSystem for S3FileSystem {
             }
         }
 
-        // Check if it's a directory
-        if self.client.directory_exists(&normalized).await? {
-            let info = FileInfo {
-                name: Self::file_name(&normalized),
-                size: 0,
-                mode: 0o755,
-                mod_time: SystemTime::now(),
-                is_dir: true,
-            };
-            self.stat_cache
-                .put(normalized.clone(), Some(info.clone()))
-                .await;
-            return Ok(info);
+        // Otherwise honor the directory probe
+        match dir_res {
+            Ok(true) => {
+                let info = FileInfo {
+                    name: Self::file_name(&normalized),
+                    size: 0,
+                    mode: 0o755,
+                    mod_time: SystemTime::now(),
+                    is_dir: true,
+                };
+                self.stat_cache
+                    .put(normalized.clone(), Some(info.clone()))
+                    .await;
+                Ok(info)
+            }
+            Ok(false) => {
+                // Surface a HEAD error only if the directory probe also
+                // returned a clean "not found" (otherwise we'd shadow a real
+                // S3/network error).
+                if let Err(e) = head_res {
+                    return Err(e);
+                }
+                self.stat_cache.put(normalized.clone(), None).await;
+                Err(Error::not_found(&normalized))
+            }
+            Err(e) => Err(e),
         }
-
-        // Not found
-        self.stat_cache.put(normalized.clone(), None).await;
-        Err(Error::not_found(&normalized))
     }
 
     async fn rename(&self, old_path: &str, new_path: &str) -> Result<()> {
@@ -661,10 +688,15 @@ impl FileSystem for S3FileSystem {
         // Check if old path exists as a file
         if let Some(meta) = self.client.head_object(&old_key).await? {
             if !meta.is_dir_marker {
-                // File rename: copy + delete
                 let new_key = self.client.build_key(&new_normalized);
-                self.client.copy_object(&old_key, &new_key).await?;
-                self.client.delete_object(&old_key).await?;
+                if self.client.is_express() {
+                    // Atomic metadata-only move (no data copy).
+                    self.client.rename_object(&old_key, &new_key).await?;
+                } else {
+                    // Standard S3 has no rename: server-side copy + delete.
+                    self.client.copy_object(&old_key, &new_key).await?;
+                    self.client.delete_object(&old_key).await?;
+                }
 
                 self.dir_cache.invalidate_parent(&old_normalized).await;
                 self.dir_cache.invalidate_parent(&new_normalized).await;
@@ -675,7 +707,7 @@ impl FileSystem for S3FileSystem {
             }
         }
 
-        // Directory rename: copy all children + delete originals
+        // Directory rename: move all children (+ originals cleanup)
         if self.client.directory_exists(&old_normalized).await? {
             let old_prefix = format!("{}/", self.client.build_key(&old_normalized));
             let new_prefix_base = self.client.build_key(&new_normalized);
@@ -683,7 +715,9 @@ impl FileSystem for S3FileSystem {
             // List all objects under old prefix
             let listing = self.client.list_objects(&old_prefix, None).await?;
 
-            // Copy directory marker
+            // Copy the directory marker first. RenameObject cannot move
+            // "/"-suffixed keys, so the marker is always a copy (cheap empty
+            // object), even on Express.
             let old_dir_key = format!("{}/", self.client.build_key(&old_normalized));
             let new_dir_key = format!("{}/", new_prefix_base);
 
@@ -691,18 +725,47 @@ impl FileSystem for S3FileSystem {
                 self.client.copy_object(&old_dir_key, &new_dir_key).await?;
             }
 
-            // Copy all children
-            for obj in &listing.files {
-                let relative = obj.key.strip_prefix(&old_prefix).unwrap_or(&obj.key);
-                let new_key = format!("{}/{}", new_prefix_base, relative);
-                self.client.copy_object(&obj.key, &new_key).await?;
+            if self.client.is_express() {
+                // Atomic per-object renames, fanned out. RenameObject moves
+                // each object (no data copy, ~ms), leaving nothing at the
+                // source key — so no delete pass is needed for children.
+                let pairs: Vec<(String, String)> = listing
+                    .files
+                    .iter()
+                    .map(|obj| {
+                        let relative = obj.key.strip_prefix(&old_prefix).unwrap_or(&obj.key);
+                        (obj.key.clone(), format!("{}/{}", new_prefix_base, relative))
+                    })
+                    .collect();
+
+                let concurrency = Self::default_copy_concurrency().min(pairs.len().max(1));
+                let mut stream = stream::iter(pairs)
+                    .map(|(src_key, dst_key)| async move {
+                        self.client.rename_object(&src_key, &dst_key).await
+                    })
+                    .buffer_unordered(concurrency);
+                while let Some(item) = stream.next().await {
+                    item?;
+                }
+
+                // Children (non-marker objects) are already moved by rename.
+                // Sweep whatever remains under the source prefix — nested
+                // directory markers that list_objects skips and rename can't
+                // move — with a single batched delete, so the caller's temp
+                // cleanup doesn't have to walk them one by one.
+                self.client.delete_directory(&old_normalized).await?;
+                let _ = self.client.delete_object(&old_dir_key).await;
+            } else {
+                // Standard S3: server-side copy each child, then delete originals.
+                for obj in &listing.files {
+                    let relative = obj.key.strip_prefix(&old_prefix).unwrap_or(&obj.key);
+                    let new_key = format!("{}/{}", new_prefix_base, relative);
+                    self.client.copy_object(&obj.key, &new_key).await?;
+                }
+
+                self.client.delete_directory(&old_normalized).await?;
+                let _ = self.client.delete_object(&old_dir_key).await;
             }
-
-            // Delete old directory
-            self.client.delete_directory(&old_normalized).await?;
-
-            // Also delete the old directory marker
-            let _ = self.client.delete_object(&old_dir_key).await;
 
             // Invalidate caches
             self.dir_cache.invalidate_prefix(&old_normalized).await;
@@ -900,6 +963,18 @@ impl S3FSPlugin {
                     "Disable batch delete (DeleteObjects) for S3-compatible services like OSS",
                 ),
                 ConfigParameter::optional(
+                    "express",
+                    "bool",
+                    "false",
+                    "Use S3 Express One Zone semantics (directory bucket, zonal endpoint, session auth)",
+                ),
+                ConfigParameter::optional(
+                    "availability_zone_id",
+                    "string",
+                    "",
+                    "AZ ID for the Express directory bucket (e.g. 'use1-az4'); required when express=true",
+                ),
+                ConfigParameter::optional(
                     "cache_enabled",
                     "bool",
                     "true",
@@ -1018,6 +1093,54 @@ plugins:
       disable_batch_delete: true
 ```
 
+### AWS S3 Express One Zone (directory bucket)
+
+Single-AZ, single-digit-ms latency storage class. The bucket name must end
+with `--<az-id>--x-s3`, and `availability_zone_id` must be the AZ **ID**
+(e.g. `use1-az4`) — not the zone name (`us-east-1a`).
+
+```yaml
+plugins:
+  s3fs:
+    enabled: true
+    path: /s3
+    config:
+      bucket: my-cache--use1-az4--x-s3
+      region: us-east-1
+      express: true
+      availability_zone_id: use1-az4
+```
+
+Constraints (enforced at config-validation time):
+
+- Custom `endpoint` is rejected — the SDK resolves the zonal endpoint from
+  the bucket-name suffix and signs with session credentials via CreateSession.
+- `use_path_style: true` is rejected — the zonal endpoint is virtual-hosted only.
+- `disable_batch_delete: true` is rejected — Express supports DeleteObjects.
+- `directory_marker_mode: nonempty` is rejected; use `empty` (default) or `none`.
+
+Express directory buckets do not support several general-purpose features
+(consequences for callers leaning on these):
+
+- No versioning, no object tags, no MFA Delete, no Object Lock.
+- No replication / CRR, no lifecycle *transitions* (expiration only).
+- No SSE-C, no DSSE-KMS; SSE-KMS allowed but with a single customer-managed
+  key per bucket lifetime; no `aws/s3` AWS-managed key.
+- ETag is opaque (not MD5); MD5 checksums are unsupported.
+- `ListObjectsV2` is not lexicographic and uses delimiter `/` only.
+- Multipart-upload part numbers must be consecutive starting at 1.
+
+The bucket itself is assumed to already exist; this plugin does not issue
+`CreateBucket`. Provision it via the AWS CLI:
+
+```
+aws s3api create-bucket \
+  --bucket my-cache--use1-az4--x-s3 \
+  --region us-east-1 \
+  --create-bucket-configuration \
+    'Location={Type=AvailabilityZone,Name=use1-az4},Bucket={Type=Directory,DataRedundancy=SingleAvailabilityZone}'
+```
+
 ## Directory Marker Modes
 
 - `empty` (default): Zero-byte marker objects for directories
@@ -1040,14 +1163,11 @@ plugins:
 
     async fn validate(&self, config: &PluginConfig) -> Result<()> {
         // bucket is required
-        if config
+        let bucket = config
             .params
             .get("bucket")
             .and_then(|v| v.as_string())
-            .is_none()
-        {
-            return Err(Error::config("'bucket' is required for S3FS"));
-        }
+            .ok_or_else(|| Error::config("'bucket' is required for S3FS"))?;
 
         // Validate directory_marker_mode if provided
         if let Some(mode) = config
@@ -1069,6 +1189,77 @@ plugins:
                     "invalid normalize_encoding_chars: expected string",
                 ));
             }
+        }
+
+        // S3 Express One Zone validation
+        let is_express = config
+            .params
+            .get("express")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
+        if is_express {
+            let az_id = config
+                .params
+                .get("availability_zone_id")
+                .and_then(|v| v.as_string())
+                .unwrap_or("");
+            if az_id.is_empty() {
+                return Err(Error::config(
+                    "'availability_zone_id' is required when express=true (e.g. 'use1-az4')",
+                ));
+            }
+            client::validate_express_config(bucket, az_id)?;
+
+            if config
+                .params
+                .get("use_path_style")
+                .and_then(|v| v.as_bool())
+                == Some(true)
+            {
+                return Err(Error::config(
+                    "S3 Express requires virtual-hosted-style addressing; remove 'use_path_style: true'",
+                ));
+            }
+
+            let endpoint = config
+                .params
+                .get("endpoint")
+                .and_then(|v| v.as_string())
+                .unwrap_or("");
+            if !endpoint.is_empty() {
+                return Err(Error::config(
+                    "custom 'endpoint' is not supported with express=true; the SDK derives the zonal endpoint from the bucket name",
+                ));
+            }
+
+            if config
+                .params
+                .get("disable_batch_delete")
+                .and_then(|v| v.as_bool())
+                == Some(true)
+            {
+                return Err(Error::config(
+                    "'disable_batch_delete' is not applicable to S3 Express (DeleteObjects is supported)",
+                ));
+            }
+
+            if let Some(mode) = config
+                .params
+                .get("directory_marker_mode")
+                .and_then(|v| v.as_string())
+            {
+                if mode == "nonempty" {
+                    return Err(Error::config(
+                        "directory_marker_mode 'nonempty' is not supported with express=true; use 'empty' or 'none'",
+                    ));
+                }
+            }
+        } else if client::parse_express_bucket_name(bucket).is_some() {
+            return Err(Error::config(format!(
+                "bucket '{}' looks like an S3 Express directory bucket (suffix '--x-s3'); set `express: true` and `availability_zone_id` to use it",
+                bucket
+            )));
         }
 
         Ok(())

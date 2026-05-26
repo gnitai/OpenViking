@@ -57,6 +57,7 @@ class _FakeProcessor:
         ctx=None,
         semantic_msg_id=None,
         use_summary=False,
+        prefetched_text=None,
     ):
         self.vectorized_files.append(file_path)
 

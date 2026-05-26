@@ -568,6 +568,28 @@ class VikingFS:
         except LockAcquisitionError:
             raise ResourceBusyError(f"Resource is being processed: {uri}", uri=uri)
 
+    def _is_s3_express_backend(self) -> bool:
+        """Whether the active AGFS backend is an S3 Express directory bucket.
+
+        On Express, a move can use the native RenameObject path (metadata-only,
+        no data copy) instead of the per-file cp+rm fallback. Cached per instance.
+        """
+        cached = getattr(self, "_s3_express_cached", None)
+        if cached is not None:
+            return cached
+        result = False
+        try:
+            from openviking_cli.utils.config import get_openviking_config
+
+            agfs = get_openviking_config().storage.agfs
+            result = getattr(agfs, "backend", None) == "s3" and bool(
+                getattr(agfs.s3, "express", False)
+            )
+        except Exception:
+            result = False
+        self._s3_express_cached = result
+        return result
+
     async def mv(
         self,
         old_uri: str,
@@ -579,6 +601,9 @@ class VikingFS:
 
         Implemented as cp + rm to avoid lock files being carried by FS mv.
         On VectorDB update failure the copy is cleaned up so the source stays intact.
+        On S3 Express the move uses the native RenameObject path (one binding
+        call, metadata-only) instead of cp+rm; the source is gone afterwards, so
+        a VectorDB failure reverses the move to keep the source intact.
         """
         from openviking.pyagfs.helpers import cp as agfs_cp
         from openviking.storage.transaction import LockContext, get_lock_manager
@@ -634,10 +659,17 @@ class VikingFS:
             # Check if it's temp directory (files already encrypted)
             is_temp = old_uri.startswith("viking://temp/")
 
-            # Copy source to destination (source still intact)
+            # Copy source to destination (source still intact), or — on S3
+            # Express — move it natively via RenameObject (no data copy).
             _t = time.monotonic()
+            _used_native_mv = False
             try:
-                if is_temp or not self._encryptor:
+                if (is_temp or not self._encryptor) and self._is_s3_express_backend():
+                    # Native rename: one binding call moves the whole subtree
+                    # server-side. Source no longer exists afterwards.
+                    await self._run_in_threadpool(self.agfs.mv, old_path, new_path)
+                    _used_native_mv = True
+                elif is_temp or not self._encryptor:
                     await self._run_in_threadpool(
                         agfs_cp, self.agfs, old_path, new_path, recursive=is_dir
                     )
@@ -670,7 +702,11 @@ class VikingFS:
                 await self._update_vector_store_uris(uris_to_move, old_uri, new_uri, ctx=ctx)
             except Exception:
                 try:
-                    if is_dir:
+                    if _used_native_mv:
+                        # Native mv already removed the source; move it back so
+                        # the source stays intact on VectorDB failure.
+                        await self._run_in_threadpool(self.agfs.mv, new_path, old_path)
+                    elif is_dir:
                         await self._run_in_threadpool(self.agfs.rm, new_path, recursive=True)
                     else:
                         await self._run_in_threadpool(self.agfs.rm, new_path)
@@ -679,9 +715,10 @@ class VikingFS:
                 raise
             _vec_ms = (time.monotonic() - _t) * 1000
 
-            # Delete source
+            # Delete source (native mv already moved it, so skip).
             _t = time.monotonic()
-            await self._run_in_threadpool(self.agfs.rm, old_path, recursive=is_dir)
+            if not _used_native_mv:
+                await self._run_in_threadpool(self.agfs.rm, old_path, recursive=is_dir)
             _rm_ms = (time.monotonic() - _t) * 1000
 
             logger.info(
