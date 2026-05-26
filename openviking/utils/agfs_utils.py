@@ -111,16 +111,25 @@ def _generate_plugin_config(agfs_config: Any, data_path: Path) -> Dict[str, Any]
             "region": s3_config.region,
             "access_key_id": s3_config.access_key,
             "secret_access_key": s3_config.secret_key,
-            "endpoint": s3_config.endpoint,
             "prefix": s3_config.prefix,
-            "disable_ssl": not s3_config.use_ssl,
-            "use_path_style": s3_config.use_path_style,
             "directory_marker_mode": s3_config.directory_marker_mode.value
             if hasattr(s3_config.directory_marker_mode, "value")
             else s3_config.directory_marker_mode,
-            "disable_batch_delete": s3_config.disable_batch_delete,
             "normalize_encoding_chars": s3_config.normalize_encoding_chars,
         }
+
+        if getattr(s3_config, "express", False):
+            # S3 Express One Zone: SDK derives the zonal endpoint from the
+            # bucket-name suffix and forces virtual-hosted addressing. Custom
+            # endpoint/use_path_style/disable_batch_delete are rejected by the
+            # Rust plugin under express=true.
+            s3_plugin_config["express"] = True
+            s3_plugin_config["availability_zone_id"] = s3_config.availability_zone_id
+        else:
+            s3_plugin_config["endpoint"] = s3_config.endpoint
+            s3_plugin_config["disable_ssl"] = not s3_config.use_ssl
+            s3_plugin_config["use_path_style"] = s3_config.use_path_style
+            s3_plugin_config["disable_batch_delete"] = s3_config.disable_batch_delete
 
         config["s3fs"] = {
             "enabled": True,

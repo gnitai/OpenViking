@@ -295,8 +295,9 @@ class LockManager:
 
         adopted = LockHandle(id=handle_id)
         for lock_path in dict.fromkeys(lock_paths):
-            if self._path_lock.is_lock_owned_by(lock_path, handle_id):
-                adopted.add_lock(lock_path)
+            owner_id_from_file, lock_type = self._path_lock._read_owner_and_type(lock_path)
+            if owner_id_from_file == handle_id and lock_type is not None:
+                adopted.add_lock(lock_path, lock_type)
         if not adopted.locks:
             return None
 
@@ -319,7 +320,12 @@ class LockManager:
             return False
 
     async def refresh_lock(self, handle: LockHandle) -> None:
-        current = self._reconcile_handle(handle)
+        # `_reconcile_handle` reads lock tokens from AGFS synchronously. On S3
+        # each read is a 100-500ms round trip; offload to the AGFS thread pool
+        # so the refresh task does not block the event loop.
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        current = await run_agfs_blocking(self._reconcile_handle, handle)
         if current is None:
             return
 
@@ -330,7 +336,7 @@ class LockManager:
         if result.refreshed_paths:
             self._mark_handle_active(current)
 
-        self._reconcile_handle(current)
+        await run_agfs_blocking(self._reconcile_handle, current)
 
     async def release(self, handle: LockHandle) -> None:
         await self._path_lock.release(handle)
@@ -341,12 +347,17 @@ class LockManager:
 
     async def _stale_cleanup_loop(self) -> None:
         """Check and release leaked handles every 60 s (in-process safety net)."""
+        from openviking.storage.viking_fs import run_agfs_blocking
+
         while self._running:
             await asyncio.sleep(_HANDLE_CLEANUP_INTERVAL_SECONDS)
             now = time.time()
             stale = []
             for handle in list(self._handles.values()):
-                current = self._reconcile_handle(handle)
+                # `_reconcile_handle` does a sync AGFS read per held lock to
+                # verify ownership. On S3 that adds up to hundreds of ms per
+                # handle; keep the event loop free.
+                current = await run_agfs_blocking(self._reconcile_handle, handle)
                 if current and self._is_handle_stale(current, now):
                     stale.append(current)
             for handle in stale:
@@ -376,14 +387,14 @@ class LockManager:
     # ------------------------------------------------------------------
 
     async def _recover_pending_redo(self) -> None:
-        pending_ids = self._redo_log.list_pending()
+        pending_ids = await self._redo_log.list_pending_async()
         for task_id in pending_ids:
             logger.info(f"Recovering pending redo task: {task_id}")
             try:
-                info = self._redo_log.read(task_id)
+                info = await self._redo_log.read_async(task_id)
                 if info:
                     await self._redo_session_memory(info)
-                self._redo_log.mark_done(task_id)
+                await self._redo_log.mark_done_async(task_id)
             except Exception as e:
                 logger.error(f"Redo recovery failed for {task_id}: {e}", exc_info=True)
 

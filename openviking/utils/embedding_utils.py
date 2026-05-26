@@ -349,6 +349,7 @@ async def vectorize_file(
     use_summary: bool = False,
     preserve_existing_created_at: bool = False,
     scalar_override: Optional[Dict[str, Any]] = None,
+    prefetched_text: Optional[str] = None,
 ) -> None:
     """
     Vectorize a single file.
@@ -356,6 +357,11 @@ async def vectorize_file(
     Creates Context object for the file and enqueues it.
     The effective vectorization strategy is resolved once from either the explicit
     `use_summary` flag (code path override) or the embedding config.
+
+    `prefetched_text` is an optional copy of the file's decoded text content,
+    captured during the semantic summary stage. When provided we use it
+    directly and skip a second AGFS read here. This eliminates one HEAD + GET
+    per file on the S3 backend.
     """
     enqueued = False
 
@@ -412,11 +418,16 @@ async def vectorize_file(
             if summary and effective_text_source in {"summary_first", "summary_only"}:
                 context.set_vectorize(Vectorize(text=summary))
             else:
-                # Read raw file content and apply configured truncation guard.
+                # Prefer the text captured by the semantic stage; only hit
+                # AGFS again when the prefetch is unavailable (re-enqueues,
+                # legacy callers, or non-text-summary paths).
                 try:
-                    content = await viking_fs.read_file(file_path, ctx=ctx)
-                    if isinstance(content, bytes):
-                        content = content.decode("utf-8", errors="replace")
+                    if prefetched_text is not None:
+                        content = prefetched_text
+                    else:
+                        content = await viking_fs.read_file(file_path, ctx=ctx)
+                        if isinstance(content, bytes):
+                            content = content.decode("utf-8", errors="replace")
                     content = _truncate_embedding_input(content, max_input_tokens)
                     context.set_vectorize(Vectorize(text=content))
                 except Exception as e:

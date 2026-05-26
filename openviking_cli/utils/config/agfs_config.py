@@ -77,6 +77,18 @@ class S3Config(BaseModel):
         "Set to an empty string to disable key normalization. Defaults to ?#%+@.",
     )
 
+    express: bool = Field(
+        default=False,
+        description="Use S3 Express One Zone semantics (directory bucket, zonal endpoint, session auth). "
+        "When true, 'availability_zone_id' is required and 'endpoint'/'use_path_style' must be omitted.",
+    )
+
+    availability_zone_id: Optional[str] = Field(
+        default=None,
+        description="AZ ID for the S3 Express directory bucket (e.g. 'use1-az4'). Required when express=true. "
+        "Must be the AZ ID, not the zone name ('us-east-1a' is wrong).",
+    )
+
     model_config = {"extra": "forbid"}
 
     def validate_config(self):
@@ -84,14 +96,18 @@ class S3Config(BaseModel):
         missing = []
         if not self.bucket:
             missing.append("bucket")
-        if not self.endpoint:
-            missing.append("endpoint")
         if not self.region:
             missing.append("region")
         if not self.access_key:
             missing.append("access_key")
         if not self.secret_key:
             missing.append("secret_key")
+        # Express derives the zonal endpoint from the bucket-name suffix; the
+        # standard `endpoint` field is required for everything else.
+        if not self.express and not self.endpoint:
+            missing.append("endpoint")
+        if self.express and not self.availability_zone_id:
+            missing.append("availability_zone_id")
 
         if missing:
             raise ValueError(f"S3 backend requires the following fields: {', '.join(missing)}")

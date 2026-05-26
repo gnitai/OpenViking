@@ -17,6 +17,11 @@ try:
 except ImportError:
     openai = None
 
+try:
+    import httpx
+except ImportError:
+    httpx = None
+
 from openviking.utils.model_retry import retry_async, retry_sync
 
 from ..base import ToolCall, VLMBase, VLMResponse
@@ -115,6 +120,20 @@ class OpenAIVLM(VLMBase):
                 self.extra_headers,
                 self.timeout,
             )
+            # Inject an httpx.AsyncClient that does NOT keep idle connections
+            # in its pool. Idle Cloudflare-fronted connections to api.openai.com
+            # get RST after ~180s, surfacing as httpx.ReadError → APIConnectionError
+            # mid-pipeline (observed during S3-backend ingest of code-crafters).
+            # Forcing a fresh connection per request side-steps the issue at
+            # the cost of one extra TLS handshake per call.
+            if httpx is not None:
+                kwargs["http_client"] = httpx.AsyncClient(
+                    timeout=kwargs.get("timeout", 60.0),
+                    limits=httpx.Limits(
+                        max_connections=20,
+                        max_keepalive_connections=0,
+                    ),
+                )
             if self.provider == "azure":
                 self._async_client = openai.AsyncAzureOpenAI(**kwargs)
             else:

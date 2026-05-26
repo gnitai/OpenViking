@@ -17,6 +17,7 @@ import contextvars
 import hashlib
 import json
 import re
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -196,6 +197,21 @@ def get_viking_fs() -> "VikingFS":
     return _instance
 
 
+async def run_agfs_blocking(func: Any, /, *args: Any, **kwargs: Any) -> Any:
+    """Run a blocking AGFS call on the dedicated AGFS thread pool.
+
+    Intended for callers that hold a raw AGFSClient (e.g. PathLockEngine,
+    RedoLog) and need to invoke its sync methods from `async def` code without
+    blocking the asyncio event loop. On the S3 backend each AGFS call is a
+    100-500ms HTTPS round trip; running them on the event loop starves httpx
+    I/O (OpenAI calls) and APScheduler.
+
+    The dedicated executor lives on VikingFS (64 workers, separate from the
+    default asyncio pool that httpx/anyio share).
+    """
+    return await VikingFS._run_in_threadpool(func, *args, **kwargs)
+
+
 # ========== VikingFS Main Class ==========
 
 
@@ -239,10 +255,32 @@ class VikingFS:
         bound = self._bound_ctx.get()
         return bound or self._default_ctx()
 
+    # Dedicated executor for AGFS blocking calls so that they do not starve
+    # the default asyncio thread pool that httpx/anyio also borrow from
+    # (e.g. OpenAI HTTPS reads). With S3 backend each agfs call blocks the
+    # calling thread for 100-200ms; sharing the default pool (14 workers on
+    # Python 3.14) caused httpx.ReadError on concurrent OpenAI calls.
+    _agfs_executor: "ThreadPoolExecutor" = None  # type: ignore[assignment]
+
+    @classmethod
+    def _get_agfs_executor(cls) -> "ThreadPoolExecutor":
+        if cls._agfs_executor is None:
+            from concurrent.futures import ThreadPoolExecutor
+
+            cls._agfs_executor = ThreadPoolExecutor(
+                max_workers=64, thread_name_prefix="agfs-blocking"
+            )
+        return cls._agfs_executor
+
     @staticmethod
     async def _run_in_threadpool(func: Any, /, *args: Any, **kwargs: Any) -> Any:
-        """Run blocking AGFS operations in the default thread pool."""
-        return await asyncio.to_thread(func, *args, **kwargs)
+        """Run blocking AGFS operations in a dedicated thread pool."""
+        from functools import partial
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            VikingFS._get_agfs_executor(), partial(func, *args, **kwargs)
+        )
 
     async def _encrypt_content(self, content: bytes, ctx: Optional[RequestContext] = None) -> bytes:
         """Encrypt content if encryption is enabled."""
@@ -581,14 +619,23 @@ class VikingFS:
             )
         )
 
+        # Perf instrumentation: bracket the lock acquire (everything before
+        # __aenter__ returns is lock setup) so we can see if 17 s/file mv is
+        # dominated by locking or the actual S3 work.
+        _t_mv_total = time.monotonic()
+        _t_lock_acq = time.monotonic()
         async with lock_context:
+            _lock_acq_ms = (time.monotonic() - _t_lock_acq) * 1000
+            _t = time.monotonic()
             uris_to_move = await self._collect_uris(old_path, recursive=True, ctx=ctx)
             uris_to_move.append(target_uri)
+            _collect_ms = (time.monotonic() - _t) * 1000
 
             # Check if it's temp directory (files already encrypted)
             is_temp = old_uri.startswith("viking://temp/")
 
             # Copy source to destination (source still intact)
+            _t = time.monotonic()
             try:
                 if is_temp or not self._encryptor:
                     await self._run_in_threadpool(
@@ -604,16 +651,21 @@ class VikingFS:
                     await self._delete_from_vector_store(uris_to_move, ctx=ctx)
                     logger.info(f"[VikingFS] mv source not found, cleaned orphan index: {old_uri}")
                 raise
+            _cp_ms = (time.monotonic() - _t) * 1000
 
             # Remove carried lock file from the copy (directory only)
+            _carried_ms = 0.0
             if is_dir and (is_temp or not self._encryptor):
                 carried_lock = new_path.rstrip("/") + "/.path.ovlock"
+                _t = time.monotonic()
                 try:
                     await self._run_in_threadpool(self.agfs.rm, carried_lock)
                 except Exception:
                     pass
+                _carried_ms = (time.monotonic() - _t) * 1000
 
             # Update VectorDB URIs (on failure, clean up the copy)
+            _t = time.monotonic()
             try:
                 await self._update_vector_store_uris(uris_to_move, old_uri, new_uri, ctx=ctx)
             except Exception:
@@ -625,9 +677,27 @@ class VikingFS:
                 except Exception:
                     pass
                 raise
+            _vec_ms = (time.monotonic() - _t) * 1000
 
             # Delete source
+            _t = time.monotonic()
             await self._run_in_threadpool(self.agfs.rm, old_path, recursive=is_dir)
+            _rm_ms = (time.monotonic() - _t) * 1000
+
+            logger.info(
+                "[mv] is_dir=%s wall_ms=%.0f lock_ms=%.0f collect_ms=%.0f cp_ms=%.0f carried_ms=%.0f vec_ms=%.0f rm_ms=%.0f uris_to_move=%d src=%s dst=%s",
+                is_dir,
+                (time.monotonic() - _t_mv_total) * 1000,
+                _lock_acq_ms,
+                _collect_ms,
+                _cp_ms,
+                _carried_ms,
+                _vec_ms,
+                _rm_ms,
+                len(uris_to_move),
+                old_uri,
+                new_uri,
+            )
             return {}
 
     async def _recursive_copy_dir_with_encryption(
@@ -1008,7 +1078,11 @@ class VikingFS:
         path = self._uri_to_path(uri, ctx=ctx)
         result = await self._run_in_threadpool(self.agfs.stat, path)
         if isinstance(result, dict):
-            result["isLocked"] = self._is_path_locked(path)
+            # `_is_path_locked` walks the ancestor chain calling sync AGFS reads
+            # under the hood; on S3 each one is a 100-500ms round trip. Offload
+            # the whole walk to the AGFS thread pool so it does not block the
+            # event loop on every stat.
+            result["isLocked"] = await self._run_in_threadpool(self._is_path_locked, path)
             # Add count for directories if vector store available
             if result.get("isDir", False):
                 try:

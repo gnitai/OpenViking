@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from openviking.core.namespace import canonicalize_uri, visible_roots
 from openviking.server.identity import RequestContext, Role
@@ -988,11 +988,13 @@ class VikingVectorIndexBackend:
                 return uri if uri.endswith("/.overview.md") else f"{uri}/.overview.md"
             return uri
 
-        success = False
-        ids_to_delete: List[str] = []
-        for record in records:
+        # Parallelise per-record upserts. The previous sequential loop is the
+        # ~60 s dominant cost in `_mv_vector_store_l0_l1` for a tree with many
+        # L0/L1 sidecar records; each upsert is independent (different record
+        # IDs) so it's safe to fan out.
+        async def _upsert_one(record: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
             if "id" not in record:
-                continue
+                return False, None
             raw_level = record.get("level", 2)
             try:
                 level = int(raw_level)
@@ -1003,16 +1005,14 @@ class VikingVectorIndexBackend:
             id_seed = f"{ctx.account_id}:{seed_uri}"
             new_id = hashlib.md5(id_seed.encode("utf-8")).hexdigest()
 
-            updated = {
-                **record,
-                "id": new_id,
-                "uri": canonical_new_uri,
-            }
-            if await self.upsert(updated, ctx=ctx):
-                success = True
-                old_id = record.get("id")
-                if old_id and old_id != new_id:
-                    ids_to_delete.append(old_id)
+            updated = {**record, "id": new_id, "uri": canonical_new_uri}
+            ok = await self.upsert(updated, ctx=ctx)
+            old_id = record.get("id")
+            return ok, (old_id if (ok and old_id and old_id != new_id) else None)
+
+        results = await asyncio.gather(*[_upsert_one(r) for r in records])
+        success = any(ok for ok, _ in results)
+        ids_to_delete: List[str] = [old_id for _, old_id in results if old_id]
 
         if ids_to_delete:
             await self.delete(list(set(ids_to_delete)), ctx=ctx)

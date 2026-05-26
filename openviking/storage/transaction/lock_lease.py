@@ -126,9 +126,16 @@ class OwnedLockLease(LockLease):
         manager: Optional[LockManager] = None,
     ) -> "OwnedLockLease":
         manager = manager or get_lock_manager()
-        handle = manager.get_handle(ref.handle_id)
+        # get_handle/adopt_handle walk the lock tokens via sync AGFS reads to
+        # reconcile owner state. On S3 each token read is a 100-500ms round
+        # trip; running them on the event loop blocks httpx/OpenAI I/O.
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        handle = await run_agfs_blocking(manager.get_handle, ref.handle_id)
         if handle is None:
-            handle = manager.adopt_handle(ref.handle_id, ref.lock_paths)
+            handle = await run_agfs_blocking(
+                manager.adopt_handle, ref.handle_id, ref.lock_paths
+            )
         if handle is None:
             raise LockAcquisitionError(f"Lock handle is no longer active: {ref.handle_id}")
         return cls(manager, handle)

@@ -97,6 +97,10 @@ criterion = "0.5"
 [features]
 default = []
 s3 = ["aws-sdk-s3", "aws-config", "aws-types"]
+# Opt-in flag that exposes a live AWS roundtrip test for S3 Express One Zone.
+# Off by default so CI never reaches the network. Run with:
+#   cargo test -p ragfs --features s3,s3-express-live -- --ignored test_express_roundtrip_live
+s3-express-live = ["s3"]
 full = ["s3"]
 
 [profile.release]

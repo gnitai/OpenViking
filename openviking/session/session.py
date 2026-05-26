@@ -1158,7 +1158,7 @@ class Session:
                     # redo-log protection
                     if redo_enabled:
                         redo_task_id = str(uuid.uuid4())
-                        redo_log.write_pending(
+                        await redo_log.write_pending_async(
                             redo_task_id,
                             {
                                 "archive_uri": archive_uri,
@@ -1291,7 +1291,7 @@ class Session:
                                 logger.warning(f"Failed to create relation to {usage.uri}: {e}")
 
                     if redo_enabled and redo_task_id:
-                        redo_log.mark_done(redo_task_id)
+                        await redo_log.mark_done_async(redo_task_id)
 
                     # Update active_count (using snapshot, not self._usage_records)
                     if self._vikingdb_manager:
@@ -1361,7 +1361,7 @@ class Session:
             logger.info(f"Session {self.session_id} memory extraction completed")
         except asyncio.CancelledError as e:
             if redo_enabled and redo_task_id:
-                redo_log.mark_done(redo_task_id)
+                await redo_log.mark_done_async(redo_task_id)
             try:
                 await self._write_failed_marker(
                     archive_uri,
@@ -1380,7 +1380,7 @@ class Session:
             raise
         except Exception as e:
             if redo_enabled and redo_task_id:
-                redo_log.mark_done(redo_task_id)
+                await redo_log.mark_done_async(redo_task_id)
             await self._write_failed_marker(
                 archive_uri,
                 stage="memory_extraction",

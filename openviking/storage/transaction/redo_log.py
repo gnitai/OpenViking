@@ -13,6 +13,16 @@ logger = get_logger(__name__)
 _REDO_ROOT = "/local/_system/redo"
 
 
+def _run_agfs_blocking_sync(func, *args, **kwargs):
+    """Sync helper that delegates to the async AGFS executor when one exists.
+
+    The sync RedoLog API is preserved for legacy callers, but the underlying
+    AGFS calls still need to avoid blocking the event loop on S3. Direct call
+    is the default; async callers should use the *_async variants below.
+    """
+    return func(*args, **kwargs)
+
+
 class RedoLog:
     """Lightweight pending-task marker.
 
@@ -74,3 +84,27 @@ class RedoLog:
         except Exception as e:
             logger.warning(f"Failed to read redo info for {task_id}: {e}")
             return {}
+
+    # ------------------------------------------------------------------
+    # Async variants — keep the event loop free when the AGFS backend is S3.
+    # ------------------------------------------------------------------
+
+    async def write_pending_async(self, task_id: str, info: Dict[str, Any]) -> None:
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        await run_agfs_blocking(self.write_pending, task_id, info)
+
+    async def mark_done_async(self, task_id: str) -> None:
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        await run_agfs_blocking(self.mark_done, task_id)
+
+    async def list_pending_async(self) -> List[str]:
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        return await run_agfs_blocking(self.list_pending)
+
+    async def read_async(self, task_id: str) -> Dict[str, Any]:
+        from openviking.storage.viking_fs import run_agfs_blocking
+
+        return await run_agfs_blocking(self.read, task_id)
