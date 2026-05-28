@@ -239,3 +239,36 @@ class ThirdPartyCollectionAdapter(CollectionAdapter):
 - create 后可完成 upsert/get/query/delete/count 全流程。
 - 不改上层业务调用方式即可参与 `find/search` 检索链路。
 - 后端差异全部封装在 adapter 层。
+
+---
+
+## 10. 已注册后端 / Registered backends
+
+| `backend` 值 | Adapter | 说明 |
+|---|---|---|
+| `local` | `LocalCollectionAdapter` | 本地嵌入式存储 |
+| `http` | `HttpCollectionAdapter` | 自建 HTTP VikingDB 服务 |
+| `volcengine` | `VolcengineCollectionAdapter` | 火山引擎 VikingDB（AK/SK 或 API Key） |
+| `vikingdb` | `VikingDBPrivateCollectionAdapter` | 私有部署 VikingDB |
+| `turbopuffer` | `TurbopufferCollectionAdapter` | Turbopuffer 托管向量数据库 |
+
+### Turbopuffer 配置示例
+
+```json
+{
+  "storage": {
+    "vectordb": {
+      "backend": "turbopuffer",
+      "name": "my_namespace",
+      "distance_metric": "cosine",
+      "turbopuffer": {
+        "api_key": "tpuf_...",
+        "region": "gcp-us-central1",
+        "bm25_field": "text"
+      }
+    }
+  }
+}
+```
+
+`api_key` 可省略并改用 `TURBOPUFFER_API_KEY` 环境变量；`region` 或 `base_url` 至少一个必填。距离度量支持 `cosine` → `cosine_distance`、`l2` → `euclidean_squared`；不支持 `ip`。

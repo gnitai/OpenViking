@@ -1,5 +1,6 @@
 # Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: AGPL-3.0
+import os
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, model_validator
@@ -50,6 +51,33 @@ class VikingDBConfig(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class TurbopufferConfig(BaseModel):
+    """Configuration for Turbopuffer managed vector backend."""
+
+    api_key: Optional[str] = Field(
+        default=None,
+        description="Turbopuffer API key; falls back to TURBOPUFFER_API_KEY env var",
+    )
+    region: Optional[str] = Field(
+        default=None,
+        description="Region, e.g. 'gcp-us-central1', 'aws-us-east-1'",
+    )
+    base_url: Optional[str] = Field(
+        default=None,
+        description="Optional override of the regional base URL",
+    )
+    namespace: Optional[str] = Field(
+        default=None,
+        description="Namespace override; defaults to VectorDBBackendConfig.name",
+    )
+    bm25_field: str = Field(
+        default="text",
+        description="Default attribute name used for BM25 keyword search",
+    )
+
+    model_config = {"extra": "forbid"}
+
+
 class VectorDBBackendConfig(BaseModel):
     """
     Configuration for VectorDB backend.
@@ -63,7 +91,8 @@ class VectorDBBackendConfig(BaseModel):
         description=(
             "VectorDB backend type: 'local', 'http', "
             "'volcengine' (AK/SK signed or API key data-plane only), "
-            "or 'vikingdb' (private deployment)"
+            "'vikingdb' (private deployment), "
+            "or 'turbopuffer' (managed cloud vector DB)"
         ),
     )
 
@@ -117,6 +146,11 @@ class VectorDBBackendConfig(BaseModel):
         description="VikingDB private deployment configuration for 'vikingdb' type",
     )
 
+    turbopuffer: Optional[TurbopufferConfig] = Field(
+        default_factory=TurbopufferConfig,
+        description="Turbopuffer configuration for 'turbopuffer' type",
+    )
+
     custom_params: Dict[str, Any] = Field(
         default_factory=dict,
         description="Custom parameters for custom backend adapters",
@@ -127,7 +161,7 @@ class VectorDBBackendConfig(BaseModel):
     @model_validator(mode="after")
     def validate_config(self):
         """Validate configuration completeness and consistency"""
-        standard_backends = ["local", "http", "volcengine", "vikingdb"]
+        standard_backends = ["local", "http", "volcengine", "vikingdb", "turbopuffer"]
 
         # Allow custom backend classes (containing dot) without standard validation
         if "." in self.backend:
@@ -175,5 +209,20 @@ class VectorDBBackendConfig(BaseModel):
         elif self.backend == "vikingdb":
             if not self.vikingdb or not self.vikingdb.host:
                 raise ValueError("VectorDB vikingdb backend requires 'host' to be set")
+
+        elif self.backend == "turbopuffer":
+            tp = self.turbopuffer
+            api_key = (tp.api_key if tp else None) or os.environ.get("TURBOPUFFER_API_KEY")
+            if not api_key:
+                raise ValueError(
+                    "VectorDB turbopuffer backend requires 'api_key' "
+                    "(or TURBOPUFFER_API_KEY env var) to be set"
+                )
+            has_region = bool(tp and tp.region)
+            has_base_url = bool(tp and tp.base_url)
+            if not has_region and not has_base_url:
+                raise ValueError(
+                    "VectorDB turbopuffer backend requires 'region' or 'base_url' to be set"
+                )
 
         return self
