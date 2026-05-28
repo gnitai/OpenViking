@@ -205,3 +205,6 @@ specs/
 .ttadk/
 
 graphify-out
+*.conf
+.aws
+*.env
