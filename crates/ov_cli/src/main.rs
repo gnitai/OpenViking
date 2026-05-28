@@ -10,7 +10,6 @@ mod utils;
 
 use clap::{ArgAction, Args, Parser, Subcommand};
 use config::Config;
-use error::Result;
 use output::OutputFormat;
 use std::ffi::OsString;
 
@@ -25,33 +24,10 @@ pub struct CliContext {
     pub show_progress: Option<bool>,
     /// Whether to enable verbose output (override config)
     pub verbose: Option<bool>,
+    pub profile: Option<bool>,
 }
 
 impl CliContext {
-    pub fn new(
-        output_format: OutputFormat,
-        compact: bool,
-        account: Option<String>,
-        user: Option<String>,
-        agent_id: Option<String>,
-        sudo: bool,
-        show_progress: Option<bool>,
-        verbose: Option<bool>,
-    ) -> Result<Self> {
-        let config = Config::load()?;
-        Ok(Self::from_config(
-            config,
-            output_format,
-            compact,
-            account,
-            user,
-            agent_id,
-            sudo,
-            show_progress,
-            verbose,
-        ))
-    }
-
     fn from_config(
         mut config: Config,
         output_format: OutputFormat,
@@ -62,6 +38,7 @@ impl CliContext {
         sudo: bool,
         show_progress: Option<bool>,
         verbose: Option<bool>,
+        profile: Option<bool>,
     ) -> Self {
         if account.is_some() {
             config.account = account;
@@ -79,6 +56,7 @@ impl CliContext {
             sudo,
             show_progress,
             verbose,
+            profile,
         }
     }
 
@@ -109,6 +87,7 @@ impl CliContext {
             self.config.account.clone(),
             self.config.user.clone(),
             timeout_secs.unwrap_or(self.config.timeout),
+            self.profile.unwrap_or(self.config.profile),
             self.config.extra_headers.clone(),
         )
     }
@@ -143,6 +122,10 @@ struct Cli {
     /// Use root API key for admin commands
     #[arg(long)]
     sudo: bool,
+
+    /// Enable HTTP request profiling for this command
+    #[arg(long, global = true)]
+    profile: bool,
 
     /// Show upload progress (legacy pre-command placement; prefer command-local --progress)
     #[arg(long, hide = true)]
@@ -806,6 +789,13 @@ enum SessionCommands {
         #[arg(long)]
         content: String,
     },
+    /// Add multiple messages to a session
+    AddMessages {
+        /// Session ID
+        session_id: String,
+        /// Messages as JSON array of {role, content} objects
+        messages: String,
+    },
     /// Commit a session (archive messages and extract memories)
     Commit {
         /// Session ID
@@ -1002,6 +992,17 @@ enum AdminCommands {
     },
 }
 
+impl Commands {
+    fn requires_cli_config_file(&self) -> bool {
+        !matches!(
+            self,
+            Commands::Config {
+                action: ConfigCommands::SetupCli | ConfigCommands::Switch,
+            } | Commands::Version
+        )
+    }
+}
+
 #[derive(Subcommand)]
 enum ConfigCommands {
     /// Show current configuration
@@ -1145,7 +1146,19 @@ async fn main() {
         std::process::exit(2);
     }
 
-    let ctx = match CliContext::new(
+    let config = match if cli.command.requires_cli_config_file() {
+        Config::load_required()
+    } else {
+        Config::load_default()
+    } {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(2);
+        }
+    };
+    let ctx = CliContext::from_config(
+        config,
         output_format,
         compact,
         cli.account.clone(),
@@ -1154,13 +1167,8 @@ async fn main() {
         cli.sudo,
         None,
         None,
-    ) {
-        Ok(ctx) => ctx,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            std::process::exit(2);
-        }
-    };
+        if cli.profile { Some(true) } else { None },
+    );
 
     // Check if --sudo is used but root_api_key is not configured
     if ctx.sudo && ctx.config.root_api_key.is_none() {
@@ -1529,6 +1537,28 @@ mod tests {
     }
 
     #[test]
+    fn server_commands_require_existing_cli_config() {
+        let cli = Cli::try_parse_from(["ov", "ls"]).expect("ls should parse");
+        let health = Cli::try_parse_from(["ov", "health"]).expect("health should parse");
+
+        assert!(cli.command.requires_cli_config_file());
+        assert!(health.command.requires_cli_config_file());
+    }
+
+    #[test]
+    fn setup_switch_and_version_do_not_require_existing_cli_config() {
+        let setup = Cli::try_parse_from(["ov", "config", "setup-cli"])
+            .expect("config setup-cli should parse");
+        let switch =
+            Cli::try_parse_from(["ov", "config", "switch"]).expect("config switch should parse");
+        let version = Cli::try_parse_from(["ov", "version"]).expect("version should parse");
+
+        assert!(!setup.command.requires_cli_config_file());
+        assert!(!switch.command.requires_cli_config_file());
+        assert!(!version.command.requires_cli_config_file());
+    }
+
+    #[test]
     fn cli_tree_help_hides_upload_and_admin_only_flags() {
         let err = Cli::command()
             .try_get_matches_from(["ov", "tree", "--help"])
@@ -1653,6 +1683,7 @@ mod tests {
             verbose: false,
             upload: Default::default(),
             extra_headers: None,
+            profile: false,
         };
 
         let ctx = CliContext::from_config(
@@ -1663,6 +1694,7 @@ mod tests {
             Some("from-cli-user".to_string()),
             Some("from-cli-agent".to_string()),
             false,
+            None,
             None,
             None,
         );
@@ -1686,6 +1718,7 @@ mod tests {
             echo_command: true,
             show_progress: false,
             verbose: false,
+            profile: false,
             upload: Default::default(),
             extra_headers: None,
         };
@@ -1701,6 +1734,7 @@ mod tests {
             false,
             None,
             None,
+            None,
         );
         let client = ctx.get_client();
         assert_eq!(client.api_key(), Some("user-key"));
@@ -1714,6 +1748,7 @@ mod tests {
             None,
             None,
             true,
+            None,
             None,
             None,
         );

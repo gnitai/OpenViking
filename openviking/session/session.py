@@ -28,7 +28,7 @@ from openviking_cli.utils import get_logger, run_async
 from openviking_cli.utils.config import get_openviking_config
 
 if TYPE_CHECKING:
-    from openviking.session.compressor import SessionCompressor
+    from openviking.session.compressor_v2 import SessionCompressorV2 as SessionCompressor
     from openviking.storage import VikingDBManager
     from openviking.storage.viking_fs import VikingFS
 
@@ -758,34 +758,78 @@ class Session:
             role == "user" and len(parts) > 1 and all(isinstance(part, ToolPart) for part in parts)
         )
 
-    def _append_message(self, msg: Message) -> None:
-        self._messages.append(msg)
-        self._record_participant(msg)
+    def _append_messages(self, messages: List[Message]) -> None:
+        """Append multiple messages: update lists, stats, JSONL, meta."""
+        for msg in messages:
+            self._messages.append(msg)
+            self._record_participant(msg)
 
-        # Update statistics
-        if msg.role == "user":
-            self._stats.total_turns += 1
-        msg_tokens = int(msg.estimated_tokens or 0)
-        self._stats.total_tokens += msg_tokens
+            if msg.role == "user":
+                self._stats.total_turns += 1
+            msg_tokens = int(msg.estimated_tokens or 0)
+            self._stats.total_tokens += msg_tokens
 
-        # WM v2: maintain pending_tokens via sliding window.
-        # keep_recent_count == 0 (never-committed or compact path that chose 0):
-        #   every new message contributes to pending.
-        # keep_recent_count > 0:
-        #   only the message pushed OUT of the tail-keep window contributes.
-        keep = int(self._meta.keep_recent_count or 0)
-        if keep <= 0:
-            self._meta.pending_tokens += msg_tokens
-        elif len(self._messages) > keep:
-            pushed_out = self._messages[-(keep + 1)]
-            self._meta.pending_tokens += int(pushed_out.estimated_tokens or 0)
+            keep = int(self._meta.keep_recent_count or 0)
+            if keep <= 0:
+                self._meta.pending_tokens += msg_tokens
+            elif len(self._messages) > keep:
+                pushed_out = self._messages[-(keep + 1)]
+                self._meta.pending_tokens += int(pushed_out.estimated_tokens or 0)
 
-        self._append_to_jsonl(msg)
+        self._append_messages_to_jsonl_batch(messages)
 
         self._meta.message_count = len(self._messages)
         if self._meta.total_message_count is not None:
-            self._meta.total_message_count += 1
+            self._meta.total_message_count += len(messages)
         self._save_meta_sync()
+
+    def add_messages(
+        self,
+        messages_spec: List[dict],
+    ) -> List[Message]:
+        """Add multiple messages in a single batch.
+
+        Args:
+            messages_spec: List of dicts, each with keys:
+                role, parts, role_id (optional), created_at (optional)
+        """
+        all_messages = []
+        for i, spec in enumerate(messages_spec):
+            if "role" not in spec:
+                raise ValueError(f"messages_spec[{i}]: missing required key 'role'")
+            if "parts" not in spec:
+                raise ValueError(f"messages_spec[{i}]: missing required key 'parts'")
+            role = spec["role"]
+            parts = spec["parts"]
+            role_id = spec.get("role_id")
+            created_at = spec.get("created_at") or datetime.now(timezone.utc).isoformat()
+
+            if self._is_tool_result_aggregate(role, parts):
+                msgs = [
+                    Message(
+                        id=f"msg_{uuid4().hex}",
+                        role=role,
+                        parts=[part],
+                        role_id=role_id,
+                        created_at=created_at,
+                    )
+                    for part in parts
+                ]
+                self._externalize_large_tool_output_group(msgs)
+                all_messages.extend(msgs)
+            else:
+                msg = Message(
+                    id=f"msg_{uuid4().hex}",
+                    role=role,
+                    parts=parts,
+                    role_id=role_id,
+                    created_at=created_at,
+                )
+                self._externalize_large_tool_outputs(msg)
+                all_messages.append(msg)
+
+        self._append_messages(all_messages)
+        return all_messages
 
     def add_message(
         self,
@@ -799,33 +843,13 @@ class Session:
         A user message containing only multiple tool results is treated as a
         transport aggregate and stored as one message per tool result.
         """
-        created = created_at or datetime.now(timezone.utc).isoformat()
-        if self._is_tool_result_aggregate(role, parts):
-            messages = [
-                Message(
-                    id=f"msg_{uuid4().hex}",
-                    role=role,
-                    parts=[part],
-                    role_id=role_id,
-                    created_at=created,
-                )
-                for part in parts
-            ]
-            self._externalize_large_tool_output_group(messages)
-            for msg in messages:
-                self._append_message(msg)
-            return messages[0]
-
-        msg = Message(
-            id=f"msg_{uuid4().hex}",
-            role=role,
-            parts=parts,
-            role_id=role_id,
-            created_at=created,
-        )
-        self._externalize_large_tool_outputs(msg)
-        self._append_message(msg)
-        return msg
+        msgs = self.add_messages([{
+            "role": role,
+            "parts": parts,
+            "role_id": role_id,
+            "created_at": created_at,
+        }])
+        return msgs[0]
 
     def _record_participant(self, msg: Message) -> None:
         if msg.role == "user" and msg.role_id:
@@ -1073,7 +1097,7 @@ class Session:
 
         # Create TaskRecord for tracking Phase 2
         tracker = get_task_tracker()
-        task = tracker.create(
+        task = await tracker.create(
             "session_commit",
             resource_id=self.session_id,
             account_id=self.ctx.account_id,
@@ -1122,6 +1146,7 @@ class Session:
         request_wait_tracker = get_request_wait_tracker()
 
         memories_extracted: Dict[str, int] = {}
+        extracted_skill_results: list[dict] = []
         active_count_updated = 0
         telemetry = OperationTelemetry(operation="session_commit_phase2", enabled=True)
         archive_index = self._archive_index_from_uri(archive_uri)
@@ -1141,7 +1166,7 @@ class Session:
                     ),
                     blocked_by=f"archive_{archive_index - 1:03d}",
                 )
-                tracker.fail(
+                await tracker.fail(
                     task_id,
                     f"Previous archive archive_{archive_index - 1:03d} failed; "
                     "cannot continue session commit",
@@ -1150,7 +1175,11 @@ class Session:
                 )
                 return
 
-            tracker.start(task_id, account_id=self.ctx.account_id, user_id=self.ctx.user.user_id)
+            await tracker.start(
+                task_id,
+                account_id=self.ctx.account_id,
+                user_id=self.ctx.user.user_id,
+            )
             request_wait_tracker.register_request(telemetry.telemetry_id)
             register_telemetry(telemetry)
             try:
@@ -1205,34 +1234,56 @@ class Session:
 
                     # Summary generation, user memory and agent memory all run concurrently.
                     ov_config = get_openviking_config()
-                    if self._session_compressor and ov_config.memory.extraction_enabled:
+                    memory_extraction_enabled = ov_config.memory.extraction_enabled
+                    session_skill_extraction_enabled = (
+                        ov_config.memory.session_skill_extraction_enabled
+                    )
+                    if self._session_compressor and (
+                        memory_extraction_enabled or session_skill_extraction_enabled
+                    ):
                         logger.info(
-                            f"Starting memory extraction from {len(messages)} archived messages"
+                            "Starting post-commit extraction from %s archived messages",
+                            len(messages),
                         )
 
                         has_agent_memory = hasattr(
                             self._session_compressor, "extract_agent_memories"
                         )
 
-                        async def _noop_agent():
+                        async def _noop_list():
                             return []
 
-                        _results = await asyncio.gather(
-                            _run_archive_summary(),
-                            self._session_compressor.extract_long_term_memories(
+                        async def _noop_agent_result():
+                            return {"contexts": [], "session_skills": []}
+
+                        async def _run_long_term_memories():
+                            if not memory_extraction_enabled:
+                                return []
+                            return await self._session_compressor.extract_long_term_memories(
                                 messages=extraction_messages,
                                 user=self.user,
                                 session_id=self.session_id,
                                 ctx=self.ctx,
                                 latest_archive_overview=latest_archive_overview,
                                 archive_uri=archive_uri,
-                            ),
-                            self._session_compressor.extract_agent_memories(
+                            )
+
+                        async def _run_agent_memories():
+                            if not has_agent_memory:
+                                return {"contexts": [], "session_skills": []}
+                            if not (memory_extraction_enabled or session_skill_extraction_enabled):
+                                return {"contexts": [], "session_skills": []}
+                            return await self._session_compressor.extract_agent_memories(
                                 messages=extraction_messages,
                                 ctx=self.ctx,
+                                latest_archive_overview=latest_archive_overview,
+                                archive_uri=archive_uri,
                             )
-                            if has_agent_memory
-                            else _noop_agent(),
+
+                        _results = await asyncio.gather(
+                            _run_archive_summary(),
+                            _run_long_term_memories(),
+                            _run_agent_memories() if has_agent_memory else _noop_agent_result(),
                             return_exceptions=True,
                         )
                         summary_result, extracted_result, agent_result = _results
@@ -1247,7 +1298,7 @@ class Session:
                                 f"User memory extraction failed: {extracted_result}",
                                 exc_info=extracted_result,
                             )
-                            extracted = []
+                            raise extracted_result
                         else:
                             extracted = extracted_result
 
@@ -1257,15 +1308,18 @@ class Session:
                                 exc_info=agent_result,
                             )
                             agent_extracted = []
+                            session_skills = []
                         else:
-                            agent_extracted = agent_result
+                            agent_extracted = list(agent_result.get("contexts", []))
+                            session_skills = list(agent_result.get("session_skills", []))
 
-                        logger.info(f"Extracted {len(extracted)} memories")
-                        for ctx_item in extracted:
-                            cat = getattr(ctx_item, "category", "") or "unknown"
-                            memories_extracted[cat] = memories_extracted.get(cat, 0) + 1
-                        self._stats.memories_extracted += len(extracted)
-                        get_current_telemetry().set("memory.extracted", len(extracted))
+                        if memory_extraction_enabled:
+                            logger.info(f"Extracted {len(extracted)} memories")
+                            for ctx_item in extracted:
+                                cat = getattr(ctx_item, "category", "") or "unknown"
+                                memories_extracted[cat] = memories_extracted.get(cat, 0) + 1
+                            self._stats.memories_extracted += len(extracted)
+                            get_current_telemetry().set("memory.extracted", len(extracted))
 
                         if agent_extracted:
                             logger.info(f"Extracted {len(agent_extracted)} agent memories")
@@ -1273,10 +1327,15 @@ class Session:
                                 cat = getattr(ctx_item, "category", "") or "unknown"
                                 memories_extracted[cat] = memories_extracted.get(cat, 0) + 1
                             self._stats.memories_extracted += len(agent_extracted)
+                        if session_skills:
+                            logger.info(f"Extracted {len(session_skills)} session skills")
+                            extracted_skill_results = session_skills
                     else:
                         if self._session_compressor:
                             logger.info(
-                                "Memory extraction is disabled by config (memory.extraction_enabled=false)"
+                                "Memory and session skill extraction are disabled by config "
+                                "(memory.extraction_enabled=false, "
+                                "memory.session_skill_extraction_enabled=false)"
                             )
                         await _run_archive_summary()
 
@@ -1339,12 +1398,18 @@ class Session:
             # Write .done file last — signals that all state is finalized
             await self._write_done_file(archive_uri, first_message_id, last_message_id)
 
-            tracker.complete(
+            await tracker.complete(
                 task_id,
                 {
                     "session_id": self.session_id,
                     "archive_uri": archive_uri,
                     "memories_extracted": memories_extracted,
+                    "session_skills_extracted": len(extracted_skill_results),
+                    "session_skill_uris": [
+                        item.get("uri") or item.get("root_uri")
+                        for item in extracted_skill_results
+                        if isinstance(item, dict) and (item.get("uri") or item.get("root_uri"))
+                    ],
                     "active_count_updated": active_count_updated,
                     "token_usage": {
                         "llm": dict(self._meta.llm_token_usage),
@@ -1370,7 +1435,7 @@ class Session:
                 )
             except Exception:
                 logger.debug("Failed to write cancelled marker for session %s", self.session_id)
-            tracker.fail(
+            await tracker.fail(
                 task_id,
                 f"cancelled: {e}",
                 account_id=self.ctx.account_id,
@@ -1386,7 +1451,7 @@ class Session:
                 stage="memory_extraction",
                 error=str(e),
             )
-            tracker.fail(
+            await tracker.fail(
                 task_id, str(e), account_id=self.ctx.account_id, user_id=self.ctx.user.user_id
             )
             logger.exception(f"Memory extraction failed for session {self.session_id}")
@@ -3017,14 +3082,15 @@ class Session:
             ctx=self.ctx,
         )
 
-    def _append_to_jsonl(self, msg: Message) -> None:
-        """Append to messages.jsonl."""
+    def _append_messages_to_jsonl_batch(self, messages: List[Message]) -> None:
+        """Append multiple messages to messages.jsonl in a single write."""
         if not self._viking_fs:
             return
+        batch_content = "".join(msg.to_jsonl() + "\n" for msg in messages)
         run_async(
             self._viking_fs.append_file(
                 f"{self._session_uri}/messages.jsonl",
-                msg.to_jsonl() + "\n",
+                batch_content,
                 ctx=self.ctx,
             )
         )

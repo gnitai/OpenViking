@@ -10,17 +10,13 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
 from openviking.telemetry import tracer
+from openviking.utils.async_client_cache import LoopScopedAsyncClientCache
 from openviking_cli.utils import get_logger
 
 try:
     import openai
 except ImportError:
     openai = None
-
-try:
-    import httpx
-except ImportError:
-    httpx = None
 
 from openviking.utils.model_retry import retry_async, retry_sync
 
@@ -84,7 +80,7 @@ class OpenAIVLM(VLMBase):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self._sync_client = None
-        self._async_client = None
+        self._async_client_cache = LoopScopedAsyncClientCache()
         self.api_version = config.get("api_version")
         self.reasoning_effort = config.get("reasoning_effort", "low")
 
@@ -107,38 +103,25 @@ class OpenAIVLM(VLMBase):
                 self._sync_client = openai.OpenAI(**kwargs)
         return self._sync_client
 
+    def _build_async_client(self):
+        """Create an async client for the current backend."""
+        if openai is None:
+            raise ImportError("Please install openai: pip install openai")
+        kwargs = _build_openai_client_kwargs(
+            self.provider,
+            self.api_key,
+            self.api_base,
+            self.api_version,
+            self.extra_headers,
+            self.timeout,
+        )
+        if self.provider == "azure":
+            return openai.AsyncAzureOpenAI(**kwargs)
+        return openai.AsyncOpenAI(**kwargs)
+
     def get_async_client(self):
-        """Get async client"""
-        if self._async_client is None:
-            if openai is None:
-                raise ImportError("Please install openai: pip install openai")
-            kwargs = _build_openai_client_kwargs(
-                self.provider,
-                self.api_key,
-                self.api_base,
-                self.api_version,
-                self.extra_headers,
-                self.timeout,
-            )
-            # Inject an httpx.AsyncClient that does NOT keep idle connections
-            # in its pool. Idle Cloudflare-fronted connections to api.openai.com
-            # get RST after ~180s, surfacing as httpx.ReadError → APIConnectionError
-            # mid-pipeline (observed during S3-backend ingest of code-crafters).
-            # Forcing a fresh connection per request side-steps the issue at
-            # the cost of one extra TLS handshake per call.
-            if httpx is not None:
-                kwargs["http_client"] = httpx.AsyncClient(
-                    timeout=kwargs.get("timeout", 60.0),
-                    limits=httpx.Limits(
-                        max_connections=20,
-                        max_keepalive_connections=0,
-                    ),
-                )
-            if self.provider == "azure":
-                self._async_client = openai.AsyncAzureOpenAI(**kwargs)
-            else:
-                self._async_client = openai.AsyncOpenAI(**kwargs)
-        return self._async_client
+        """Get an async client scoped to the current event loop."""
+        return self._async_client_cache.get(self._build_async_client)
 
     def _supports_enable_thinking(self) -> bool:
         """Return True for OpenAI-compatible DashScope endpoints that accept enable_thinking."""

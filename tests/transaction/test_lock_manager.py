@@ -61,17 +61,17 @@ class TestLockManagerBasic:
         assert len(handle.locks) == 2
 
         await lm.release(handle)
-        assert handle.id not in lm.get_active_handles()
+        assert handle.id not in await lm.get_active_handles_async()
 
     async def test_release_removes_from_active(self, lm, test_dir):
         handle = lm.create_handle()
 
         await lm.acquire_exact_path(handle, test_dir)
-        assert handle.id in lm.get_active_handles()
+        assert handle.id in await lm.get_active_handles_async()
 
         await lm.release(handle)
 
-        assert handle.id not in lm.get_active_handles()
+        assert handle.id not in await lm.get_active_handles_async()
 
     async def test_stop_releases_all(self, agfs_client, lm, test_dir):
         h1 = lm.create_handle()
@@ -83,7 +83,7 @@ class TestLockManagerBasic:
         await lm.acquire_exact_path(h2, sub)
 
         await lm.stop()
-        assert len(lm.get_active_handles()) == 0
+        assert len(await lm.get_active_handles_async()) == 0
 
     async def test_exact_path_allows_missing_target(self, lm):
         handle = lm.create_handle()
@@ -105,9 +105,7 @@ class TestLockManagerBasic:
     async def test_recover_pending_redo_preserves_cancelled_error(self, lm):
         lm._redo_log = MagicMock()
         lm._redo_log.list_pending_async = AsyncMock(return_value=["redo-task"])
-        lm._redo_log.read_async = AsyncMock(
-            return_value={"archive_uri": "a", "session_uri": "b"}
-        )
+        lm._redo_log.read_async = AsyncMock(return_value={"archive_uri": "a", "session_uri": "b"})
         lm._redo_log.mark_done_async = AsyncMock()
         lm._redo_session_memory = AsyncMock(side_effect=asyncio.CancelledError("shutdown"))
 
@@ -135,10 +133,10 @@ class TestLockManagerBasic:
 
 
 class TestLockTypeCache:
-    """Fix A (Stage 3): in-memory lock_type cache on LockHandle eliminates
-    per-mv S3 verification reads. The race that fired at max_concurrent=64 — a
-    concurrent lease-refresh write overlapping a consumer's ownership read —
-    is gone because the consumer reads the cache instead of S3."""
+    """In-memory lock_type cache on LockHandle eliminates per-mv S3 verification
+    reads. The race that fired at high concurrency — a concurrent lease-refresh
+    write overlapping a consumer's ownership read — is gone because the consumer
+    reads the cache instead of S3."""
 
     async def test_acquire_tree_populates_lock_type_cache(self, lm, test_dir):
         handle = lm.create_handle()
@@ -174,36 +172,31 @@ class TestLockTypeCache:
     async def test_reusing_exact_lock_on_tree_path_does_not_downgrade_cache(
         self, agfs_client, lm, test_dir
     ):
-        """Regression for Stage 3 Fix A bug. If a handle adopts a TREE lock at
-        path P (via handoff), a later `acquire_exact_path(P)` short-circuits via
-        the reuse branch but used to overwrite the cached lock_type from 'T' →
-        'E'. Subsequent `_has_owned_ancestor_tree` checks for descendants would
-        then see 'E' (not TREE) and time out waiting for an ancestor lock —
-        exactly the failure that fired at max_concurrent=64 during SyncDiff."""
+        """If a handle holds a TREE lock at path P, a later
+        `acquire_exact_path(P)` short-circuits via the reuse branch but must not
+        overwrite the cached lock_type from 'T' → 'E'. Otherwise
+        `_has_owned_ancestor_tree` for descendants would see 'E' (not TREE) and
+        time out waiting for an ancestor lock."""
         parent_handle = lm.create_handle()
         await lm.acquire_tree(parent_handle, test_dir)
         lock_path = parent_handle.locks[0]
         assert parent_handle.lock_types[lock_path] == "T"
 
-        # acquire_exact_path on the same dir path hits the reuse branch.
         ok = await lm.acquire_exact_path(parent_handle, test_dir)
         assert ok is True
-        # The cached type must still be TREE — exact on the same path does not
-        # weaken the ancestor-tree coverage.
         assert parent_handle.lock_types[lock_path] == "T", (
             "exact-on-tree reuse must not downgrade the cached lock_type"
         )
 
-        # Descendant ancestor-walk still recognises the TREE lock from cache.
         child = f"{test_dir}/desc-{uuid.uuid4().hex}"
         assert await lm._path_lock._has_owned_ancestor_tree(child, parent_handle) is True
 
         await lm.release(parent_handle)
 
     async def test_ancestor_tree_check_uses_cache_no_s3_read(self, lm, test_dir):
-        """The race-prone S3 read on every `_has_owned_ancestor_tree` call must
-        be skipped when the cache is populated. Spy on `_read_token` to confirm
-        no read happens during the ancestor walk."""
+        """When the cache is populated, `_has_owned_ancestor_tree` must skip the
+        S3 token read. Spy on `_read_token` to confirm no read happens during the
+        ancestor walk."""
         parent_handle = lm.create_handle()
         await lm.acquire_tree(parent_handle, test_dir)
 
@@ -229,13 +222,8 @@ class TestLockTypeCache:
 class TestReconcileTransientRead:
     """A transient S3 read error (a token momentarily reading as None while the
     lock is still validly held on disk) must NOT permanently evict the owning
-    handle.
-
-    The handoff lease exposes its handle via `get_handle`, which runs
-    `_reconcile_handle`. One swallowed read error used to drop the handle's only
-    lock and pop it from the manager, after which `lock.handle` returned None
-    forever. SyncDiff then fell back to a fresh per-mv handle that could not own
-    the inherited TREE lock, so every destination lock acquisition timed out."""
+    handle. One swallowed read error used to drop the handle's only lock and pop
+    it from the manager."""
 
     async def test_transient_read_does_not_evict_owned_handle(self, lm, test_dir):
         handle = lm.create_handle()
@@ -243,8 +231,6 @@ class TestReconcileTransientRead:
         lock_path = handle.locks[0]
         handle_id = handle.id
 
-        # _read_token swallows transient S3 errors into None; simulate exactly
-        # one such blip on the ownership re-check inside reconcile.
         real_read = lm._path_lock._read_token
         state = {"failed": False}
 
@@ -268,13 +254,12 @@ class TestReconcileTransientRead:
         await lm.release(handle)
 
     async def test_definitively_foreign_lock_is_still_lost(self, agfs_client, lm, test_dir):
-        """A lock that is genuinely owned by a different id must still be
-        reconciled away — the transient-read tolerance must not mask real loss."""
+        """A lock genuinely owned by a different id must still be reconciled
+        away — the transient-read tolerance must not mask real loss."""
         handle = lm.create_handle()
         await lm.acquire_tree(handle, test_dir)
         lock_path = handle.locks[0]
 
-        # Overwrite the on-disk token with a different, stable owner.
         from openviking.storage.transaction.path_lock import _make_fencing_token
 
         agfs_client.write(lock_path, _make_fencing_token("someone-else", "T").encode("utf-8"))

@@ -5,9 +5,9 @@
 import asyncio
 import json
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
-from openviking.pyagfs import AGFSClient
+from openviking.pyagfs import AGFSClient, AsyncAGFSClient
 from openviking.storage.transaction.lock_handle import LockHandle
 from openviking.storage.transaction.path_lock import PathLockEngine
 from openviking.storage.transaction.redo_log import RedoLog
@@ -16,7 +16,20 @@ from openviking_cli.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _HANDLE_CLEANUP_INTERVAL_SECONDS = 60.0
-_USE_MANAGER_DEFAULT_TIMEOUT = object()
+LOCK_TIMEOUT_DEFAULT = object()
+
+
+class _LockManagerLike(Protocol):
+    def get_handle(self, handle_id: str) -> Optional[LockHandle]: ...
+
+
+async def get_lock_handle_async(
+    lock_manager: _LockManagerLike, handle_id: str
+) -> Optional[LockHandle]:
+    getter = getattr(lock_manager, "get_handle_async", None)
+    if getter is not None:
+        return await getter(handle_id)
+    return await asyncio.to_thread(lock_manager.get_handle, handle_id)
 
 
 class LockManager:
@@ -30,6 +43,7 @@ class LockManager:
         redo_recovery_enabled: bool = True,
     ):
         self._agfs = agfs
+        self._async_agfs = AsyncAGFSClient(agfs)
         self._path_lock = PathLockEngine(agfs, lock_expire=lock_expire)
         self._lock_timeout = lock_timeout
         self._redo_recovery_enabled = redo_recovery_enabled
@@ -47,8 +61,8 @@ class LockManager:
     def redo_recovery_enabled(self) -> bool:
         return self._redo_recovery_enabled
 
-    def _resolve_timeout(self, timeout: Optional[float]) -> Optional[float]:
-        return self._lock_timeout if timeout is _USE_MANAGER_DEFAULT_TIMEOUT else timeout
+    def _resolve_timeout(self, timeout: Any) -> Optional[float]:
+        return self._lock_timeout if timeout is LOCK_TIMEOUT_DEFAULT else timeout
 
     def _mark_handle_active(self, handle: LockHandle) -> None:
         handle.last_active_at = time.time()
@@ -57,6 +71,14 @@ class LockManager:
         active_handles: Dict[str, LockHandle] = {}
         for handle in list(self._handles.values()):
             current = self._reconcile_handle(handle)
+            if current and current.locks:
+                active_handles[current.id] = current
+        return active_handles
+
+    async def get_active_handles_async(self) -> Dict[str, LockHandle]:
+        active_handles: Dict[str, LockHandle] = {}
+        for handle in list(self._handles.values()):
+            current = await self._reconcile_handle_async(handle)
             if current and current.locks:
                 active_handles[current.id] = current
         return active_handles
@@ -101,7 +123,7 @@ class LockManager:
         self,
         handle: LockHandle,
         path: str,
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         acquired = await self._path_lock.acquire_exact_path(
             path, handle, timeout=self._resolve_timeout(timeout)
@@ -114,7 +136,7 @@ class LockManager:
         self,
         handle: LockHandle,
         path: str,
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         acquired = await self._path_lock.acquire_tree(
             path, handle, timeout=self._resolve_timeout(timeout)
@@ -127,7 +149,7 @@ class LockManager:
         self,
         handle: LockHandle,
         paths: List[str],
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         """
         一次性对多个路径进行树锁加锁，使用有序加锁法防止死锁
@@ -181,7 +203,7 @@ class LockManager:
         self,
         handle: LockHandle,
         paths: List[str],
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         if not paths:
             self._mark_handle_active(handle)
@@ -217,7 +239,7 @@ class LockManager:
         handle: LockHandle,
         exact_paths: List[str],
         tree_paths: List[str],
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         exact_set = set(exact_paths)
         tree_set = set(tree_paths)
@@ -266,7 +288,7 @@ class LockManager:
         src: str,
         dst: str,
         src_is_dir: bool = True,
-        timeout: Optional[float] = _USE_MANAGER_DEFAULT_TIMEOUT,
+        timeout: Any = LOCK_TIMEOUT_DEFAULT,
     ) -> bool:
         acquired = await self._path_lock.acquire_mv(
             src,
@@ -305,6 +327,36 @@ class LockManager:
         self._mark_handle_active(adopted)
         return adopted
 
+    async def adopt_handle_async(
+        self, handle_id: str, lock_paths: List[str]
+    ) -> Optional[LockHandle]:
+        handle = await self.get_handle_async(handle_id)
+        if handle is not None:
+            return handle
+
+        adopted = LockHandle(id=handle_id)
+        for lock_path in dict.fromkeys(lock_paths):
+            owner_id_from_file, lock_type = await self._path_lock._read_owner_and_type_async(
+                lock_path
+            )
+            if owner_id_from_file == handle_id and lock_type is not None:
+                adopted.add_lock(lock_path, lock_type)
+        if not adopted.locks:
+            return None
+
+        self._handles[adopted.id] = adopted
+        self._mark_handle_active(adopted)
+        return adopted
+
+    async def get_handle_async(self, handle_id: str) -> Optional[LockHandle]:
+        handle = self._handles.get(handle_id)
+        if handle is None:
+            return None
+        current = await self._reconcile_handle_async(handle)
+        if current is None or not current.locks:
+            return None
+        return current
+
     def is_path_locked(self, path: str, ignore_stale: bool = True) -> bool:
         """Check whether *path* is currently locked.
 
@@ -319,13 +371,16 @@ class LockManager:
             logger.warning(f"is_path_locked failed for {path}: {e}")
             return False
 
-    async def refresh_lock(self, handle: LockHandle) -> None:
-        # `_reconcile_handle` reads lock tokens from AGFS synchronously. On S3
-        # each read is a 100-500ms round trip; offload to the AGFS thread pool
-        # so the refresh task does not block the event loop.
-        from openviking.storage.viking_fs import run_agfs_blocking
+    async def is_path_locked_async(self, path: str, ignore_stale: bool = True) -> bool:
+        """Async variant for request/background paths."""
+        try:
+            return await self._path_lock.is_locked_async(path, ignore_stale=ignore_stale)
+        except Exception as e:
+            logger.warning(f"is_path_locked_async failed for {path}: {e}")
+            return False
 
-        current = await run_agfs_blocking(self._reconcile_handle, handle)
+    async def refresh_lock(self, handle: LockHandle) -> None:
+        current = await self._reconcile_handle_async(handle)
         if current is None:
             return
 
@@ -336,7 +391,7 @@ class LockManager:
         if result.refreshed_paths:
             self._mark_handle_active(current)
 
-        await run_agfs_blocking(self._reconcile_handle, current)
+        await self._reconcile_handle_async(current)
 
     async def release(self, handle: LockHandle) -> None:
         await self._path_lock.release(handle)
@@ -347,17 +402,12 @@ class LockManager:
 
     async def _stale_cleanup_loop(self) -> None:
         """Check and release leaked handles every 60 s (in-process safety net)."""
-        from openviking.storage.viking_fs import run_agfs_blocking
-
         while self._running:
             await asyncio.sleep(_HANDLE_CLEANUP_INTERVAL_SECONDS)
             now = time.time()
             stale = []
             for handle in list(self._handles.values()):
-                # `_reconcile_handle` does a sync AGFS read per held lock to
-                # verify ownership. On S3 that adds up to hundreds of ms per
-                # handle; keep the event loop free.
-                current = await run_agfs_blocking(self._reconcile_handle, handle)
+                current = await self._reconcile_handle_async(handle)
                 if current and self._is_handle_stale(current, now):
                     stale.append(current)
             for handle in stale:
@@ -375,6 +425,16 @@ class LockManager:
     def _reconcile_handle(self, handle: LockHandle) -> Optional[LockHandle]:
         had_locks = bool(handle.locks)
         lost_paths = self._path_lock.collect_lost_owner_locks(handle)
+        for lock_path in lost_paths:
+            handle.remove_lock(lock_path)
+        if had_locks and not handle.locks:
+            self._handles.pop(handle.id, None)
+            return None
+        return handle
+
+    async def _reconcile_handle_async(self, handle: LockHandle) -> Optional[LockHandle]:
+        had_locks = bool(handle.locks)
+        lost_paths = await self._path_lock.collect_lost_owner_locks_async(handle)
         for lock_path in lost_paths:
             handle.remove_lock(lock_path)
         if had_locks and not handle.locks:
@@ -429,7 +489,7 @@ class LockManager:
         agfs_path = viking_fs._uri_to_path(messages_uri, ctx=ctx)
         messages = []
         try:
-            content = self._agfs.cat(agfs_path)
+            content = await self._async_agfs.cat(agfs_path)
             if isinstance(content, bytes):
                 content = content.decode("utf-8")
             for line in content.strip().split("\n"):
@@ -535,5 +595,5 @@ async def release_all_locks() -> None:
     """Release all active lock handles. **Test-only utility.**"""
     if _lock_manager is None:
         return
-    for handle in list(_lock_manager.get_active_handles().values()):
+    for handle in list((await _lock_manager.get_active_handles_async()).values()):
         await _lock_manager.release(handle)

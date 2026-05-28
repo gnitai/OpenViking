@@ -15,12 +15,13 @@ import pytest
 
 from openviking.message import Message, TextPart
 from openviking.server.identity import RequestContext, Role
+from openviking.session import compressor_v2 as compressor_v2_module
 from openviking.session.compressor_v2 import SessionCompressorV2
 from openviking.session.memory.dataclass import MemoryField, MemoryFile, MemoryTypeSchema
+from openviking.session.memory.extract_loop import ExtractLoop
 from openviking.session.memory.memory_isolation_handler import RoleScope
 from openviking.session.memory.memory_updater import ExtractContext, MemoryUpdateResult
 from openviking.session.memory.merge_op import FieldType, MergeOp
-from openviking.session.memory.extract_loop import ExtractLoop
 from openviking.session.memory.utils.memory_file_utils import MemoryFileUtils
 from openviking_cli.session.user_id import UserIdentifier
 from openviking_cli.utils.config import get_openviking_config, initialize_openviking_config
@@ -280,6 +281,28 @@ def create_test_conversation() -> List[Message]:
 
 class TestCompressorV2:
     """Tests for SessionCompressorV2."""
+
+    @pytest.mark.asyncio
+    async def test_memory_lock_retry_logging_is_throttled(self, monkeypatch):
+        warnings = []
+        debug_logs = []
+        monkeypatch.setattr(compressor_v2_module.logger, "warning", warnings.append)
+        monkeypatch.setattr(compressor_v2_module.logger, "debug", debug_logs.append)
+
+        last_warning_at = compressor_v2_module._log_memory_lock_retry(
+            retry_count=1,
+            max_retries=0,
+            last_warning_at=0.0,
+        )
+        compressor_v2_module._log_memory_lock_retry(
+            retry_count=2,
+            max_retries=0,
+            last_warning_at=last_warning_at,
+        )
+
+        assert len(warnings) == 1
+        assert "attempt=1" in warnings[0]
+        assert debug_logs == []
 
     @pytest.mark.asyncio
     async def test_extract_long_term_memories_includes_latest_archive_overview(self):
@@ -574,7 +597,7 @@ class TestCompressorV2:
         config = SimpleNamespace(
             vlm=SimpleNamespace(get_vlm_instance=lambda: object()),
             memory=SimpleNamespace(
-                enable_role_id_memory_isolate=False,
+                role_id_memory_isolation_enabled=False,
                 v2_lock_max_retries=1,
                 v2_lock_retry_interval_seconds=0.0,
             ),
@@ -633,26 +656,29 @@ class TestCompressorV2:
         exp_uri = "viking://agent/default/memories/experiences/debug.md"
         events: List[str] = []
 
+        traj_uri = "viking://agent/default/memories/trajectories/traj-1.md"
+
         class FakeVikingFS:
             def __init__(self):
-                self.content = MemoryFileUtils.write(
-                    MemoryFile(
-                        uri="viking://agent/default/memories/experiences/debug.md",
-                        content="debug login issue",
-                        extra_fields={"source_trajectories": ["traj-0"]},
-                    )
-                )
+                self.files = {
+                    exp_uri: MemoryFileUtils.write(
+                        MemoryFile(uri=exp_uri, content="debug login issue")
+                    ),
+                    traj_uri: MemoryFileUtils.write(
+                        MemoryFile(uri=traj_uri, content="traj content")
+                    ),
+                }
 
             def _uri_to_path(self, uri: str, ctx=None) -> str:
                 return f"/local/default/agent/default/memories/experiences/{uri.rsplit('/', 1)[-1]}"
 
             async def read_file(self, uri: str, ctx=None):
                 events.append("read")
-                return self.content
+                return self.files.get(uri, "")
 
             async def write_file(self, uri: str, content: str, ctx=None):
                 events.append("write")
-                self.content = content
+                self.files[uri] = content
 
         handle = SimpleNamespace(id="handle-1", locks=[])
 
@@ -673,17 +699,29 @@ class TestCompressorV2:
         with patch("openviking.storage.transaction.get_lock_manager", return_value=lock_manager):
             await compressor._append_trajectories_to_experiences(
                 [exp_uri],
-                ["traj-1"],
+                [traj_uri],
                 ctx,
                 viking_fs,
             )
 
-        mf = MemoryFileUtils.read(viking_fs.content, uri=exp_uri)
-        assert mf.extra_fields["source_trajectories"] == ["traj-0", "traj-1"]
+        # exp: exp.links 有指向 traj 的边（exp→traj, derived_from）
+        exp_mf = MemoryFileUtils.read(viking_fs.files[exp_uri], uri=exp_uri)
+        assert "source_trajectories" not in exp_mf.extra_fields
+        assert any(l.get("to_uri") == traj_uri for l in exp_mf.links), "exp.links should point to traj"
+        assert exp_mf.backlinks == [], "exp should have no backlinks"
+
+        # traj: write_stored_links 写入 traj.backlinks（同一条边的 to 端）
+        traj_mf = MemoryFileUtils.read(viking_fs.files[traj_uri], uri=traj_uri)
+        assert traj_mf.links == [], "traj should have no forward links"
+        assert any(l.get("from_uri") == exp_uri for l in traj_mf.backlinks), "traj.backlinks should reference exp"
+
+        # event order: lock → read exp → write exp → read traj → write traj → release
         assert events == [
             "exact:/local/default/agent/default/memories/experiences/debug.md",
-            "read",
-            "write",
+            "read",   # exp read
+            "write",  # exp write (exp.links)
+            "read",   # traj read  (write_stored_links)
+            "write",  # traj write (traj.backlinks)
             "release",
         ]
 
@@ -789,7 +827,10 @@ class TestExtractLoopPatchRepair:
         assert "Regenerate the complete operations JSON" in second_call_content
         assert target_uri in second_call_content
         assert other_uri in second_call_content
-        assert operations.upsert_operations[0].memory_fields["content"].blocks[0].search == "- Likes reading"
+        assert (
+            operations.upsert_operations[0].memory_fields["content"].blocks[0].search
+            == "- Likes reading"
+        )
 
     @pytest.mark.asyncio
     async def test_invalid_patch_search_repairs_only_once(self):
@@ -883,7 +924,10 @@ class TestExtractLoopPatchRepair:
             message["content"] for call_messages in vlm.messages for message in call_messages
         )
         assert all_messages.count("SEARCH/REPLACE patch could not be applied") == 1
-        assert operations.upsert_operations[0].memory_fields["content"].blocks[0].search == "- Missing two"
+        assert (
+            operations.upsert_operations[0].memory_fields["content"].blocks[0].search
+            == "- Missing two"
+        )
 
     @pytest.mark.asyncio
     async def test_fuzzy_patch_success_does_not_trigger_repair(self):
@@ -972,4 +1016,7 @@ class TestExtractLoopPatchRepair:
         operations, _tools_used = await loop.run()
 
         assert len(vlm.messages) == 1
-        assert operations.upsert_operations[0].memory_fields["content"].blocks[0].search == "- Likes reading"
+        assert (
+            operations.upsert_operations[0].memory_fields["content"].blocks[0].search
+            == "- Likes reading"
+        )

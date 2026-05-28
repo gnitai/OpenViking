@@ -656,6 +656,29 @@ LiteLLM 的 Bedrock bearer-token API-key 鉴权，请设置 `forward_api_key=tru
 
 > **注意**: OpenAI SDK 需要 `stream=true` 才能正确解析 SSE 响应。使用强制返回 SSE 格式的 provider 时，必须将此选项设置为 `true`。
 
+### query_planner
+
+可选的轻量模型配置，用于检索前的意图分析和 query 规划/改写。配置结构与 `vlm` 相同，但只影响 `search()` 的意图分析和 query expansion。未配置或配置为空时，OpenViking 会回退到 `vlm`，保持向后兼容。
+
+只有在环境里已经部署好 planner 模型时才需要添加这一段配置。例如下面的 Ollama 模型需要先在本地 pull 并启动后才能使用。
+
+```json
+{
+  "query_planner": {
+    "provider": "litellm",
+    "model": "ollama/guoxuter/ov_intent_analysis_sft:v1_q8",
+    "api_base": "http://127.0.0.1:11434",
+    "temperature": 0.0,
+    "timeout": 60,
+    "extra_request_body": {
+      "think": false
+    }
+  }
+}
+```
+
+适合用小模型承担检索规划，同时保留更强的 `vlm` 处理语义提取、记忆提取和多模态内容。
+
 ### feishu
 
 飞书/Lark 云端文档解析配置。支持的 URL 格式详见[资源管理](../api/02-resources.md)。
@@ -1065,6 +1088,7 @@ openviking-server --config /path/to/ov.conf
 ```json
 {
   "memory": {
+    "version": "v2",
     "agent_scope_mode": "user+agent"
   }
 }
@@ -1072,6 +1096,7 @@ openviking-server --config /path/to/ov.conf
 
 | 字段 | 说明 | 默认值 |
 |------|------|--------|
+| `version` | 记忆实现版本。仅支持 `"v2"`（#2264 已移除旧版 `"v1"`；传入 `"v1"` 会在配置加载时抛出 `ValueError`）。 | `"v2"` |
 | `agent_scope_mode` | 已废弃且被忽略。仅为兼容旧版 `ov.conf` 保留。当前 agent/user 命名空间行为由 account 级 namespace policy 控制。 | `"user+agent"` |
 
 `agent_scope_mode` 不再影响命名空间行为。服务端现在根据 account 级 namespace policy 在 `viking://agent/{agent_id}/...` 与 `viking://agent/{agent_id}/user/{user_id}/...` 之间选择。
@@ -1089,6 +1114,7 @@ HTTP 客户端（`SyncHTTPClient` / `AsyncHTTPClient`）和 CLI 工具连接远�
   "account": "acme",
   "user": "alice",
   "agent_id": "my-agent",
+  "profile": false,
   "upload": {
     "mode": "local",
     "ignore_dirs": "node_modules,.cache,.nx",
@@ -1105,6 +1131,7 @@ HTTP 客户端（`SyncHTTPClient` / `AsyncHTTPClient`）和 CLI 工具连接远�
 | `account` | 默认发送为 `X-OpenViking-Account` 的租户标识 | `null` |
 | `user` | 默认发送为 `X-OpenViking-User` 的用户标识 | `null` |
 | `agent_id` | Agent 标识，用于 agent space 隔离 | `null` |
+| `profile` | 是否默认给 HTTP 请求追加 `profile=1`。对 Python HTTP client 和 `ov` CLI 都生效；也可通过 CLI 的 `--profile` 单次开启。是否真正生效还取决于服务端是否开启 `server.profile_enabled`。 | `false` |
 | `upload.ignore_dirs` | `add-resource` 默认忽略目录列表（CSV） | `null` |
 | `upload.include` | `add-resource` 默认包含模式（CSV） | `null` |
 | `upload.exclude` | `add-resource` 默认排除模式（CSV） | `null` |
@@ -1139,6 +1166,7 @@ openviking add-resource ./docs --exclude "*.tmp"
     "port": 1933,
     "auth_mode": "api_key",
     "root_api_key": "your-secret-root-key",
+    "profile_enabled": false,
     "cors_origins": ["*"],
     "public_base_url": "https://ov.example.com",
     "upload_signed_ttl_seconds": 600,
@@ -1157,6 +1185,7 @@ openviking add-resource ./docs --exclude "*.tmp"
 | `port` | int | 绑定端口 | `1933` |
 | `auth_mode` | str | 认证模式：`"api_key"` 或 `"trusted"`。默认值为 `"api_key"` | `"api_key"` |
 | `root_api_key` | str | Root API Key。在 `api_key` 模式下启用多租户认证；在 `trusted` 模式下它只是可选附加保护，不负责解析普通用户身份 | `null` |
+| `profile_enabled` | bool | 是否允许 HTTP 请求通过 `profile=1` 开启请求级 cProfile。关闭时服务端会忽略该请求参数；开启后，CLI 可以显示返回的 `profile`，而 Python HTTP client 默认只触发服务端 profile，不会把顶层 `profile` 字段自动附着到大多数 SDK 返回值上。 | `false` |
 | `cors_origins` | list | CORS 允许的来源 | `["*"]` |
 | `public_base_url` | str | MCP `add_resource` 工具向客户端返回的上传指令里使用的对外可见 base URL。解析顺序：环境变量 `OPENVIKING_PUBLIC_BASE_URL` → 本字段 → 请求头 `X-Forwarded-Host` / `X-Forwarded-Proto` → 请求头 `Host` → 监听地址兜底。当 server 部署在反向代理后且代理不转发 `X-Forwarded-*` 时，请显式设置本字段（或环境变量）。 | `null` |
 | `upload_signed_ttl_seconds` | int | MCP `add_resource` 为本地文件上传 mint 的一次性 token 在签名端点 `POST /api/v1/resources/temp_upload_signed` 上的过期时间（秒）。 | `600`（10 分钟） |
