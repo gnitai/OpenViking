@@ -22,6 +22,16 @@ from openviking_cli.utils import get_logger
 
 logger = get_logger(__name__)
 
+# Turbopuffer caps `top_k` / `limit.total` at 10,000; larger values error the query.
+_TP_MAX_TOP_K = 10000
+
+# Default hybrid fusion weight applied to the sparse ranking when the namespace was
+# loaded (rather than created) this session, so `sparse_weight` wasn't recorded.
+_DEFAULT_SPARSE_WEIGHT = 0.5
+
+# Rank constant for reciprocal-rank fusion. Larger => flatter weighting of top ranks.
+_RRF_K = 60
+
 
 def _import_turbopuffer():
     """Lazy import so the SDK is only required at runtime."""
@@ -168,6 +178,7 @@ class TurbopufferCollection(ICollection):
             self._ns.delete_all()
         except Exception:
             logger.exception("Failed to drop turbopuffer namespace %s", self._namespace_name)
+            raise
         self._schema_applied = False
 
     # ----------------------------------------------------------------- index
@@ -227,13 +238,15 @@ class TurbopufferCollection(ICollection):
         # Turbopuffer namespaces with a vector/ANN attribute require every row to
         # carry a vector. OpenViking writes some vectorless navigational rows (e.g.
         # empty preset scope roots whose summaries have no embeddable text). Those
-        # cannot live in a vector store, so drop them from the write while still
-        # reporting their ids as handled to keep the embedding pipeline happy.
+        # cannot live in a vector store, so drop them from the write. Their ids are
+        # still reported as handled (the pipeline expects every id back), so a later
+        # fetch_data/get of such an id returns nothing — the row was never stored.
         rows = [r for r in data_list if r.get("vector") or r.get("sparse_vector")]
         skipped = len(data_list) - len(rows)
         if skipped:
             logger.debug(
-                "Skipping %d vectorless row(s) not storable in turbopuffer namespace %s",
+                "Dropped %d vectorless row(s) from the write to turbopuffer namespace "
+                "%s (reported as handled but not stored)",
                 skipped,
                 self._namespace_name,
             )
@@ -257,7 +270,7 @@ class TurbopufferCollection(ICollection):
         try:
             response = self._ns.query(
                 filters=("id", "In", keys),
-                top_k=len(keys),
+                top_k=min(_TP_MAX_TOP_K, max(1, len(keys))),
                 rank_by=("id", "asc"),
                 include_attributes=True,
             )
@@ -281,6 +294,7 @@ class TurbopufferCollection(ICollection):
             self._ns.write(deletes=list(primary_keys))
         except Exception:
             logger.exception("Turbopuffer delete_data failed")
+            raise
 
     def delete_all_data(self):
         try:
@@ -290,6 +304,7 @@ class TurbopufferCollection(ICollection):
                 "Failed to delete_all() turbopuffer namespace %s",
                 self._namespace_name,
             )
+            raise
         self._schema_applied = False
 
     # ---------------------------------------------------------------- search
@@ -304,10 +319,25 @@ class TurbopufferCollection(ICollection):
         sparse_vector: Optional[Dict[str, float]] = None,
         output_fields: Optional[List[str]] = None,
     ) -> SearchResult:
-        if dense_vector is None and sparse_vector is None:
+        has_dense = bool(dense_vector)
+        has_sparse = bool(sparse_vector)
+        if not has_dense and not has_sparse:
             return SearchResult()
-        if sparse_vector is not None:
-            sparse = {str(k): float(v) for k, v in sparse_vector.items()}
+        if has_dense and has_sparse:
+            # Turbopuffer ranks by a single function per query, so true hybrid search
+            # means running the dense and sparse rankings separately and fusing them
+            # client-side (see TP docs: "for hybrid search, multi-queries can be
+            # used and combined client-side").
+            return self._run_hybrid_query(
+                dense_vector=list(dense_vector or []),
+                sparse_vector=sparse_vector or {},
+                limit=limit,
+                offset=offset,
+                filters=filters,
+                include_attributes=output_fields,
+            )
+        if has_sparse:
+            sparse = {str(k): float(v) for k, v in (sparse_vector or {}).items()}
             rank_by: Any = ("sparse_vector", "SparseKNN", sparse)
         else:
             rank_by = ("vector", "ANN", list(dense_vector or []))
@@ -456,6 +486,28 @@ class TurbopufferCollection(ICollection):
 
     # ----------------------------------------------------------------- inner
 
+    def _query_rows(
+        self,
+        *,
+        rank_by: Any,
+        top_k: int,
+        filters: Optional[Any],
+        include_attributes: Optional[List[str]],
+    ) -> List[Any]:
+        """Issue a single ranked query and return its rows (empty on failure)."""
+        kwargs: Dict[str, Any] = {"rank_by": rank_by, "top_k": top_k}
+        if filters:
+            kwargs["filters"] = filters
+        kwargs["include_attributes"] = (
+            list(include_attributes) if include_attributes else True
+        )
+        try:
+            response = self._ns.query(**kwargs)
+        except Exception:
+            logger.exception("Turbopuffer query failed")
+            return []
+        return self._rows(response)
+
     def _run_query(
         self,
         *,
@@ -465,22 +517,13 @@ class TurbopufferCollection(ICollection):
         filters: Optional[Any],
         include_attributes: Optional[List[str]],
     ) -> SearchResult:
-        kwargs: Dict[str, Any] = {
-            "rank_by": rank_by,
-            "top_k": max(1, limit + max(0, offset)),
-        }
-        if filters:
-            kwargs["filters"] = filters
-        if include_attributes:
-            kwargs["include_attributes"] = list(include_attributes)
-        else:
-            kwargs["include_attributes"] = True
-        try:
-            response = self._ns.query(**kwargs)
-        except Exception:
-            logger.exception("Turbopuffer query failed")
-            return SearchResult()
-        rows = self._rows(response)
+        top_k = min(_TP_MAX_TOP_K, max(1, limit + max(0, offset)))
+        rows = self._query_rows(
+            rank_by=rank_by,
+            top_k=top_k,
+            filters=filters,
+            include_attributes=include_attributes,
+        )
         if offset:
             rows = rows[offset:]
         rows = rows[:limit]
@@ -493,6 +536,74 @@ class TurbopufferCollection(ICollection):
             for row in rows
         ]
         return SearchResult(data=items)
+
+    def _run_hybrid_query(
+        self,
+        *,
+        dense_vector: List[float],
+        sparse_vector: Dict[str, float],
+        limit: int,
+        offset: int,
+        filters: Optional[Any],
+        include_attributes: Optional[List[str]],
+    ) -> SearchResult:
+        """Run dense + sparse rankings separately and fuse them client-side."""
+        sparse = {str(k): float(v) for k, v in sparse_vector.items()}
+        top_k = min(_TP_MAX_TOP_K, max(1, limit + max(0, offset)))
+        dense_rows = self._query_rows(
+            rank_by=("vector", "ANN", dense_vector),
+            top_k=top_k,
+            filters=filters,
+            include_attributes=include_attributes,
+        )
+        sparse_rows = self._query_rows(
+            rank_by=("sparse_vector", "SparseKNN", sparse),
+            top_k=top_k,
+            filters=filters,
+            include_attributes=include_attributes,
+        )
+        try:
+            weight = float(self._index_meta.get("sparse_weight", _DEFAULT_SPARSE_WEIGHT))
+        except (TypeError, ValueError):
+            weight = _DEFAULT_SPARSE_WEIGHT
+        fused = self._fuse_rrf(dense_rows, sparse_rows, sparse_weight=weight)
+        if offset:
+            fused = fused[offset:]
+        fused = fused[:limit]
+        items = [
+            SearchItemResult(id=rid, fields=fields, score=score)
+            for rid, fields, score in fused
+        ]
+        return SearchResult(data=items)
+
+    @classmethod
+    def _fuse_rrf(
+        cls,
+        dense_rows: List[Any],
+        sparse_rows: List[Any],
+        *,
+        sparse_weight: float,
+    ) -> List[Any]:
+        """Reciprocal-rank-fuse two rank-ordered row lists into (id, fields, score).
+
+        RRF is scale-free, so it sidesteps the distance-vs-score scale mismatch
+        between ANN and SparseKNN. ``sparse_weight`` splits the contribution
+        between the two rankings (0 => dense only, 1 => sparse only).
+        """
+        w_sparse = min(1.0, max(0.0, sparse_weight))
+        w_dense = 1.0 - w_sparse
+        scores: Dict[Any, float] = {}
+        fields: Dict[Any, Dict[str, Any]] = {}
+        for weight, rows in ((w_dense, dense_rows), (w_sparse, sparse_rows)):
+            for rank, row in enumerate(rows):
+                rid = cls._row_id(row)
+                if rid is None:
+                    continue
+                scores[rid] = scores.get(rid, 0.0) + weight / (_RRF_K + rank + 1)
+                if rid not in fields:
+                    fields[rid] = cls._row_fields(row)
+        ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+        return [(rid, fields.get(rid, {}), score) for rid, score in ranked]
 
     @staticmethod
     def _rows(response: Any) -> List[Any]:

@@ -303,9 +303,13 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
             prefix = encoded.rstrip("/") if isinstance(encoded, str) else encoded
             if not isinstance(prefix, str):
                 return (expr.field, "Eq", encoded)
-            if expr.depth <= 0:
-                return (expr.field, "Glob", f"{prefix}/*")
-            # Bounded depth: match prefix plus exactly `depth` more segments.
+            # depth==0 means the node itself; depth<0 means the whole subtree;
+            # depth>=1 means exactly that many segments below `prefix`. Turbopuffer
+            # globs are globset-style: `*` does not cross `/`, `**` does.
+            if expr.depth == 0:
+                return (expr.field, "Eq", prefix)
+            if expr.depth < 0:
+                return (expr.field, "Glob", f"{prefix}/**")
             suffix = "/*" * expr.depth
             return (expr.field, "Glob", f"{prefix}{suffix}")
         raise TypeError(f"Unsupported filter expr type: {type(expr)!r}")

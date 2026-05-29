@@ -195,12 +195,43 @@ class TestFilterCompilation(unittest.TestCase):
     def test_none_returns_none(self):
         self.assertIsNone(self.adapter._compile_filter(None))
 
-    def test_pathscope_unbounded(self):
-        compiled = self.adapter._compile_filter(PathScope("uri", "viking://foo", depth=0))
-        # uri values get re-encoded by base helpers; depth 0 → unbounded glob suffix.
-        assert compiled[0] == "uri"
-        assert compiled[1] == "Glob"
-        assert compiled[2].endswith("/*")
+    def test_pathscope_exact_self(self):
+        # depth=0 → the node itself, an exact match (not a glob).
+        self.assertEqual(
+            self.adapter._compile_filter(PathScope("p", "a/b", depth=0)),
+            ("p", "Eq", "a/b"),
+        )
+
+    def test_pathscope_immediate_children(self):
+        # depth=1 → exactly one segment below the prefix.
+        self.assertEqual(
+            self.adapter._compile_filter(PathScope("p", "a/b", depth=1)),
+            ("p", "Glob", "a/b/*"),
+        )
+
+    def test_pathscope_bounded_depth(self):
+        # depth=2 → exactly two segments below the prefix.
+        self.assertEqual(
+            self.adapter._compile_filter(PathScope("p", "a/b", depth=2)),
+            ("p", "Glob", "a/b/*/*"),
+        )
+
+    def test_pathscope_unbounded_subtree(self):
+        # depth<0 (the default) → whole subtree; globset ** crosses '/'.
+        self.assertEqual(
+            self.adapter._compile_filter(PathScope("p", "a/b", depth=-1)),
+            ("p", "Glob", "a/b/**"),
+        )
+
+    def test_pathscope_uri_field_unbounded_is_recursive(self):
+        # uri values get re-encoded by base helpers, but depth=-1 must still
+        # produce a recursive ** glob (regression for direct-children-only bug).
+        compiled = self.adapter._compile_filter(
+            PathScope("uri", "viking://foo", depth=-1)
+        )
+        self.assertEqual(compiled[0], "uri")
+        self.assertEqual(compiled[1], "Glob")
+        self.assertTrue(compiled[2].endswith("/**"))
 
 
 class TestUpsertAndSchemaApply(unittest.TestCase):
@@ -288,6 +319,63 @@ class TestUpsertAndSchemaApply(unittest.TestCase):
         self.assertEqual(total, 7)
         call_kwargs = self.ns_mock.query.call_args.kwargs
         self.assertEqual(call_kwargs["aggregate_by"], {"_total": ("Count",)})
+
+    def test_query_top_k_clamped_to_tp_max(self):
+        # base.delete(filter=...) issues query(limit=100000); top_k must be clamped
+        # to TP's 10k ceiling instead of erroring the query → silent empty result.
+        self.adapter.create_collection(
+            name="test_ns",
+            schema={"Fields": []},
+            distance="cosine",
+            sparse_weight=0.0,
+            index_name="default",
+        )
+        self.ns_mock.query.return_value = SimpleNamespace(rows=[], aggregations=None)
+        self.adapter.query(query_vector=[0.1, 0.2, 0.3], limit=100000)
+        self.assertEqual(self.ns_mock.query.call_args.kwargs["top_k"], 10000)
+
+    def test_delete_failure_propagates(self):
+        # A failed TP delete must raise, not be reported as a successful delete count.
+        self.adapter.create_collection(
+            name="test_ns",
+            schema={"Fields": []},
+            distance="cosine",
+            sparse_weight=0.0,
+            index_name="default",
+        )
+        self.ns_mock.write.side_effect = RuntimeError("boom")
+        with self.assertRaises(RuntimeError):
+            self.adapter.delete(ids=["a", "b"])
+
+    def test_hybrid_query_fuses_dense_and_sparse(self):
+        # When both a dense and sparse vector are supplied, two ranked queries run
+        # and their results are fused client-side (no silent sparse-only fallback).
+        self.adapter.create_collection(
+            name="test_ns",
+            schema={"Fields": []},
+            distance="cosine",
+            sparse_weight=0.5,
+            index_name="default",
+        )
+
+        def _row(rid):
+            return SimpleNamespace(id=rid, attributes={"text": rid}, dist=0.1)
+
+        dense = SimpleNamespace(rows=[_row("d1"), _row("d2")], aggregations=None)
+        sparse = SimpleNamespace(rows=[_row("d2"), _row("d3")], aggregations=None)
+        self.ns_mock.query.side_effect = [dense, sparse]
+
+        out = self.adapter.query(
+            query_vector=[0.1, 0.2, 0.3],
+            sparse_query_vector={"0": 0.9},
+            limit=10,
+        )
+        self.assertEqual(self.ns_mock.query.call_count, 2)
+        rank_bys = [c.kwargs["rank_by"] for c in self.ns_mock.query.call_args_list]
+        self.assertEqual(rank_bys[0], ("vector", "ANN", [0.1, 0.2, 0.3]))
+        self.assertEqual(rank_bys[1], ("sparse_vector", "SparseKNN", {"0": 0.9}))
+        # d2 appears top-ranked in both lists → highest fused score.
+        self.assertEqual([r["id"] for r in out], ["d2", "d1", "d3"])
 
 
 class _PydanticRow:
