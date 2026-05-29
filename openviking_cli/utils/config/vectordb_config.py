@@ -1,6 +1,5 @@
 # Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: AGPL-3.0
-import os
 from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, model_validator
@@ -56,7 +55,7 @@ class TurbopufferConfig(BaseModel):
 
     api_key: Optional[str] = Field(
         default=None,
-        description="Turbopuffer API key; falls back to TURBOPUFFER_API_KEY env var",
+        description="Turbopuffer API key configured in OV config",
     )
     region: Optional[str] = Field(
         default=None,
@@ -212,12 +211,9 @@ class VectorDBBackendConfig(BaseModel):
 
         elif self.backend == "turbopuffer":
             tp = self.turbopuffer
-            api_key = (tp.api_key if tp else None) or os.environ.get("TURBOPUFFER_API_KEY")
+            api_key = tp.api_key if tp else None
             if not api_key:
-                raise ValueError(
-                    "VectorDB turbopuffer backend requires 'api_key' "
-                    "(or TURBOPUFFER_API_KEY env var) to be set"
-                )
+                raise ValueError("VectorDB turbopuffer backend requires 'api_key' to be set")
             has_region = bool(tp and tp.region)
             has_base_url = bool(tp and tp.base_url)
             if not has_region and not has_base_url:

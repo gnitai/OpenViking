@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: AGPL-3.0
 """Live integration tests for the Turbopuffer vector backend.
 
-Skipped unless TURBOPUFFER_API_KEY is set in the environment. Set
-TURBOPUFFER_REGION (default: gcp-us-central1) to pick a region.
+Skipped unless TURBOPUFFER_API_KEY is set in the environment. The env var is
+used only to populate the test config; runtime fallback is intentionally not
+covered here. Set TURBOPUFFER_REGION (default: gcp-us-central1) to pick a region.
 """
 
 from __future__ import annotations

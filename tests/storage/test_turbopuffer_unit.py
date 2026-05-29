@@ -65,9 +65,7 @@ def _make_config(**overrides) -> VectorDBBackendConfig:
 
 class TestConfigValidation(unittest.TestCase):
     def test_rejects_missing_api_key(self):
-        # Temporarily strip env var so validation truly sees no key.
-        with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("TURBOPUFFER_API_KEY", None)
+        with patch.dict(os.environ, {"TURBOPUFFER_API_KEY": "env-key"}, clear=False):
             with self.assertRaises(ValueError) as ctx:
                 VectorDBBackendConfig(
                     backend="turbopuffer",
@@ -86,15 +84,6 @@ class TestConfigValidation(unittest.TestCase):
         msg = str(ctx.exception).lower()
         self.assertIn("region", msg)
 
-    def test_accepts_env_var_api_key(self):
-        with patch.dict(os.environ, {"TURBOPUFFER_API_KEY": "env-key"}, clear=False):
-            cfg = VectorDBBackendConfig(
-                backend="turbopuffer",
-                name="ns",
-                turbopuffer=TurbopufferConfig(region="gcp-us-central1"),
-            )
-        assert cfg.backend == "turbopuffer"
-
     def test_accepts_base_url_without_region(self):
         cfg = VectorDBBackendConfig(
             backend="turbopuffer",
@@ -112,6 +101,7 @@ class TestFactoryRouting(unittest.TestCase):
         self.assertEqual(adapter.mode, "turbopuffer")
         self.assertEqual(adapter.collection_name, "test_ns")
         self.assertEqual(adapter._namespace_name, "test_ns")
+        self.assertEqual(adapter._api_key, "test-key")
 
     def test_namespace_override_respected(self):
         cfg = _make_config(turbopuffer={"api_key": "k", "region": "r", "namespace": "alt"})

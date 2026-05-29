@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, List, Optional
 
 from openviking.storage.expr import (
@@ -79,11 +78,9 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
     @classmethod
     def from_config(cls, config: Any) -> "TurbopufferCollectionAdapter":
         tp = getattr(config, "turbopuffer", None)
-        api_key = (tp.api_key if tp else None) or os.environ.get("TURBOPUFFER_API_KEY")
+        api_key = tp.api_key if tp else None
         if not api_key:
-            raise ValueError(
-                "Turbopuffer backend requires 'api_key' (or TURBOPUFFER_API_KEY env var)"
-            )
+            raise ValueError("Turbopuffer backend requires 'api_key' to be set in config")
         region = tp.region if tp else None
         base_url = tp.base_url if tp else None
         if not region and not base_url:
