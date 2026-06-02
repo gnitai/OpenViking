@@ -545,10 +545,32 @@ class VikingVectorIndexBackend:
         # Share a single adapter (and its underlying PersistStore/RocksDB instance)
         # across all account backends to avoid LOCK contention.
         self._shared_adapter = create_collection_adapter(config)
+        # Per-account adapters bound to a project-specific namespace (turbopuffer only).
+        self._account_adapters: Dict[str, Any] = {}
 
         logger.info(
             "VikingVectorIndexBackend facade initialized",
         )
+
+    def _namespace_per_account(self) -> bool:
+        return getattr(self._config, "backend", None) == "turbopuffer"
+
+    def _shared_tp_client(self):
+        # Reuse the shared adapter's (lazily-built) Turbopuffer client across all
+        # per-project adapters. The client is namespace-agnostic — the namespace is
+        # selected per call via client.namespace(...) — so one client/connection pool
+        # serves every project. Building it does no network I/O (lazy connection).
+        return self._shared_adapter._get_client()
+
+    def _adapter_for_account(self, account_id: str):
+        if not self._namespace_per_account() or not account_id or account_id == "default":
+            return self._shared_adapter
+        if account_id not in self._account_adapters:
+            ns = f"{self._collection_name}-{account_id}"
+            self._account_adapters[account_id] = create_collection_adapter(
+                self._config, namespace_override=ns, client=self._shared_tp_client()
+            )
+        return self._account_adapters[account_id]
 
     @property
     def collection_name(self) -> str:
@@ -570,7 +592,9 @@ class VikingVectorIndexBackend:
         """获取指定 account 的 backend，懒创建"""
         if account_id not in self._account_backends:
             backend = _SingleAccountBackend(
-                self._config, bound_account_id=account_id, shared_adapter=self._shared_adapter
+                self._config,
+                bound_account_id=account_id,
+                shared_adapter=self._adapter_for_account(account_id),
             )
             backend._distance_metric = self.distance_metric
             backend._sparse_weight = self.sparse_weight
@@ -606,6 +630,24 @@ class VikingVectorIndexBackend:
 
     async def create_collection(self, name: str, schema: Dict[str, Any]) -> bool:
         return await self._get_default_backend().create_collection(name, schema)
+
+    async def ensure_collection(self, *, ctx: RequestContext) -> bool:
+        """Apply the full context-collection schema to the context's namespace.
+
+        Unlike ``create_collection`` (which always targets the default backend),
+        this targets the PER-PROJECT backend for ``ctx`` and applies the
+        schema-bearing ``create_collection`` (create-or-update). This is the
+        per-process, per-project bootstrap that gives a new project's namespace
+        a non-empty ``Fields`` set — without it Turbopuffer strips ``vector``
+        (and every other attribute) from writes. It is deliberately NOT an
+        exists-check: a fresh process builds a fresh adapter that must re-apply
+        the schema to its in-memory wrap.
+        """
+        from openviking.storage.collection_schemas import build_context_schema
+
+        backend = self._get_backend_for_context(ctx)
+        schema = build_context_schema(self._config)
+        return await backend.create_collection(self._collection_name, schema)
 
     async def drop_collection(self) -> bool:
         return await self._get_default_backend().drop_collection()
@@ -954,6 +996,15 @@ class VikingVectorIndexBackend:
     async def delete_account_data(self, account_id: str, *, ctx: RequestContext) -> int:
         """删除指定 account 的所有数据（仅限，root 角色操作）"""
         self._check_root_role(ctx)
+        if self._namespace_per_account() and account_id and account_id != "default":
+            backend = self._get_backend_for_account(account_id)
+            dropped = await backend.drop_collection()  # drops the project's TP namespace
+            if dropped:
+                self._account_backends.pop(account_id, None)
+                self._account_adapters.pop(account_id, None)
+                return 1
+            # On failure leave caches intact so a retry can re-drop.
+            return 0
         root_backend = self._get_root_backend()
         return await root_backend.delete_by_filter(Eq("account_id", account_id))
 

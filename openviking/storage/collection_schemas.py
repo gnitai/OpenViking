@@ -134,6 +134,33 @@ class CollectionSchemas:
         }
 
 
+def build_context_schema(config: Any) -> Dict[str, Any]:
+    """Build the context-collection schema dict from a VectorDB backend config.
+
+    Single source of truth for the unified context-collection schema. Both the
+    startup bootstrap (``init_context_collection``) and per-project lazy
+    initialization (``VikingVectorIndexBackend.ensure_collection``) build the
+    schema from this helper so the per-project namespace receives the SAME
+    non-empty ``Fields`` (vector dim, account_id, etc.). Turbopuffer strips
+    every attribute — including ``vector`` — from writes when a namespace's
+    ``Fields`` are empty, so applying this schema per project is mandatory.
+
+    Args:
+        config: VectorDB backend config exposing ``name`` and ``dimension``
+            (e.g. ``VectorDBBackendConfig``). On the live manager
+            ``dimension`` is synced from the embedding dimension at config load.
+
+    Returns:
+        The schema dict passed to ``create_collection`` (``Fields``,
+        ``ScalarIndex``, configured vector ``Dim``, etc.).
+    """
+    name = getattr(config, "name", None)
+    if not name:
+        raise ValueError("Vector DB collection name is required")
+    vector_dim = getattr(config, "dimension", 0)
+    return CollectionSchemas.context_collection(name, vector_dim)
+
+
 def _get_active_embedding_model_config(config: "OpenVikingConfig") -> Any:
     embedding_cfg = config.embedding
     if embedding_cfg.hybrid is not None:
@@ -211,7 +238,6 @@ async def init_context_collection(storage) -> bool:
 
     config = get_openviking_config()
     name = config.storage.vectordb.name
-    vector_dim = config.embedding.dimension
     if not name:
         raise ValueError("Vector DB collection name is required")
     collection_name = name
@@ -227,10 +253,9 @@ async def init_context_collection(storage) -> bool:
             "collection/index/schema must be pre-created out of band"
         )
         return False
-    schema = CollectionSchemas.context_collection(
-        collection_name,
-        vector_dim,
-        description=_encode_collection_description("Unified context collection", embedding_meta),
+    schema = build_context_schema(vectordb_cfg)
+    schema["Description"] = _encode_collection_description(
+        "Unified context collection", embedding_meta
     )
     created = await storage.create_collection(collection_name, schema)
     if created:

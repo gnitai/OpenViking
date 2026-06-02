@@ -101,6 +101,10 @@ TEST_CASE_DESCRIPTIONS = {
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_with_to_param": "TC-E17 to参数指定URI",
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_with_parent_param": "TC-E18 parent参数指定父目录",
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_non_resources_scope_rejected": "TC-E11 scope参数非resources拒绝",
+    "test_project_id_contract.py::TestAbsentAccountHeaderDefaultsToDefault::test_absent_account_header_resolves_to_default": "project_id↔account_id契约: 缺省账户头解析为default",
+    "test_project_id_contract.py::TestPerProjectFilesystemIsolation::test_write_project_3493_not_visible_under_project_999": "project_id↔account_id契约: 按项目文件系统隔离",
+    "test_new_project_bootstrap.py::TestNewProjectBootstrap::test_preset_user_root_not_404_for_new_project": "新项目首次访问: 预置目录懒初始化(ls不404)",
+    "test_new_project_bootstrap.py::TestNewProjectBootstrap::test_content_write_read_round_trips_for_new_project": "新项目首次访问: 写入读取往返(向量命名空间schema已应用)",
 }
 
 
@@ -200,6 +204,10 @@ TEST_CASE_APIS = {
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_with_to_param": "/api/v1/resources",
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_with_parent_param": "/api/v1/resources",
     "test_build_uri_params_slow.py::TestBuildUriParamsSlow::test_build_non_resources_scope_rejected": "/api/v1/resources",
+    "test_project_id_contract.py::TestAbsentAccountHeaderDefaultsToDefault::test_absent_account_header_resolves_to_default": "/health",
+    "test_project_id_contract.py::TestPerProjectFilesystemIsolation::test_write_project_3493_not_visible_under_project_999": "/api/v1/fs/mkdir,/api/v1/content/write,/api/v1/content/read",
+    "test_new_project_bootstrap.py::TestNewProjectBootstrap::test_preset_user_root_not_404_for_new_project": "/api/v1/fs/ls",
+    "test_new_project_bootstrap.py::TestNewProjectBootstrap::test_content_write_read_round_trips_for_new_project": "/api/v1/fs/mkdir,/api/v1/content/write,/api/v1/content/read",
 }
 
 

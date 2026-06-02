@@ -9,8 +9,7 @@ from pydantic import BaseModel
 
 from openviking.core.path_variables import resolve_path_variables
 from openviking.pyagfs.exceptions import AGFSClientError, AGFSNotFoundError
-from openviking.server.auth import get_request_context
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.error_mapping import map_exception
 from openviking.server.identity import RequestContext
 from openviking.server.models import Response
@@ -29,7 +28,7 @@ async def ls(
     show_all_hidden: bool = Query(False, description="List all hidden files, like -a"),
     node_limit: int = Query(1000, description="Maximum number of nodes to list"),
     limit: Optional[int] = Query(None, description="Alias for node_limit"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """List directory contents."""
     service = get_service()
@@ -66,7 +65,7 @@ async def tree(
     node_limit: int = Query(1000, description="Maximum number of nodes to list"),
     limit: Optional[int] = Query(None, description="Alias for node_limit"),
     level_limit: int = Query(3, description="Maximum depth level to traverse"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get directory tree."""
     service = get_service()
@@ -96,7 +95,7 @@ async def tree(
 @router.get("/stat")
 async def stat(
     uri: str = Query(..., description="Viking URI"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get resource status."""
     service = get_service()
@@ -129,7 +128,7 @@ class MkdirRequest(BaseModel):
 @router.post("/mkdir")
 async def mkdir(
     request: MkdirRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Create directory."""
     service = get_service()
@@ -149,7 +148,7 @@ async def mkdir(
 async def rm(
     uri: str = Query(..., description="Viking URI"),
     recursive: bool = Query(False, description="Remove recursively"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Remove resource."""
     service = get_service()
@@ -186,7 +185,7 @@ class MvRequest(BaseModel):
 @router.post("/mv")
 async def mv(
     request: MvRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Move resource."""
     service = get_service()

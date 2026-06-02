@@ -9,8 +9,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from openviking.core.path_variables import resolve_path_variables
 from openviking.message.part import Part, TextPart, part_from_dict
-from openviking.server.auth import get_request_context
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.identity import AuthMode, RequestContext
 from openviking.server.models import ErrorInfo, Response
 from openviking.server.responses import error_response
@@ -157,7 +156,7 @@ def _request_auth_mode(request: Request) -> AuthMode:
 @router.post("")
 async def create_session(
     request: CreateSessionRequest = Body(default_factory=CreateSessionRequest),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Create a new session.
 
@@ -185,7 +184,7 @@ async def create_session(
 
 @router.get("")
 async def list_sessions(
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """List all sessions."""
     service = get_service()
@@ -197,7 +196,7 @@ async def list_sessions(
 async def get_session(
     session_id: str = Path(..., description="Session ID"),
     auto_create: bool = Query(False, description="Create the session if it does not exist"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get session details."""
     from openviking_cli.exceptions import NotFoundError
@@ -221,7 +220,7 @@ async def list_tool_results(
     session_id: str = Path(..., description="Session ID"),
     tool_name: Optional[str] = Query(None, description="Filter by tool name"),
     limit: int = Query(50, ge=1, description="Maximum number of tool results"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """List externalized tool results for a session."""
     service = get_service()
@@ -237,7 +236,7 @@ async def read_tool_result(
     offset: int = Query(0, ge=0, description="Unicode character offset"),
     limit: int = Query(20_000, description="Maximum Unicode characters to return"),
     include_metadata: bool = Query(True, description="Include metadata in response"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Read an externalized tool result by Unicode character range."""
     if limit < -1:
@@ -264,7 +263,7 @@ async def search_tool_result(
     q: str = Query(..., min_length=1, description="Search query"),
     limit: int = Query(20, ge=1, description="Maximum matches"),
     context_chars: int = Query(300, ge=0, description="Context characters around each hit"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Search within an externalized tool result."""
     service = get_service()
@@ -282,7 +281,7 @@ async def search_tool_result(
 async def get_session_context(
     session_id: str = Path(..., description="Session ID"),
     token_budget: int = Query(128_000, description="Token budget for session context"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get assembled session context."""
     if token_budget < 0:
@@ -303,7 +302,7 @@ async def get_session_context(
 async def get_session_archive(
     session_id: str = Path(..., description="Session ID"),
     archive_id: str = Path(..., description="Archive ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get one completed archive for a session."""
     from openviking_cli.exceptions import NotFoundError
@@ -324,7 +323,7 @@ async def get_session_archive(
 @router.delete("/{session_id}")
 async def delete_session(
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Delete a session."""
     service = get_service()
@@ -358,7 +357,7 @@ class CommitRequest(BaseModel):
 async def commit_session(
     session_id: str = Path(..., description="Session ID"),
     body: CommitRequest = Body(default_factory=CommitRequest),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Commit a session (archive and extract memories).
 
@@ -384,7 +383,7 @@ async def commit_session(
 @router.post("/{session_id}/extract")
 async def extract_session(
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Extract memories from a session."""
     service = get_service()
@@ -396,7 +395,7 @@ async def extract_session(
 async def add_message(
     request: AddMessageRequest,
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Add a message to a session.
 
@@ -443,7 +442,7 @@ async def add_message(
 async def batch_add_messages(
     request: BatchAddMessageRequest,
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Add multiple messages to a session in a single request.
 
@@ -483,7 +482,7 @@ async def batch_add_messages(
 async def record_used(
     request: UsedRequest,
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Record actually used contexts and skills in a session."""
     service = get_service()

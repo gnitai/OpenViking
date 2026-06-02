@@ -15,6 +15,7 @@ from openviking.storage.collection_schemas import (
     CollectionSchemas,
     TextEmbeddingHandler,
     _build_embedding_metadata,
+    build_context_schema,
     init_context_collection,
 )
 from openviking.storage.errors import EmbeddingRebuildRequiredError
@@ -46,6 +47,7 @@ class _DummyConfig:
             vectordb=SimpleNamespace(
                 name="context",
                 backend=backend,
+                dimension=2,
                 volcengine=SimpleNamespace(api_key=volcengine_data_api_key),
             )
         )
@@ -562,6 +564,26 @@ async def test_embedding_handler_marks_success_only_after_tracker_completion(mon
     assert status["success"] == 1
     assert status["requeue"] == 0
     assert status["error"] == 0
+
+
+def test_build_context_schema_returns_non_empty_fields_with_vector_and_account():
+    cfg = SimpleNamespace(name="context", dimension=1024)
+
+    schema = build_context_schema(cfg)
+
+    assert isinstance(schema, dict)
+    fields = schema["Fields"]
+    assert isinstance(fields, list) and len(fields) > 0
+    field_by_name = {f["FieldName"]: f for f in fields}
+    assert "vector" in field_by_name
+    assert "account_id" in field_by_name
+    assert field_by_name["vector"]["FieldType"] == "vector"
+    assert field_by_name["vector"]["Dim"] == 1024
+
+
+def test_build_context_schema_requires_collection_name():
+    with pytest.raises(ValueError, match="collection name"):
+        build_context_schema(SimpleNamespace(name="", dimension=8))
 
 
 def test_context_collection_excludes_parent_uri():

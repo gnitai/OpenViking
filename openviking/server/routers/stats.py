@@ -6,8 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query
 
-from openviking.server.auth import get_request_context
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.identity import RequestContext
 from openviking.server.models import ErrorInfo, Response
 from openviking.storage.stats_aggregator import MEMORY_CATEGORIES, StatsAggregator
@@ -29,7 +28,7 @@ async def get_memory_stats(
         None,
         description="Filter by memory category (e.g. cases, patterns, tools)",
     ),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get aggregate memory health statistics.
 
@@ -53,7 +52,7 @@ async def get_memory_stats(
 @router.get("/sessions/{session_id}")
 async def get_session_stats(
     session_id: str = Path(..., description="Session ID"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Get extraction statistics for a specific session."""
     service = get_service()

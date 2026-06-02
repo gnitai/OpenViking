@@ -12,8 +12,8 @@ from pydantic import BaseModel, ConfigDict
 from starlette.background import BackgroundTask
 
 from openviking.core.path_variables import resolve_path_variables
-from openviking.server.auth import get_request_context, require_auth_root_or_admin
-from openviking.server.dependencies import get_service
+from openviking.server.auth import require_auth_root_or_admin
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.error_mapping import map_exception
 from openviking.server.identity import RequestContext
 from openviking.server.models import Response
@@ -71,7 +71,7 @@ class RestoreRequest(BaseModel):
 async def export_ovpack(
     request: Request,
     body: ExportRequest,
-    ctx: RequestContext = Depends(get_request_context),
+    ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Export context as .ovpack file and stream it to client."""
     service = get_service()
@@ -125,7 +125,7 @@ async def export_ovpack(
 async def backup_ovpack(
     request: Request,
     body: BackupRequest | None = None,
-    ctx: RequestContext = Depends(get_request_context),
+    ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Back up all public OpenViking scopes as a restore-only .ovpack file."""
     service = get_service()
@@ -163,7 +163,7 @@ async def backup_ovpack(
 async def import_ovpack(
     request: Request,
     body: ImportRequest,
-    ctx: RequestContext = Depends(get_request_context),
+    ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Import .ovpack file."""
     service = get_service()
@@ -197,7 +197,7 @@ async def import_ovpack(
 async def restore_ovpack(
     request: Request,
     body: RestoreRequest,
-    ctx: RequestContext = Depends(get_request_context),
+    ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Restore a backup .ovpack file."""
     service = get_service()

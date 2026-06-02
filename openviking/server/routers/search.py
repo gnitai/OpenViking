@@ -10,8 +10,7 @@ from pydantic import BaseModel
 
 from openviking.core.path_variables import resolve_path_variables
 from openviking.pyagfs.exceptions import AGFSClientError, AGFSNotFoundError
-from openviking.server.auth import get_request_context
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.error_mapping import map_exception
 from openviking.server.identity import RequestContext
 from openviking.server.models import Response
@@ -124,7 +123,7 @@ class GlobRequest(BaseModel):
 @router.post("/find")
 async def find(
     request: FindRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Semantic search without session context."""
     service = get_service()
@@ -163,7 +162,7 @@ async def find(
 @router.post("/search")
 async def search(
     request: SearchRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Semantic search with optional session context."""
     service = get_service()
@@ -211,7 +210,7 @@ async def search(
 @router.post("/grep")
 async def grep(
     request: GrepRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Content search with pattern."""
     service = get_service()
@@ -247,7 +246,7 @@ async def grep(
 @router.post("/glob")
 async def glob(
     request: GlobRequest,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """File pattern matching."""
     service = get_service()

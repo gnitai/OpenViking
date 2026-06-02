@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 
 from openviking.server.auth import get_request_context
+from openviking.server.dependencies import ensure_project_ready
 from openviking.server.identity import RequestContext
 from openviking_cli.utils.logger import get_logger
 
@@ -91,7 +92,7 @@ async def health_check(request: Request):
 @router.post("/chat")
 async def chat(
     request: Request,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Send a message to the bot and get a response.
 
@@ -196,7 +197,7 @@ async def feedback(
 @router.post("/chat/stream")
 async def chat_stream(
     request: Request,
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Send a message to the bot and get a streaming response.
 

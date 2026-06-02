@@ -15,8 +15,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import PlainTextResponse
 from fastapi.responses import Response as FastAPIResponse
 
-from openviking.server.auth import get_request_context
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.identity import RequestContext
 from openviking.utils.time_utils import parse_iso_datetime
 from openviking_cli.exceptions import InvalidArgumentError, NotFoundError
@@ -223,7 +222,7 @@ async def options(resource_path: str = ""):
 async def propfind(
     request: Request,
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     try:
         normalized_path = _normalized_resource_path(resource_path)
@@ -266,7 +265,7 @@ async def propfind(
 async def get_or_head(
     request: Request,
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     try:
         normalized_path = _normalized_resource_path(resource_path)
@@ -306,7 +305,7 @@ async def get_or_head(
 async def put(
     request: Request,
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     try:
         normalized_path = _normalized_resource_path(resource_path)
@@ -349,7 +348,7 @@ async def put(
 @router.api_route("/{resource_path:path}", methods=["DELETE"])
 async def delete(
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     try:
         normalized_path = _normalized_resource_path(resource_path)
@@ -376,7 +375,7 @@ async def delete(
 @router.api_route("/{resource_path:path}", methods=["MKCOL"])
 async def mkcol(
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     try:
         normalized_path = _normalized_resource_path(resource_path)
@@ -408,7 +407,7 @@ async def mkcol(
 async def move(
     request: Request,
     resource_path: str = "",
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     destination = request.headers.get("Destination", "")
     if not destination:

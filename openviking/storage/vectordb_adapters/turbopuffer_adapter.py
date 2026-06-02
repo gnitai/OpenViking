@@ -62,6 +62,7 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
         collection_name: str,
         index_name: str,
         bm25_field: str = "text",
+        client: Optional[Any] = None,
     ):
         super().__init__(collection_name=collection_name, index_name=index_name)
         self.mode = "turbopuffer"
@@ -70,13 +71,21 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
         self._base_url = base_url
         self._namespace_name = namespace_name
         self._bm25_field = bm25_field
-        self._client: Optional[Any] = None
+        # An injected client lets many per-project adapters share one Turbopuffer
+        # client (namespace is selected per call via client.namespace(...)).
+        self._client = client
         self._pending_distance: Optional[str] = None
         self._pending_schema: Optional[Dict[str, Any]] = None
         self._pending_fields: List[Dict[str, Any]] = []
 
     @classmethod
-    def from_config(cls, config: Any) -> "TurbopufferCollectionAdapter":
+    def from_config(
+        cls,
+        config: Any,
+        *,
+        namespace_override: Optional[str] = None,
+        client: Optional[Any] = None,
+    ) -> "TurbopufferCollectionAdapter":
         tp = getattr(config, "turbopuffer", None)
         api_key = tp.api_key if tp else None
         if not api_key:
@@ -86,7 +95,8 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
         if not region and not base_url:
             raise ValueError("Turbopuffer backend requires 'region' or 'base_url' to be set")
         collection_name = config.name or "context"
-        namespace_name = (tp.namespace if tp and tp.namespace else None) or collection_name
+        base_ns = (tp.namespace if tp and tp.namespace else None) or collection_name
+        namespace_name = namespace_override or base_ns
         bm25_field = tp.bm25_field if tp and tp.bm25_field else "text"
         return cls(
             api_key=api_key,
@@ -96,6 +106,7 @@ class TurbopufferCollectionAdapter(CollectionAdapter):
             collection_name=collection_name,
             index_name=config.index_name or "default",
             bm25_field=bm25_field,
+            client=client,
         )
 
     # ----------------------------------------------------------- client mgmt

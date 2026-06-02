@@ -4,6 +4,11 @@
 
 from typing import TYPE_CHECKING, Optional
 
+from fastapi import Depends
+
+from openviking.server.auth import get_request_context
+from openviking.server.identity import RequestContext
+from openviking.server.project_init import ProjectInitGuard, build_default_initializer
 from openviking.service.core import OpenVikingService
 
 if TYPE_CHECKING:
@@ -11,6 +16,7 @@ if TYPE_CHECKING:
 
 _service: Optional[OpenVikingService] = None
 _server_config: Optional["ServerConfig"] = None
+_PROJECT_GUARD: Optional[ProjectInitGuard] = None
 
 
 def get_service() -> OpenVikingService:
@@ -33,8 +39,9 @@ def set_service(service: OpenVikingService) -> None:
     Args:
         service: OpenVikingService instance to set
     """
-    global _service
+    global _service, _PROJECT_GUARD
     _service = service
+    _PROJECT_GUARD = None
 
 
 def get_server_config() -> Optional["ServerConfig"]:
@@ -50,3 +57,20 @@ def set_server_config(config: "ServerConfig") -> None:
     """Register the active ServerConfig at server bootstrap."""
     global _server_config
     _server_config = config
+
+
+def get_project_guard() -> ProjectInitGuard:
+    """Return the process-wide lazy per-project initialization guard."""
+    global _PROJECT_GUARD
+    if _PROJECT_GUARD is None:
+        _PROJECT_GUARD = ProjectInitGuard(build_default_initializer(get_service()))
+    return _PROJECT_GUARD
+
+
+async def ensure_project_ready(
+    ctx: RequestContext = Depends(get_request_context),
+) -> RequestContext:
+    """Data-plane dependency: lazily bootstrap the request's project, then
+    return the resolved RequestContext (drop-in for ``get_request_context``)."""
+    await get_project_guard().ensure(ctx)
+    return ctx

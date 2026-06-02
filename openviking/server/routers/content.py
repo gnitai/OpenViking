@@ -12,10 +12,9 @@ from openviking.core.path_variables import resolve_path_variables
 from openviking.core.uri_validation import validate_viking_uri
 from openviking.pyagfs.exceptions import AGFSClientError, AGFSNotFoundError
 from openviking.server.auth import (
-    get_request_context,
     require_role,
 )
-from openviking.server.dependencies import get_service
+from openviking.server.dependencies import ensure_project_ready, get_service
 from openviking.server.error_mapping import map_exception
 from openviking.server.identity import RequestContext, Role
 from openviking.server.models import Response
@@ -64,7 +63,7 @@ async def read(
     offset: int = Query(0, description="Starting line number (0-indexed)"),
     limit: int = Query(-1, description="Number of lines to read, -1 means read to end"),
     raw: bool = Query(False, description="Return raw stored content without memory-field cleanup"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Read file content (L2)."""
     service = get_service()
@@ -100,7 +99,7 @@ async def read(
 @router.get("/abstract")
 async def abstract(
     uri: str = Query(..., description="Viking URI"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Read L0 abstract."""
     service = get_service()
@@ -120,7 +119,7 @@ async def abstract(
 @router.get("/overview")
 async def overview(
     uri: str = Query(..., description="Viking URI"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Read L1 overview."""
     service = get_service()
@@ -140,7 +139,7 @@ async def overview(
 @router.get("/download")
 async def download(
     uri: str = Query(..., description="Viking URI"),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Download file as raw bytes (for images, binaries, etc.)."""
     service = get_service()
@@ -174,7 +173,7 @@ async def download(
 @router.post("/write")
 async def write(
     request: WriteContentRequest = Body(...),
-    _ctx: RequestContext = Depends(get_request_context),
+    _ctx: RequestContext = Depends(ensure_project_ready),
 ):
     """Write text content to a file (replace, append, or create) and refresh semantics/vectors."""
     service = get_service()
@@ -198,7 +197,7 @@ async def write(
     ).model_dump(exclude_none=True)
 
 
-@router.post("/reindex")
+@router.post("/reindex", dependencies=[Depends(ensure_project_ready)])
 async def reindex(
     body: ReindexRequest = Body(...),
     ctx: RequestContext = require_role(Role.ROOT, Role.ADMIN),

@@ -20,7 +20,9 @@ _ADAPTER_REGISTRY: dict[str, type[CollectionAdapter]] = {
 }
 
 
-def create_collection_adapter(config) -> CollectionAdapter:
+def create_collection_adapter(
+    config, *, namespace_override=None, client=None
+) -> CollectionAdapter:
     """Unified factory entrypoint for backend-specific collection adapters."""
     backend = config.backend
     adapter_cls = _ADAPTER_REGISTRY.get(backend)
@@ -43,5 +45,9 @@ def create_collection_adapter(config) -> CollectionAdapter:
         raise ValueError(
             f"Vector backend {config.backend} is not supported. "
             f"Available backends: {sorted(_ADAPTER_REGISTRY)}"
+        )
+    if config.backend == "turbopuffer":
+        return adapter_cls.from_config(
+            config, namespace_override=namespace_override, client=client
         )
     return adapter_cls.from_config(config)
