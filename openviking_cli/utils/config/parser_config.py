@@ -201,6 +201,7 @@ class CodeHostingConfig(ParserConfig):
         code_hosting_domains: List of code hosting platform domains (github.com, gitlab.com, etc.)
         github_domains: List of GitHub domains (github.com, www.github.com)
         gitlab_domains: List of GitLab domains (gitlab.com, www.gitlab.com)
+        bitbucket_domains: List of Bitbucket domains (bitbucket.org, www.bitbucket.org)
         azure_devops_domains: List of Azure DevOps domains (dev.azure.com, ssh.dev.azure.com)
     """
 
@@ -208,6 +209,7 @@ class CodeHostingConfig(ParserConfig):
     code_hosting_domains: list = None
     github_domains: list = None
     gitlab_domains: list = None
+    bitbucket_domains: list = None
     azure_devops_domains: list = None
 
     def __post_init__(self):
@@ -218,6 +220,8 @@ class CodeHostingConfig(ParserConfig):
             self.github_domains = ["github.com", "www.github.com"]
         if self.gitlab_domains is None:
             self.gitlab_domains = ["gitlab.com", "www.gitlab.com"]
+        if self.bitbucket_domains is None:
+            self.bitbucket_domains = ["bitbucket.org", "www.bitbucket.org"]
         if self.azure_devops_domains is None:
             self.azure_devops_domains = [
                 "dev.azure.com",

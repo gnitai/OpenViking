@@ -105,6 +105,7 @@ class UnifiedResourceProcessor:
         source: str,
         instruction: str = "",
         allow_local_path_resolution: bool = True,
+        git_auth_token: Optional[str] = None,
         **kwargs,
     ) -> ParseResult:
         """Process any source (file/URL/content) with two-layer architecture.
@@ -136,9 +137,14 @@ class UnifiedResourceProcessor:
                 "direct host filesystem paths are not allowed."
             )
 
-        # Phase 1: Accessor - get local resource
+        # Phase 1: Accessor - get local resource.
+        # The transient git token is handed ONLY to the accessor (which performs the
+        # authenticated fetch); it is deliberately kept out of ``parse_kwargs`` below
+        # so it never reaches parsers, TreeBuilder, indexing, or any logging surface.
         registry = self._get_accessor_registry()
-        local_resource = await registry.access(source, **kwargs)
+        local_resource = await registry.access(
+            source, git_auth_token=git_auth_token, **kwargs
+        )
 
         # Use context manager for automatic cleanup, but preserve directories for TreeBuilder
         try:

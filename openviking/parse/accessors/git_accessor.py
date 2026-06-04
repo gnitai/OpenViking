@@ -26,6 +26,7 @@ from openviking.utils.code_hosting_utils import (
     is_git_repo_url,
     validate_git_ssh_uri,
 )
+from openviking.utils.git_auth import archive_auth_header_value, git_config_env
 from openviking_cli.utils.config import get_openviking_config
 from openviking_cli.utils.logger import get_logger
 
@@ -85,12 +86,19 @@ class GitAccessor(DataAccessor):
         suffix = path.suffix.lower()
         return suffix == ".git"
 
-    async def access(self, source: Union[str, Path], **kwargs) -> LocalResource:
+    async def access(
+        self,
+        source: Union[str, Path],
+        git_auth_token: Optional[str] = None,
+        **kwargs,
+    ) -> LocalResource:
         """
         Fetch the git repository or code archive to a local directory.
 
         Args:
             source: Repository URL (git/http) or local zip path
+            git_auth_token: Transient per-request token (OAuth/PAT) for a private
+                repo. Used only for this fetch; never persisted or logged.
             **kwargs: Additional arguments (branch, commit, etc.)
 
         Returns:
@@ -111,7 +119,7 @@ class GitAccessor(DataAccessor):
             local_dir = Path(temp_local_dir)
 
             if source_str.startswith("git@"):
-                # git@ SSH URL
+                # git@ SSH URL (auth is key-based; token N/A)
                 repo_name = await self._git_clone(
                     source_str,
                     temp_local_dir,
@@ -124,7 +132,7 @@ class GitAccessor(DataAccessor):
                     # Try GitHub ZIP API first, fall back to git clone
                     try:
                         local_dir, repo_name = await self._github_zip_download(
-                            repo_url, branch or commit, temp_local_dir
+                            repo_url, branch or commit, temp_local_dir, git_auth_token
                         )
                     except Exception as zip_exc:
                         logger.warning(
@@ -145,12 +153,13 @@ class GitAccessor(DataAccessor):
                             temp_local_dir,
                             branch=branch,
                             commit=commit,
+                            git_auth_token=git_auth_token,
                         )
                 elif self._is_gitlab_url(repo_url):
                     # Try GitLab ZIP API first, fall back to git clone
                     try:
                         local_dir, repo_name = await self._gitlab_zip_download(
-                            repo_url, branch or commit, temp_local_dir
+                            repo_url, branch or commit, temp_local_dir, git_auth_token
                         )
                     except Exception as zip_exc:
                         logger.warning(
@@ -171,14 +180,16 @@ class GitAccessor(DataAccessor):
                             temp_local_dir,
                             branch=branch,
                             commit=commit,
+                            git_auth_token=git_auth_token,
                         )
                 else:
-                    # Non-GitHub/GitLab URL: use git clone
+                    # Bitbucket and any other host: authenticated git clone (uniform).
                     repo_name = await self._git_clone(
                         repo_url,
                         temp_local_dir,
                         branch=branch,
                         commit=commit,
+                        git_auth_token=git_auth_token,
                     )
             else:
                 raise ValueError(f"Unsupported source for GitAccessor: {source}")
@@ -317,11 +328,19 @@ class GitAccessor(DataAccessor):
         name = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
         return name or "repository"
 
-    async def _run_git(self, args: list[str], cwd: Optional[str] = None) -> str:
-        """Run a git command."""
+    async def _run_git(
+        self, args: list[str], cwd: Optional[str] = None, env: Optional[dict] = None
+    ) -> str:
+        """Run a git command.
+
+        ``env``, when provided, is merged over the process environment. It is used
+        to pass auth via ``GIT_CONFIG_*`` so the token never appears in ``args``
+        (and therefore never in the error message below or in /proc/<pid>/cmdline).
+        """
         proc = await asyncio.create_subprocess_exec(
             *args,
             cwd=cwd,
+            env={**os.environ, **env} if env else None,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -366,10 +385,20 @@ class GitAccessor(DataAccessor):
         target_dir: str,
         branch: Optional[str] = None,
         commit: Optional[str] = None,
+        git_auth_token: Optional[str] = None,
     ) -> str:
-        """Clone a git repository into target_dir; return the repo name."""
+        """Clone a git repository into target_dir; return the repo name.
+
+        When ``git_auth_token`` is provided, auth is injected via a host-scoped
+        ``http.<base-url>.extraHeader`` passed through ``GIT_CONFIG_*`` env vars
+        (see :func:`openviking.utils.git_auth.git_config_env`). The token never
+        enters ``url``, argv, or ``.git/config``.
+        """
         name = self._get_repo_name(url)
         logger.info(f"[GitAccessor] Cloning {url} to {target_dir}...")
+
+        # Host-scoped auth via env (never argv, never persisted to .git/config).
+        clone_env = git_config_env(url, git_auth_token) if git_auth_token else None
 
         clone_args = [
             "git",
@@ -381,15 +410,18 @@ class GitAccessor(DataAccessor):
         if branch and not commit:
             clone_args.extend(["--branch", branch])
         clone_args.extend([url, target_dir])
-        await self._run_git(clone_args)
+        await self._run_git(clone_args, env=clone_env)
 
         if commit:
             try:
-                await self._run_git(["git", "-C", target_dir, "fetch", "origin", commit])
+                await self._run_git(
+                    ["git", "-C", target_dir, "fetch", "origin", commit], env=clone_env
+                )
             except RuntimeError:
                 try:
                     await self._run_git(
-                        ["git", "-C", target_dir, "fetch", "--all", "--tags", "--prune"]
+                        ["git", "-C", target_dir, "fetch", "--all", "--tags", "--prune"],
+                        env=clone_env,
                     )
                 except RuntimeError:
                     pass
@@ -397,7 +429,8 @@ class GitAccessor(DataAccessor):
                 if not ok:
                     try:
                         await self._run_git(
-                            ["git", "-C", target_dir, "fetch", "--unshallow", "origin"]
+                            ["git", "-C", target_dir, "fetch", "--unshallow", "origin"],
+                            env=clone_env,
                         )
                     except RuntimeError:
                         pass
@@ -411,7 +444,8 @@ class GitAccessor(DataAccessor):
                             "fetch",
                             "origin",
                             "+refs/heads/*:refs/remotes/origin/*",
-                        ]
+                        ],
+                        env=clone_env,
                     )
                     ok = await self._has_commit(target_dir, commit)
                     if not ok:
@@ -427,11 +461,25 @@ class GitAccessor(DataAccessor):
 
         return name
 
+    def _zip_headers(self, repo_url: str, git_auth_token: Optional[str]) -> dict:
+        """Build HTTP headers for an archive download.
+
+        Adds a host-appropriate ``Authorization`` header only when a per-request
+        token is supplied. No environment variable is ever consulted, so a private
+        archive download requires the caller to pass the token explicitly.
+        """
+        headers = {"User-Agent": "OpenViking"}
+        if git_auth_token:
+            host = urlparse(repo_url).hostname or ""
+            headers["Authorization"] = archive_auth_header_value(host, git_auth_token)
+        return headers
+
     async def _github_zip_download(
         self,
         repo_url: str,
         branch: Optional[str],
         target_dir: str,
+        git_auth_token: Optional[str] = None,
     ) -> Tuple[Path, str]:
         """Download a GitHub repo as a ZIP archive and extract it."""
         repo_name = self._get_repo_name(repo_url)
@@ -456,12 +504,9 @@ class GitAccessor(DataAccessor):
         os.makedirs(extract_dir, exist_ok=True)
 
         # Download (blocking HTTP; run in thread pool)
-        def _download() -> None:
-            headers = {"User-Agent": "OpenViking"}
-            github_token = os.environ.get("GITHUB_TOKEN")
-            if github_token:
-                headers["Authorization"] = f"token {github_token}"
+        headers = self._zip_headers(repo_url, git_auth_token)
 
+        def _download() -> None:
             req = urllib.request.Request(zip_url, headers=headers)
             with urllib.request.urlopen(req, timeout=1800) as resp, open(zip_path, "wb") as f:
                 shutil.copyfileobj(resp, f)
@@ -528,6 +573,7 @@ class GitAccessor(DataAccessor):
         repo_url: str,
         branch: Optional[str],
         target_dir: str,
+        git_auth_token: Optional[str] = None,
     ) -> Tuple[Path, str]:
         """Download a GitLab repo as a ZIP archive and extract it."""
         repo_name = self._get_repo_name(repo_url)
@@ -552,9 +598,9 @@ class GitAccessor(DataAccessor):
         os.makedirs(extract_dir, exist_ok=True)
 
         # Download (blocking HTTP; run in thread pool)
-        def _download() -> None:
-            headers = {"User-Agent": "OpenViking"}
+        headers = self._zip_headers(repo_url, git_auth_token)
 
+        def _download() -> None:
             req = urllib.request.Request(zip_url, headers=headers)
             with urllib.request.urlopen(req, timeout=1800) as resp, open(zip_path, "wb") as f:
                 shutil.copyfileobj(resp, f)

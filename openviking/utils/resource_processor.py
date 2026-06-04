@@ -113,6 +113,7 @@ class ResourceProcessor:
         to: Optional[str] = None,
         parent: Optional[str] = None,
         summarize: bool = False,
+        git_auth_token: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -151,6 +152,7 @@ class ResourceProcessor:
                     parse_result = await media_processor.process(
                         source=path,
                         instruction=effective_instruction,
+                        git_auth_token=git_auth_token,
                         **kwargs,
                     )
                 result["source_path"] = parse_result.source_path or path

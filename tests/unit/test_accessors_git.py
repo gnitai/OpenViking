@@ -33,6 +33,7 @@ def _mock_config():
         code=SimpleNamespace(
             github_domains=["github.com", "www.github.com"],
             gitlab_domains=["gitlab.com", "www.gitlab.com"],
+            bitbucket_domains=["bitbucket.org", "www.bitbucket.org"],
             azure_devops_domains=[
                 "dev.azure.com",
                 "ssh.dev.azure.com",
@@ -152,3 +153,126 @@ class TestGitAccessor:
     def test_cannot_handle_other_urls(self, accessor: GitAccessor, source: str) -> None:
         """GitAccessor should not handle non-git URLs or files."""
         assert accessor.can_handle(source) is False
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "https://bitbucket.org/myworkspace/myrepo",
+            "https://bitbucket.org/myworkspace/myrepo.git",
+            "git@bitbucket.org:myworkspace/myrepo.git",
+        ],
+    )
+    def test_can_handle_bitbucket_url(self, accessor: GitAccessor, source: str) -> None:
+        """GitAccessor should handle Bitbucket repository URLs."""
+        assert accessor.can_handle(source) is True
+
+    # --- Per-request token: ZIP header construction ---
+
+    def test_zip_headers_github_uses_per_request_token(self, accessor: GitAccessor) -> None:
+        """The GitHub codeload archive API uses the REST ``token`` scheme (the
+        known-working form), not the Basic smart-HTTP form used for git clone."""
+        headers = accessor._zip_headers("https://github.com/o/r", "TOK")
+        assert headers["Authorization"] == "token TOK"
+        assert headers["User-Agent"] == "OpenViking"
+
+    def test_zip_headers_no_token_means_no_authorization(
+        self, accessor: GitAccessor, monkeypatch
+    ) -> None:
+        """With no per-request token, no Authorization header is sent -- even if the
+        legacy GITHUB_TOKEN env var is set (the env auth has been removed)."""
+        monkeypatch.setenv("GITHUB_TOKEN", "legacy-env-token")
+        headers = accessor._zip_headers("https://github.com/o/r", None)
+        assert "Authorization" not in headers
+
+    # --- Per-request token: clone uses env, never argv ---
+
+    @pytest.mark.asyncio
+    async def test_git_clone_passes_token_via_env_not_argv(
+        self, accessor: GitAccessor, tmp_path, monkeypatch
+    ) -> None:
+        """The token must reach git via GIT_CONFIG_* env vars, never via argv
+        (argv leaks into /proc and into _run_git's error string)."""
+        captured: dict = {}
+
+        async def _fake_run_git(args, cwd=None, env=None):
+            captured["args"] = args
+            captured["env"] = env
+            return ""
+
+        monkeypatch.setattr(accessor, "_run_git", _fake_run_git)
+
+        await accessor._git_clone(
+            "https://github.com/o/r",
+            str(tmp_path),
+            git_auth_token="SUPERSECRET",
+        )
+
+        import base64
+
+        assert "SUPERSECRET" not in " ".join(captured["args"])
+        env = captured["env"]
+        assert env is not None
+        assert env["GIT_CONFIG_KEY_0"] == "http.https://github.com/.extraHeader"
+        expected = "Authorization: Basic " + base64.b64encode(
+            b"x-access-token:SUPERSECRET"
+        ).decode()
+        assert env["GIT_CONFIG_VALUE_0"] == expected
+        # The raw token is base64-wrapped, never in cleartext on the command line.
+        assert "SUPERSECRET" not in env["GIT_CONFIG_KEY_0"]
+
+    # --- access() routes the token to the right downloader ---
+
+    @pytest.mark.asyncio
+    async def test_access_github_threads_token_to_zip_download(
+        self, accessor: GitAccessor, monkeypatch
+    ) -> None:
+        captured: dict = {}
+
+        async def _fake_zip(repo_url, branch, target_dir, git_auth_token=None):
+            captured["token"] = git_auth_token
+            content = Path(target_dir) / "content"
+            content.mkdir()
+            return content, "o/r"
+
+        monkeypatch.setattr(accessor, "_github_zip_download", _fake_zip)
+        res = await accessor.access("https://github.com/o/r", git_auth_token="TOK")
+        try:
+            assert captured["token"] == "TOK"
+        finally:
+            res.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_access_bitbucket_uses_authenticated_clone(
+        self, accessor: GitAccessor, monkeypatch
+    ) -> None:
+        captured: dict = {}
+
+        async def _fake_clone(url, target_dir, branch=None, commit=None, git_auth_token=None):
+            captured["url"] = url
+            captured["token"] = git_auth_token
+            return "ws/repo"
+
+        monkeypatch.setattr(accessor, "_git_clone", _fake_clone)
+        res = await accessor.access("https://bitbucket.org/ws/repo", git_auth_token="TOK")
+        try:
+            assert captured["url"] == "https://bitbucket.org/ws/repo"
+            assert captured["token"] == "TOK"
+        finally:
+            res.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_git_clone_without_token_passes_no_git_config_env(
+        self, accessor: GitAccessor, tmp_path, monkeypatch
+    ) -> None:
+        """No token -> no injected git config env (env stays None)."""
+        captured: dict = {}
+
+        async def _fake_run_git(args, cwd=None, env=None):
+            captured["env"] = env
+            return ""
+
+        monkeypatch.setattr(accessor, "_run_git", _fake_run_git)
+
+        await accessor._git_clone("https://github.com/o/r", str(tmp_path))
+
+        assert captured["env"] is None

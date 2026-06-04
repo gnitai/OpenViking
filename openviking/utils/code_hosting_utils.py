@@ -57,6 +57,7 @@ def _get_all_domains() -> list[str]:
         set(
             config.code.github_domains
             + config.code.gitlab_domains
+            + getattr(config.code, "bitbucket_domains", [])
             + getattr(config.code, "azure_devops_domains", [])
             + config.code.code_hosting_domains
         )
@@ -197,6 +198,19 @@ def is_gitlab_url(url: str) -> bool:
     """
     config = get_openviking_config()
     return _extract_host(url) in config.code.gitlab_domains
+
+
+def is_bitbucket_url(url: str) -> bool:
+    """Check if a URL is a Bitbucket URL.
+
+    Args:
+        url: URL to check
+
+    Returns:
+        True if the URL is a Bitbucket URL
+    """
+    config = get_openviking_config()
+    return _extract_host(url) in getattr(config.code, "bitbucket_domains", [])
 
 
 def is_code_hosting_url(url: str) -> bool:

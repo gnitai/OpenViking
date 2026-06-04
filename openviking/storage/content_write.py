@@ -8,6 +8,7 @@ import os
 from typing import Any, Dict, Optional
 
 from openviking.core.namespace import NamespaceShapeError, canonicalize_uri, context_type_for_uri
+from openviking.parse.parsers.constants import CODE_EXTENSIONS, DOCUMENTATION_EXTENSIONS
 from openviking.resource.watch_storage import is_watch_task_control_uri
 from openviking.server.identity import RequestContext
 from openviking.session.memory.utils.memory_file_utils import MemoryFileUtils
@@ -30,9 +31,14 @@ from openviking_cli.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _DERIVED_FILENAMES = frozenset({".abstract.md", ".overview.md", ".relations.json"})
-_CREATE_ALLOWED_EXTENSIONS = frozenset(
-    {".md", ".txt", ".json", ".yaml", ".yml", ".toml", ".py", ".js", ".ts"}
-)
+# create-mode entry-point guard. Allow every text/code extension the semantic
+# processor can actually parse (it keys on CODE_EXTENSIONS + the code-AST parser
+# for both write- and add_resource-ingested files), so inline-authored snippets
+# of any language are accepted -- not just the original conservative 9. Binary /
+# media types are intentionally excluded (write content is text; those belong in
+# add_resource, which filters IGNORE_EXTENSIONS and extracts). Derived semantic
+# files are still blocked via _DERIVED_FILENAMES above.
+_CREATE_ALLOWED_EXTENSIONS = frozenset(CODE_EXTENSIONS | DOCUMENTATION_EXTENSIONS)
 
 
 class ContentWriteCoordinator:

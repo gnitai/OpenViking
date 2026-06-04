@@ -4,7 +4,17 @@
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from openviking.core.path_variables import resolve_path_variables
@@ -188,8 +198,15 @@ async def add_resource(
     http_request: Request,
     request: AddResourceRequest,
     _ctx: RequestContext = Depends(ensure_project_ready),
+    x_git_token: Optional[str] = Header(None, alias="X-OpenViking-Git-Token"),
 ):
-    """Add resource to OpenViking."""
+    """Add resource to OpenViking.
+
+    A private Git repository can be ingested by passing a transient per-request
+    access token (OAuth token or PAT) in the ``X-OpenViking-Git-Token`` header. The
+    token is used only for this fetch and is never persisted or logged. It is sent
+    as a header (not in the JSON body) to keep it off request-body logging surfaces.
+    """
     service = get_service()
     if request.to and request.parent:
         raise InvalidArgumentError("Cannot specify both 'to' and 'parent' at the same time.")
@@ -246,6 +263,7 @@ async def add_resource(
                 timeout=request.timeout,
                 allow_local_path_resolution=allow_local_path_resolution,
                 enforce_public_remote_targets=True,
+                git_auth_token=x_git_token,
                 **kwargs,
             )
         except Exception:

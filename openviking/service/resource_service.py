@@ -119,6 +119,7 @@ class ResourceService:
         skip_watch_management: bool = False,
         allow_local_path_resolution: bool = True,
         enforce_public_remote_targets: bool = False,
+        git_auth_token: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """Add resource to OpenViking (only supports resources scope).
@@ -148,6 +149,8 @@ class ResourceService:
                 avoid recursive watch task creation during scheduled execution)
             enforce_public_remote_targets: When True, reject non-public remote hosts and
                 validate each outbound HTTP request URL during fetch.
+            git_auth_token: Transient per-request token (OAuth/PAT) used to clone/download
+                a private repository for this ingest only. Never persisted or logged.
             **kwargs: Extra options forwarded to the parser chain
 
         Returns:
@@ -211,6 +214,7 @@ class ResourceService:
                 build_index=build_index,
                 summarize=summarize,
                 allow_local_path_resolution=allow_local_path_resolution,
+                git_auth_token=git_auth_token,
                 **kwargs,
             )
 

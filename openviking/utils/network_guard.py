@@ -32,6 +32,8 @@ def _get_allowed_code_hosting_domains() -> set[str]:
                 allowed.update(config.code.github_domains)
             if hasattr(config.code, "gitlab_domains"):
                 allowed.update(config.code.gitlab_domains)
+            if hasattr(config.code, "bitbucket_domains"):
+                allowed.update(config.code.bitbucket_domains)
             if hasattr(config.code, "azure_devops_domains"):
                 allowed.update(config.code.azure_devops_domains)
             if hasattr(config.code, "code_hosting_domains"):
@@ -44,6 +46,8 @@ def _get_allowed_code_hosting_domains() -> set[str]:
                 "www.github.com",
                 "gitlab.com",
                 "www.gitlab.com",
+                "bitbucket.org",
+                "www.bitbucket.org",
                 "dev.azure.com",
                 "ssh.dev.azure.com",
                 "vs-ssh.visualstudio.com",

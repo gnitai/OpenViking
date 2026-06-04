@@ -11,10 +11,8 @@ Implements V5.0 asynchronous architecture:
 
 import asyncio
 import os
-import shutil
 import stat
 import time
-import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any, List, Optional, Tuple, Union
@@ -358,91 +356,6 @@ class CodeRepositoryParser(BaseParser):
     def _is_github_url(url: str) -> bool:
         """Return True for github.com URLs (supports ZIP archive API)."""
         return is_github_url(url)
-
-    async def _github_zip_download(
-        self,
-        repo_url: str,
-        branch: Optional[str],
-        target_dir: str,
-    ) -> Tuple[Path, str]:
-        """Download a GitHub repo as a ZIP archive and extract it.
-
-        Uses the GitHub archive API (single HTTPS GET, no git history).
-
-        Returns:
-            (content_dir, repo_name) — content_dir is the extracted repo root.
-        """
-        repo_name = self._get_repo_name(repo_url)
-
-        # Build archive URL from owner/repo path components.
-        parsed = urlparse(repo_url)
-        path_parts = [p for p in parsed.path.split("/") if p]
-        owner = path_parts[0]
-        repo_raw = path_parts[1]
-        # Strip .git suffix for the archive URL (git clone keeps it, ZIP API does not).
-        repo_slug = repo_raw[:-4] if repo_raw.endswith(".git") else repo_raw
-
-        if branch:
-            zip_url = f"https://github.com/{owner}/{repo_slug}/archive/{branch}.zip"
-        else:
-            zip_url = f"https://github.com/{owner}/{repo_slug}/archive/HEAD.zip"
-
-        logger.info(f"Downloading GitHub ZIP: {zip_url}")
-
-        zip_path = os.path.join(target_dir, "_archive.zip")
-        extract_dir = os.path.join(target_dir, "_extracted")
-        os.makedirs(extract_dir, exist_ok=True)
-
-        # Download (blocking HTTP; run in thread pool to avoid stalling event loop).
-        def _download() -> None:
-            headers = {"User-Agent": "OpenViking"}
-            github_token = os.environ.get("GITHUB_TOKEN")
-            if github_token:
-                headers["Authorization"] = f"token {github_token}"
-
-            req = urllib.request.Request(zip_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=1800) as resp, open(zip_path, "wb") as f:
-                shutil.copyfileobj(resp, f)
-
-        try:
-            await asyncio.to_thread(_download)
-        except Exception as exc:
-            raise RuntimeError(f"Failed to download GitHub ZIP {zip_url}: {exc}")
-
-        # Safe extraction with Zip Slip validation (mirrors _extract_zip logic).
-        target = Path(extract_dir).resolve()
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            for info in zf.infolist():
-                mode = info.external_attr >> 16
-                if info.is_dir() or stat.S_ISDIR(mode):
-                    continue
-                if stat.S_ISLNK(mode):
-                    logger.warning(f"Skipping symlink entry in GitHub ZIP: {info.filename}")
-                    continue
-                raw = info.filename.replace("\\", "/")
-                raw_parts = [p for p in raw.split("/") if p]
-                if ".." in raw_parts:
-                    raise ValueError(f"Zip Slip detected in GitHub archive: {info.filename!r}")
-                if PurePosixPath(raw).is_absolute():
-                    raise ValueError(f"Zip Slip detected in GitHub archive: {info.filename!r}")
-                extracted = Path(zf.extract(info, extract_dir)).resolve()
-                if not extracted.is_relative_to(target):
-                    extracted.unlink(missing_ok=True)
-                    raise ValueError(f"Zip Slip detected in GitHub archive: {info.filename!r}")
-
-        # Remove downloaded archive to free disk space.
-        try:
-            os.unlink(zip_path)
-        except OSError:
-            pass
-
-        # GitHub ZIPs have a single top-level directory: {repo}-{branch}/ or {repo}-{sha}/.
-        # Return that directory as the content root so callers see bare repo files.
-        top_level = [d for d in Path(extract_dir).iterdir() if d.is_dir()]
-        content_dir = top_level[0] if len(top_level) == 1 else Path(extract_dir)
-
-        logger.info(f"GitHub ZIP extracted to {content_dir} ({repo_name})")
-        return content_dir, repo_name
 
     async def _git_clone(
         self,
