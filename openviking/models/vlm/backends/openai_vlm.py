@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urlparse
 
+from openviking.models.llm_credentials import apply_llm_credentials
 from openviking.telemetry import tracer
 from openviking.utils.async_client_cache import LoopScopedAsyncClientCache
 from openviking_cli.utils import get_logger
@@ -148,6 +149,10 @@ class OpenAIVLM(VLMBase):
             extra_body["enable_thinking"] = bool(thinking)
         if extra_body:
             kwargs["extra_body"] = extra_body
+        # When a per-request W credential is bound (e.g. the semantic-queue
+        # worker generating L0/L1), override auth with the user's JWT and attach
+        # project_id so the gateway bills that user. No-op otherwise.
+        apply_llm_credentials(kwargs, self.extra_headers)
 
     def _update_token_usage_from_response(
         self,

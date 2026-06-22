@@ -60,6 +60,9 @@ class SemanticMsg:
     changes: Optional[Dict[str, List[str]]] = (
         None  # {"added": [...], "modified": [...], "deleted": [...]}
     )
+    # Requesting user's W LLM-gateway JWT, carried through the durable queue
+    # so the deferred VLM (L0/L1) call can authenticate and bill that user.
+    llm_auth_token: Optional[str] = None
 
     def __init__(
         self,
@@ -79,6 +82,7 @@ class SemanticMsg:
         coalesce_key: str = "",
         coalesce_version: int = 0,
         changes: Optional[Dict[str, List[str]]] = None,
+        llm_auth_token: Optional[str] = None,
     ):
         self.id = str(uuid4())
         self.uri = uri
@@ -97,6 +101,17 @@ class SemanticMsg:
         self.coalesce_key = coalesce_key
         self.coalesce_version = coalesce_version
         self.changes = changes
+        # Default the credential from the contextvar bound during the current
+        # unit of work (HTTP request or queue worker), so recursive/child
+        # enqueues inherit the requesting user's token without every call site
+        # having to thread it explicitly.
+        if llm_auth_token is None:
+            from openviking.models.llm_credentials import get_llm_credentials
+
+            creds = get_llm_credentials()
+            if creds is not None:
+                llm_auth_token = creds.auth_token
+        self.llm_auth_token = llm_auth_token
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert object to dictionary."""
@@ -141,6 +156,10 @@ class SemanticMsg:
             coalesce_version=data.get("coalesce_version", 0),
             changes=data.get("changes"),
         )
+        # Restore the persisted token deterministically (bypassing the ctor's
+        # contextvar fallback): deserializing an old message without a token must
+        # yield None, not inherit an ambient credential from the worker task.
+        obj.llm_auth_token = data.get("llm_auth_token")
         if "id" in data and data["id"]:
             obj.id = data["id"]
         if "status" in data:

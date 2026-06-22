@@ -503,7 +503,10 @@ class TurbopufferCollection(ICollection):
         )
         try:
             response = self._ns.query(**kwargs)
-        except Exception:
+        except Exception as exc:
+            tp = _import_turbopuffer()
+            if isinstance(exc, tp.NotFoundError):
+                return []
             logger.exception("Turbopuffer query failed")
             return []
         return self._rows(response)

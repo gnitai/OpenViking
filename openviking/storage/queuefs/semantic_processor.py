@@ -8,6 +8,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
 
+from openviking.models.llm_credentials import bind_llm_credentials, reset_llm_credentials
 from openviking.observability.context import (
     bind_root_observability_context,
     reset_root_observability_context,
@@ -367,6 +368,10 @@ class SemanticProcessor(DequeueHandlerBase):
                 root_attrs.user_id = msg.user_id
                 root_attrs.agent_id = msg.agent_id
                 root_context_token = bind_root_observability_context(root_attrs)
+                # Bind the requesting user's LLM-gateway JWT (carried on the
+                # message) so the VLM call for L0/L1 authenticates as that user
+                # and recursive child enqueues inherit it. project_id == account_id.
+                llm_credentials_token = bind_llm_credentials(msg.llm_auth_token, msg.account_id)
                 try:
                     self._current_msg = msg
                     self._current_ctx = self._ctx_from_semantic_msg(msg)
@@ -469,6 +474,7 @@ class SemanticProcessor(DequeueHandlerBase):
                     self._circuit_breaker.record_success()
                     return None
                 finally:
+                    reset_llm_credentials(llm_credentials_token)
                     reset_root_observability_context(root_context_token)
 
         except Exception as e:

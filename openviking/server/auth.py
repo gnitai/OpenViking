@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import Depends, Header, Request
 
+from openviking.models.llm_credentials import bind_llm_credentials
 from openviking.server.identity import (
     AccountNamespacePolicy,
     AuthMode,
@@ -437,6 +438,13 @@ async def get_request_context(
         user_id=identity.user_id,
         agent_id=identity.agent_id,
     )
+
+    # Bind the caller's W LLM-gateway JWT for this request task. Any LLM
+    # call made synchronously here, and any SemanticMsg enqueued for deferred
+    # L0/L1 generation, picks it up so usage is billed to that user.
+    # project_id == account_id (W project id). No-op when the header is absent.
+    llm_auth_token = _normalize_header_value(request.headers.get("X-LLM-api-key"))
+    bind_llm_credentials(llm_auth_token, identity.account_id)
 
     return ctx
 
