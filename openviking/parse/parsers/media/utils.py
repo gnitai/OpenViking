@@ -116,7 +116,7 @@ async def generate_image_summary(
         Dictionary with "name" and "summary" keys
     """
     viking_fs = get_viking_fs()
-    vlm = get_openviking_config().vlm
+    vlm = get_openviking_config().get_vlm_vision()
     file_name = original_filename
 
     try:

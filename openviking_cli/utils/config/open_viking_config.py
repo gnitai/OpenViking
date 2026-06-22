@@ -77,6 +77,15 @@ class OpenVikingConfig(BaseModel):
         ),
     )
 
+    vlm_vision: Optional[VLMConfig] = Field(
+        default=None,
+        description=(
+            "Optional vision-capable model configuration for processing images. Falls back to "
+            "vlm when unset or empty. Use this when the primary vlm model is text-only and "
+            "cannot accept image input."
+        ),
+    )
+
     rerank: RerankConfig = Field(default_factory=RerankConfig, description="Rerank configuration")
 
     retrieval: RetrievalConfig = Field(
@@ -305,6 +314,15 @@ class OpenVikingConfig(BaseModel):
         """Return the model config used for retrieval intent analysis and query planning."""
         if self.query_planner is not None and self.query_planner._has_any_config():
             return self.query_planner
+        return self.vlm
+
+    def get_vlm_vision(self) -> VLMConfig:
+        """Return the VLM config used for image (vision) processing.
+
+        Falls back to the primary ``vlm`` when ``vlm_vision`` is unset or empty.
+        """
+        if self.vlm_vision is not None and self.vlm_vision._has_any_config():
+            return self.vlm_vision
         return self.vlm
 
 

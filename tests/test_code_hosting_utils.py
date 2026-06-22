@@ -290,3 +290,34 @@ def test_is_git_repo_url_unknown_domain():
 
 def test_is_git_repo_url_single_segment():
     assert is_git_repo_url("https://github.com/org") is False
+
+
+# GitLab routes refs/blobs/pages behind a "/-/" delimiter segment.
+def test_is_git_repo_url_gitlab_tree_ref():
+    assert is_git_repo_url("https://gitlab.com/owner/repo/-/tree/master") is True
+
+
+def test_is_git_repo_url_gitlab_commit_sha():
+    assert is_git_repo_url("https://gitlab.com/owner/repo/-/commit/abc1234") is True
+
+
+def test_is_git_repo_url_gitlab_blob():
+    assert is_git_repo_url("https://gitlab.com/owner/repo/-/blob/master/file.py") is False
+
+
+def test_is_git_repo_url_gitlab_issues():
+    assert is_git_repo_url("https://gitlab.com/owner/repo/-/issues") is False
+
+
+def test_is_git_repo_url_gitlab_merge_requests():
+    assert is_git_repo_url("https://gitlab.com/owner/repo/-/merge_requests/1") is False
+
+
+def test_is_git_repo_url_gitlab_bare_repo():
+    assert is_git_repo_url("https://gitlab.com/owner/repo") is True
+
+
+def test_is_git_repo_url_gitlab_subgroup_tree_out_of_scope():
+    # Subgroups (dash != 2) are intentionally rejected — downstream normalization
+    # assumes owner/repo, so cloning would target the wrong repo.
+    assert is_git_repo_url("https://gitlab.com/group/subgroup/repo/-/tree/master") is False

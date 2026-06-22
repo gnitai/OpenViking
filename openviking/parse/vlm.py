@@ -51,10 +51,19 @@ class VLMProcessor:
         self.max_sections_per_call = max_sections_per_call
 
     def _get_vlm(self):
-        """Get VLM singleton."""
+        """Get VLM singleton (text model)."""
         from openviking_cli.utils.config import get_openviking_config
 
         return get_openviking_config().vlm
+
+    def _get_vision_vlm(self):
+        """Get VLM for image (vision) processing.
+
+        Falls back to the primary text ``vlm`` when ``vlm_vision`` is unset.
+        """
+        from openviking_cli.utils.config import get_openviking_config
+
+        return get_openviking_config().get_vlm_vision()
 
     async def understand_image(
         self,
@@ -72,7 +81,7 @@ class VLMProcessor:
         )
 
         try:
-            response = await self._get_vlm().get_vision_completion_async(
+            response = await self._get_vision_vlm().get_vision_completion_async(
                 prompt=prompt,
                 images=[image],
             )
@@ -164,7 +173,7 @@ class VLMProcessor:
         )
 
         try:
-            response = await self._get_vlm().get_vision_completion_async(
+            response = await self._get_vision_vlm().get_vision_completion_async(
                 prompt=prompt,
                 images=[table.path],
             )
@@ -203,7 +212,7 @@ class VLMProcessor:
         )
 
         try:
-            response = await self._get_vlm().get_vision_completion_async(
+            response = await self._get_vision_vlm().get_vision_completion_async(
                 prompt=prompt,
                 images=[image],
             )
@@ -278,7 +287,7 @@ class VLMProcessor:
             },
         )
 
-        response = await self._get_vlm().get_vision_completion_async(
+        response = await self._get_vision_vlm().get_vision_completion_async(
             prompt=prompt,
             images=images,
         )
@@ -406,7 +415,7 @@ class VLMProcessor:
 
         try:
             if all_images:
-                response = await self._get_vlm().get_vision_completion_async(
+                response = await self._get_vision_vlm().get_vision_completion_async(
                     prompt=prompt,
                     images=all_images,
                 )
@@ -630,7 +639,7 @@ Please output in JSON format:
         )
 
         try:
-            response = await self._get_vlm().get_vision_completion_async(
+            response = await self._get_vision_vlm().get_vision_completion_async(
                 prompt=prompt,
                 images=image_data_list,
             )
@@ -685,7 +694,7 @@ Please output in JSON format:
         )
 
         try:
-            response = await self._get_vlm().get_vision_completion_async(
+            response = await self._get_vision_vlm().get_vision_completion_async(
                 prompt=prompt,
                 images=[img_data],
             )

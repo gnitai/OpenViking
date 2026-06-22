@@ -285,6 +285,19 @@ def is_git_repo_url(url: str) -> bool:
                     return False
                 return True
 
+        # GitLab routes the ref/blob/etc. behind a "/-/" delimiter segment:
+        # owner/repo/-/tree/<ref>, owner/repo/-/blob/<ref>/<path>, owner/repo/-/issues.
+        # Only a bare repo or a "/-/tree/<ref>" / "/-/commit/<sha>" is cloneable; anything
+        # else after the delimiter is a non-repo page. (Subgroups — dash != 2 — are not
+        # handled here: downstream normalization assumes owner/repo, so reject them rather
+        # than clone the wrong repo.)
+        if _extract_host(url) in config.code.gitlab_domains and "-" in path_parts:
+            dash = path_parts.index("-")
+            after = path_parts[dash + 1 :]
+            if dash != 2:
+                return False
+            return (not after) or after[0] in {"tree", "commit"}
+
         non_repo_paths = {
             "blob",
             "commit",

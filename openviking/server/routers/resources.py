@@ -46,6 +46,10 @@ class AddResourceRequest(BaseModel):
             Cannot be used together with 'to'.
         create_parent: Whether to automatically create the parent directory if it doesn't exist.
             Default is False.
+        ref: Git branch name or commit SHA to fetch when ``path`` is a repository URL.
+            Passed out-of-band (rather than encoded in the URL) so provider URL forms
+            that the ref parser can't read — e.g. Bitbucket's ``/src/<ref>`` or a branch
+            name containing slashes — still resolve. Ignored for non-git sources.
         reason: Reason for adding the resource. Used for documentation and monitoring.
         instruction: Processing instruction for semantic extraction.
             Provides hints for how the resource should be processed.
@@ -78,6 +82,7 @@ class AddResourceRequest(BaseModel):
     to: Optional[str] = None
     parent: Optional[str] = None
     create_parent: bool = False
+    ref: Optional[str] = None
     reason: str = ""
     instruction: str = ""
     wait: bool = False
@@ -243,6 +248,9 @@ async def add_resource(
     }
     if request.preserve_structure is not None:
         kwargs["preserve_structure"] = request.preserve_structure
+    # Threads through to GitAccessor.access (kwargs.get("ref")) for repo sources.
+    if request.ref:
+        kwargs["ref"] = request.ref
 
     # Resolve path variables before passing to service
     to = resolve_path_variables(request.to) if request.to else None

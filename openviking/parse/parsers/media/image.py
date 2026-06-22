@@ -165,7 +165,7 @@ class ImageParser(BaseParser):
             Image description in markdown format
         """
         try:
-            vlm = get_openviking_config().vlm
+            vlm = get_openviking_config().get_vlm_vision()
 
             # Render prompt
             prompt = render_prompt(
