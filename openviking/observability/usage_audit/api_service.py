@@ -134,6 +134,10 @@ class UsageAuditQueryService:
             page_size=min(max(int(page_size), 1), 100),
         )
 
+    async def retrieval_usage(self, ctx: RequestContext) -> dict[str, Any]:
+        """Return the account's all-time retrieval usage summary."""
+        return await self._store.get_retrieval_usage_summary(account_id=ctx.account_id)
+
     @staticmethod
     def _validate_date_range(start_date: str, end_date: str) -> None:
         try:

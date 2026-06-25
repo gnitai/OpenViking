@@ -112,6 +112,22 @@ async def context_commits(
     return _ok_response(result)
 
 
+@router.get("/retrieval-usage")
+async def retrieval_usage(
+    request: Request,
+    _ctx: RequestContext = require_role(Role.ROOT, Role.ADMIN),
+):
+    """Return the account's all-time retrieval usage summary.
+
+    Totals plus per-operation (find/search) and per-status (success/error)
+    breakdowns of request_count, result_count and result_token_count.
+    """
+    service = _runtime_service(request)
+    if service is None:
+        return _disabled_response()
+    return _ok_response(await service.retrieval_usage(_ctx))
+
+
 @router.get("/audit")
 async def audit_logs(
     request: Request,

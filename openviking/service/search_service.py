@@ -9,8 +9,10 @@ Provides semantic search operations: search, find.
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from openviking.core.uri_validation import validate_optional_viking_uris
+from openviking.observability.events import try_publish_event
 from openviking.server.identity import RequestContext
 from openviking.storage.viking_fs import VikingFS
+from openviking.utils.embedding_input import estimate_embedding_input_tokens
 from openviking_cli.exceptions import InvalidArgumentError, NotInitializedError
 from openviking_cli.utils import get_logger
 
@@ -23,6 +25,48 @@ logger = get_logger(__name__)
 def _ensure_non_empty_query(query: str) -> None:
     if not query.strip():
         raise InvalidArgumentError("Search query must not be empty.")
+
+
+def _result_token_count(result: Any) -> int:
+    """Estimate the tokens in a FindResult's returned text payload.
+
+    Counts the abstract + overview of every matched context, the text fields
+    actually surfaced to the caller by find/search. Uses the local CJK-aware
+    estimator (no real tokenizer exists in the codebase), so this is an estimate.
+    """
+    total = 0
+    for bucket in (result.memories, result.resources, result.skills):
+        for ctx in bucket:
+            total += estimate_embedding_input_tokens(getattr(ctx, "abstract", "") or "")
+            total += estimate_embedding_input_tokens(getattr(ctx, "overview", "") or "")
+    return total
+
+
+def _emit_retrieval_call(operation: str, result: Any, ctx: RequestContext) -> None:
+    """Best-effort emit a `retrieval.call` event for per-account usage rollups.
+
+    Identity is taken explicitly from `ctx` rather than ambient observability
+    context, so per-account attribution does not depend on the root context being
+    populated at this layer. Never raises: instrumentation must not break the
+    search response.
+    """
+    try:
+        result_count = getattr(result, "total", 0) or (
+            len(result.memories) + len(result.resources) + len(result.skills)
+        )
+        try_publish_event(
+            "retrieval.call",
+            {
+                "operation": operation,
+                "account_id": ctx.account_id,
+                "user_id": ctx.user.user_id,
+                "agent_id": ctx.user.agent_id,
+                "result_count": result_count,
+                "result_token_count": _result_token_count(result),
+            },
+        )
+    except Exception:  # noqa: BLE001
+        logger.debug("failed to emit retrieval.call event", exc_info=True)
 
 
 class SearchService:
@@ -84,6 +128,7 @@ class SearchService:
             filter=filter,
             level=level,
         )
+        _emit_retrieval_call("search", result, ctx)
         return result
 
     async def find(
@@ -121,4 +166,5 @@ class SearchService:
             filter=filter,
             level=level,
         )
+        _emit_retrieval_call("find", result, ctx)
         return result

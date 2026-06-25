@@ -56,6 +56,7 @@ class FakeConsoleService:
         self.token_series_call = None
         self.dashboard_call = None
         self.context_commits_call = None
+        self.retrieval_usage_call = None
 
     async def token_series(self, **kwargs):
         self.token_series_call = kwargs
@@ -89,6 +90,16 @@ class FakeConsoleService:
     async def audit_logs(self, **kwargs):
         self.audit_call = kwargs
         return {"total": 0, "success_rate": 0.0, "page": 2, "page_size": 20, "items": []}
+
+    async def retrieval_usage(self, ctx):
+        self.retrieval_usage_call = {"ctx": ctx}
+        return {
+            "result_token_total": 51,
+            "request_total": 3,
+            "result_total": 8,
+            "by_operation": {},
+            "by_status": {},
+        }
 
 
 class FakeRuntime:
@@ -128,6 +139,30 @@ async def test_console_router_splits_audit_filters():
     assert service.audit_call["api_types"] == ["search.find", "sessions"]
     assert service.audit_call["page"] == 2
     assert service.audit_call["page_size"] == 20
+
+
+@pytest.mark.asyncio
+async def test_console_router_retrieval_usage_scoped_to_account():
+    service = FakeConsoleService()
+    transport = httpx.ASGITransport(app=_app_with_runtime(FakeRuntime(service)))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/v1/console/retrieval-usage")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["result"]["result_token_total"] == 51
+    assert service.retrieval_usage_call["ctx"].account_id == "acct-1"
+
+
+@pytest.mark.asyncio
+async def test_console_router_retrieval_usage_disabled_when_not_initialized():
+    transport = httpx.ASGITransport(app=_app_with_runtime(None))
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        response = await client.get("/api/v1/console/retrieval-usage")
+
+    assert response.status_code == 200
+    assert response.json()["result"]["enabled"] is False
 
 
 @pytest.mark.asyncio

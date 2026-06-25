@@ -12,7 +12,7 @@ daily, filtered by `last_seen_at` at read time.
 # Bump when the table layout changes incompatibly. Stored on the `_schema_meta`
 # row so `SQLiteUsageAuditStore.initialize` can reset the local SQLite store
 # when an older snapshot is detected.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS _schema_meta (
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS usage_retrieval_hourly (
     status TEXT NOT NULL,
     request_count INTEGER NOT NULL DEFAULT 0,
     result_count INTEGER NOT NULL DEFAULT 0,
+    result_token_count INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL,
     PRIMARY KEY (
         account_id, user_id, agent_id, date_utc, hour_utc, operation, status

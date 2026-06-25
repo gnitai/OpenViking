@@ -150,25 +150,29 @@ class SQLiteUsageAuditStore:
         )
 
     @staticmethod
-    def _write_retrieval_rows(conn, rows: dict[tuple, tuple[int, int]], updated_at: str) -> None:
+    def _write_retrieval_rows(
+        conn, rows: dict[tuple, tuple[int, int, int]], updated_at: str
+    ) -> None:
         conn.executemany(
             """
             INSERT INTO usage_retrieval_hourly (
                 account_id, user_id, agent_id, date_utc, hour_utc,
-                operation, status, request_count, result_count, updated_at
+                operation, status, request_count, result_count,
+                result_token_count, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (
                 account_id, user_id, agent_id, date_utc, hour_utc, operation, status
             )
             DO UPDATE SET
                 request_count = request_count + excluded.request_count,
                 result_count = result_count + excluded.result_count,
+                result_token_count = result_token_count + excluded.result_token_count,
                 updated_at = excluded.updated_at
             """,
             [
-                (*key, count, result_count, updated_at)
-                for key, (count, result_count) in rows.items()
+                (*key, count, result_count, result_token_count, updated_at)
+                for key, (count, result_count, result_token_count) in rows.items()
             ],
         )
 
@@ -366,6 +370,87 @@ class SQLiteUsageAuditStore:
                 result[operation] += total
         result["total"] = sum(result.values())
         return result
+
+    async def get_total_result_tokens(self, *, account_id: str) -> int:
+        """Return the all-time total estimated result tokens for an account."""
+        async with self._lock:
+            return await asyncio.to_thread(
+                self._get_total_result_tokens_sync, account_id
+            )
+
+    def _get_total_result_tokens_sync(self, account_id: str) -> int:
+        assert self._conn is not None
+        cur = self._conn.execute(
+            """
+            SELECT COALESCE(SUM(result_token_count), 0) AS total
+            FROM usage_retrieval_hourly
+            WHERE account_id = ?
+            """,
+            (account_id,),
+        )
+        row = cur.fetchone()
+        return int(row["total"] or 0) if row else 0
+
+    async def get_retrieval_usage_summary(self, *, account_id: str) -> dict[str, Any]:
+        """Return an all-time retrieval usage summary for an account.
+
+        Totals plus two independent groupings (by find/search operation and by
+        success/error status) of request_count, result_count and result_token_count.
+        """
+        async with self._lock:
+            return await asyncio.to_thread(
+                self._get_retrieval_usage_summary_sync, account_id
+            )
+
+    def _get_retrieval_usage_summary_sync(self, account_id: str) -> dict[str, Any]:
+        assert self._conn is not None
+        cur = self._conn.execute(
+            """
+            SELECT operation, status,
+                   SUM(request_count) AS request_count,
+                   SUM(result_count) AS result_count,
+                   SUM(result_token_count) AS result_token_count
+            FROM usage_retrieval_hourly
+            WHERE account_id = ?
+            GROUP BY operation, status
+            """,
+            (account_id,),
+        )
+
+        def _bucket() -> dict[str, int]:
+            return {"request_count": 0, "result_count": 0, "result_token_count": 0}
+
+        # Pre-seed the expected keys so the shape is stable even with no data.
+        by_operation = {"find": _bucket(), "search": _bucket()}
+        by_status = {"success": _bucket(), "error": _bucket()}
+        request_total = result_total = result_token_total = 0
+
+        for row in cur.fetchall():
+            operation = str(row["operation"] or "")
+            status = str(row["status"] or "")
+            requests = int(row["request_count"] or 0)
+            results = int(row["result_count"] or 0)
+            tokens = int(row["result_token_count"] or 0)
+
+            request_total += requests
+            result_total += results
+            result_token_total += tokens
+
+            for grouping, key in ((by_operation, operation), (by_status, status)):
+                if not key:
+                    continue
+                bucket = grouping.setdefault(key, _bucket())
+                bucket["request_count"] += requests
+                bucket["result_count"] += results
+                bucket["result_token_count"] += tokens
+
+        return {
+            "result_token_total": result_token_total,
+            "request_total": request_total,
+            "result_total": result_total,
+            "by_operation": by_operation,
+            "by_status": by_status,
+        }
 
     async def get_agent_overview(
         self,

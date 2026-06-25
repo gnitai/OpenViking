@@ -34,7 +34,7 @@ class UsageAuditProjection:
     """Write-ready rows derived from a batch of observability events."""
 
     token_rows: dict[tuple, int] = field(default_factory=dict)
-    retrieval_rows: dict[tuple, tuple[int, int]] = field(default_factory=dict)
+    retrieval_rows: dict[tuple, tuple[int, int, int]] = field(default_factory=dict)
     context_rows: dict[tuple, int] = field(default_factory=dict)
     agent_rows: dict[tuple, tuple[int, str]] = field(default_factory=dict)
     audit_rows: list[tuple] = field(default_factory=list)
@@ -74,7 +74,7 @@ def project_events(
     viewers from any region.
     """
     token_rows: defaultdict[tuple, int] = defaultdict(int)
-    retrieval_rows: defaultdict[tuple, tuple[int, int]] = defaultdict(lambda: (0, 0))
+    retrieval_rows: defaultdict[tuple, tuple[int, int, int]] = defaultdict(lambda: (0, 0, 0))
     context_rows: defaultdict[tuple, int] = defaultdict(int)
     agent_rows: dict[tuple, tuple[int, str]] = {}
     audit_rows: list[tuple] = []
@@ -135,6 +135,18 @@ def project_events(
                 model_name=payload.get("model_name"),
                 input_tokens=payload.get("prompt_tokens"),
                 output_tokens=payload.get("completion_tokens"),
+            )
+            continue
+
+        if event.event_name == "retrieval.call":
+            _add_retrieval_call(
+                retrieval_rows,
+                account_id=account_id,
+                user_id=user_id,
+                agent_id=agent_id,
+                event_date=event_date,
+                event_hour=event_hour,
+                payload=payload,
             )
             continue
 
@@ -214,13 +226,43 @@ def _add_token_rows(
         rows[key] += output_count
 
 
+def _add_retrieval_call(
+    rows: defaultdict[tuple, tuple[int, int, int]],
+    *,
+    account_id: str,
+    user_id: str,
+    agent_id: str,
+    event_date: str,
+    event_hour: int,
+    payload: dict[str, Any],
+) -> None:
+    """Project a `retrieval.call` event's result counts into the retrieval rollup.
+
+    `request_count` is intentionally left at 0 here: it is owned by the
+    `http.request` projection so the two event sources compose into one row
+    without double counting. This branch only contributes `result_count` and
+    `result_token_count`.
+    """
+    operation = normalize_identity(payload.get("operation"))
+    if not operation:
+        return
+    status = str(payload.get("status") or "success")
+    result_count = max(safe_int(payload.get("result_count")), 0)
+    result_tokens = max(safe_int(payload.get("result_token_count")), 0)
+    if not result_count and not result_tokens:
+        return
+    key = (account_id, user_id, agent_id, event_date, event_hour, operation, status)
+    prev_count, prev_results, prev_tokens = rows[key]
+    rows[key] = (prev_count, prev_results + result_count, prev_tokens + result_tokens)
+
+
 def _project_http_request(
     event: ObservabilityEvent,
     *,
     event_date: str,
     hour: int,
     created_at: str,
-    retrieval_rows: defaultdict[tuple, tuple[int, int]],
+    retrieval_rows: defaultdict[tuple, tuple[int, int, int]],
     context_rows: defaultdict[tuple, int],
     audit_rows: list[tuple],
     touched_audit_accounts: set[str],
@@ -256,8 +298,8 @@ def _project_http_request(
             retrieval_operation,
             status,
         )
-        prev_count, prev_results = retrieval_rows[key]
-        retrieval_rows[key] = (prev_count + 1, prev_results)
+        prev_count, prev_results, prev_tokens = retrieval_rows[key]
+        retrieval_rows[key] = (prev_count + 1, prev_results, prev_tokens)
 
     context_operation = context_write_operation_for_http(method, route, status_code)
     if context_operation:

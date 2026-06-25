@@ -235,6 +235,176 @@ async def test_sqlite_usage_audit_store_aggregates_dashboard_data(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_retrieval_call_records_result_token_count(tmp_path):
+    store = SQLiteUsageAuditStore(tmp_path / "usage.sqlite3")
+    await store.initialize()
+    try:
+        await store.record_batch(
+            [
+                _event(
+                    "http.request",
+                    {
+                        "request_id": "req-find",
+                        "method": "POST",
+                        "route": "/api/v1/search/find",
+                        "status": "200",
+                        "duration_seconds": 0.1,
+                    },
+                ),
+                _event(
+                    "retrieval.call",
+                    {
+                        "operation": "find",
+                        "result_count": 3,
+                        "result_token_count": 42,
+                    },
+                ),
+                _event(
+                    "retrieval.call",
+                    {
+                        "operation": "search",
+                        "result_count": 2,
+                        "result_token_count": 17,
+                    },
+                ),
+            ]
+        )
+
+        # request_count is owned by the http.request projection; the
+        # retrieval.call events contribute only result tokens, so no double count.
+        assert await store.get_today_retrievals(
+            account_id="acct-1", user_date="2026-05-12", tz=UTC
+        ) == {
+            "find": 1,
+            "search": 0,
+            "total": 1,
+        }
+        assert await store.get_total_result_tokens(account_id="acct-1") == 59
+        assert await store.get_total_result_tokens(account_id="missing") == 0
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
+async def test_get_retrieval_usage_summary(tmp_path):
+    store = SQLiteUsageAuditStore(tmp_path / "usage.sqlite3")
+    await store.initialize()
+    try:
+        await store.record_batch(
+            [
+                # find: 2 requests (http.request), tokens via retrieval.call
+                _event(
+                    "http.request",
+                    {
+                        "request_id": "req-find-1",
+                        "method": "POST",
+                        "route": "/api/v1/search/find",
+                        "status": "200",
+                        "duration_seconds": 0.1,
+                    },
+                ),
+                _event(
+                    "http.request",
+                    {
+                        "request_id": "req-find-2",
+                        "method": "POST",
+                        "route": "/api/v1/search/find",
+                        "status": "200",
+                        "duration_seconds": 0.1,
+                    },
+                ),
+                _event(
+                    "retrieval.call",
+                    {"operation": "find", "result_count": 5, "result_token_count": 40},
+                ),
+                # search: 1 request + tokens
+                _event(
+                    "http.request",
+                    {
+                        "request_id": "req-search-1",
+                        "method": "POST",
+                        "route": "/api/v1/search/search",
+                        "status": "200",
+                        "duration_seconds": 0.1,
+                    },
+                ),
+                _event(
+                    "retrieval.call",
+                    {"operation": "search", "result_count": 3, "result_token_count": 11},
+                ),
+            ]
+        )
+
+        summary = await store.get_retrieval_usage_summary(account_id="acct-1")
+        assert summary["result_token_total"] == 51
+        assert summary["result_total"] == 8
+        assert summary["request_total"] == 3  # 2 find + 1 search (http path)
+
+        assert summary["by_operation"]["find"] == {
+            "request_count": 2,
+            "result_count": 5,
+            "result_token_count": 40,
+        }
+        assert summary["by_operation"]["search"] == {
+            "request_count": 1,
+            "result_count": 3,
+            "result_token_count": 11,
+        }
+        # All success → success bucket carries everything, error stays zeroed.
+        assert summary["by_status"]["success"]["request_count"] == 3
+        assert summary["by_status"]["success"]["result_token_count"] == 51
+        assert summary["by_status"]["error"] == {
+            "request_count": 0,
+            "result_count": 0,
+            "result_token_count": 0,
+        }
+
+        # Empty account returns the zeroed shape.
+        empty = await store.get_retrieval_usage_summary(account_id="missing")
+        assert empty["result_token_total"] == 0
+        assert empty["by_operation"]["find"]["request_count"] == 0
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
+async def test_usage_retention_zero_keeps_old_retrieval_rows(tmp_path):
+    """With usage_retention_days=0 (the all-time config), old rows are not pruned.
+
+    A later batch normally triggers `_trim_usage_rows` relative to the account's
+    newest date; at retention 0 the cutoff is empty so nothing is deleted.
+    """
+    store = SQLiteUsageAuditStore(tmp_path / "usage.sqlite3", usage_retention_days=0)
+    await store.initialize()
+    try:
+        old = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        recent = datetime(2026, 5, 1, 0, 0, 0, tzinfo=timezone.utc)  # ~120 days later
+        await store.record_batch(
+            [
+                _event(
+                    "retrieval.call",
+                    {"operation": "find", "result_count": 1, "result_token_count": 10},
+                    ts=old,
+                )
+            ]
+        )
+        await store.record_batch(
+            [
+                _event(
+                    "retrieval.call",
+                    {"operation": "find", "result_count": 1, "result_token_count": 5},
+                    ts=recent,
+                )
+            ]
+        )
+        summary = await store.get_retrieval_usage_summary(account_id="acct-1")
+        # Old (10) survived the second batch's trim pass + recent (5).
+        assert summary["result_token_total"] == 15
+    finally:
+        await store.close()
+
+
+@pytest.mark.asyncio
 async def test_sqlite_usage_audit_store_resets_incompatible_legacy_schema(tmp_path):
     db_path = tmp_path / "usage.sqlite3"
     _create_legacy_usage_audit_db(db_path)
@@ -312,7 +482,7 @@ async def test_sqlite_usage_audit_store_resets_incompatible_legacy_schema(tmp_pa
         assert "hour_utc" in context_columns
         assert "hour_bucket" not in context_columns
         version = conn.execute("SELECT value FROM _schema_meta WHERE key = 'version'").fetchone()
-        assert version == ("3",)
+        assert version == ("4",)
     finally:
         conn.close()
 
