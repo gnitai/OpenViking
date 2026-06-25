@@ -49,6 +49,29 @@ class DirectoryParser(BaseParser):
     ``TreeBuilder.finalize_from_temp`` exactly like any other parser.
     """
 
+    # Parser-backed document extensions that should be preserved byte-for-byte
+    # when uploaded-file ingestion asks for a verbatim mirror. Media files have
+    # their own direct-upload path, and zip stays parsed so upload archives are
+    # unpacked into the mirrored tree.
+    VERBATIM_DOCUMENT_EXTENSIONS = {
+        ".doc",
+        ".docx",
+        ".epub",
+        ".htm",
+        ".html",
+        ".markdown",
+        ".md",
+        ".mdown",
+        ".mkd",
+        ".pdf",
+        ".pptx",
+        ".text",
+        ".txt",
+        ".xls",
+        ".xlsm",
+        ".xlsx",
+    }
+
     @property
     def supported_extensions(self) -> List[str]:
         # Directories have no file extension; routing is handled
@@ -123,10 +146,10 @@ class DirectoryParser(BaseParser):
                 exclude=kwargs.get("exclude"),
             )
             directly_upload_media = kwargs.get("directly_upload_media", True)
-            # When True, store text/markdown documents verbatim (as plain files)
-            # instead of routing them through their parser (which would explode a
-            # markdown file into a directory of sections). Used so uploaded-file
-            # trees stay a faithful mirror of what the user uploaded.
+            # When True, store parser-backed documents verbatim (as plain files)
+            # instead of routing them through parsers that convert them into
+            # markdown section directories. Used so uploaded-file trees stay a
+            # faithful mirror of what the user uploaded.
             verbatim_documents = kwargs.get("verbatim_documents", False)
             preserve_structure = kwargs.get("preserve_structure")
             if preserve_structure is None:
@@ -172,15 +195,16 @@ class DirectoryParser(BaseParser):
 
             for cf in processable_files:
                 file_parser = self._assign_parser(cf, registry)
-                # Force verbatim storage for text/markdown documents: dropping the
-                # parser routes them through the raw read_bytes -> write_file branch
-                # in _process_single_file, so they land as plain files (e.g.
-                # ``output-quality.md``) rather than a directory of sections.
+                # Force verbatim storage for documents: dropping the parser routes
+                # them through the raw read_bytes -> write_file branch in
+                # _process_single_file, so they land as plain files (e.g.
+                # ``output-quality.md`` or ``page.html``) rather than converted
+                # markdown section directories.
                 if (
                     verbatim_documents
                     and file_parser is not None
                     and Path(cf.path).suffix.lower()
-                    in {".md", ".markdown", ".mdown", ".mkd", ".txt", ".text"}
+                    in self.VERBATIM_DOCUMENT_EXTENSIONS
                 ):
                     file_parser = None
                 parser_name = type(file_parser).__name__ if file_parser else "direct"

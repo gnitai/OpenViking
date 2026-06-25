@@ -578,6 +578,51 @@ class TestParserDelegation:
         assert found_md, f"archive.md not found. Files: {list(fake_fs.files.keys())}"
 
 
+class TestVerbatimDocuments:
+    """Parser-backed documents can be stored as uploaded verbatim files."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "filename,content",
+        [
+            ("readme.md", "# Hello\nworld"),
+            ("spec.markdown", "# Spec\nworld"),
+            ("notes.mdown", "# Notes\nworld"),
+            ("manual.mkd", "# Manual\nworld"),
+            ("plain.txt", "plain text"),
+            ("log.text", "plain text"),
+            ("page.html", "<html><body><h1>Hello</h1></body></html>"),
+            ("index.htm", "<html><body><h1>Hello</h1></body></html>"),
+            ("document.pdf", b"%PDF-1.4 minimal"),
+            ("letter.doc", b"\xd0\xcf\x11\xe0"),
+            ("report.docx", b"PK\x03\x04"),
+            ("slides.pptx", b"PK\x03\x04"),
+            ("sheet.xls", b"\xd0\xcf\x11\xe0"),
+            ("book.xlsx", b"PK\x03\x04"),
+            ("macro.xlsm", b"PK\x03\x04"),
+            ("novel.epub", b"PK\x03\x04"),
+        ],
+    )
+    async def test_parser_backed_text_documents_upload_verbatim(
+        self,
+        filename: str,
+        content: str | bytes,
+        tmp_path: Path,
+        parser,
+        fake_fs,
+    ) -> None:
+        if isinstance(content, bytes):
+            (tmp_path / filename).write_bytes(content)
+        else:
+            (tmp_path / filename).write_text(content, encoding="utf-8")
+
+        result = await parser.parse(str(tmp_path), verbatim_documents=True)
+
+        assert result.meta["file_count"] == 1
+        uploaded_names = {uri.split("/")[-1] for uri in fake_fs.files}
+        assert filename in uploaded_names
+
+
 # ---------------------------------------------------------------------------
 # Tests: PDF conversion via parser.parse()
 # ---------------------------------------------------------------------------
