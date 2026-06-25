@@ -118,6 +118,11 @@ class UnifiedResourceProcessor:
         - Directories needed for TreeBuilder are preserved via ParseResult.temp_dir_path
         """
 
+        # Store text/markdown documents verbatim instead of parsing them into
+        # section directories. Popped here so it rides only the parser chain
+        # (re-injected into parse_kwargs below) and never reaches accessors.
+        verbatim_documents = kwargs.pop("verbatim_documents", False)
+
         # First check if source is raw content (not URL/path)
         is_potential_path = (
             allow_local_path_resolution and len(source) <= 1024 and "\n" not in source
@@ -150,6 +155,7 @@ class UnifiedResourceProcessor:
         try:
             # Phase 2: Parser - parse the local resource
             parse_kwargs = dict(kwargs)
+            parse_kwargs["verbatim_documents"] = verbatim_documents
             parse_kwargs["instruction"] = instruction
             parse_kwargs["vlm_processor"] = self._get_vlm_processor()
             parse_kwargs["storage"] = self.storage

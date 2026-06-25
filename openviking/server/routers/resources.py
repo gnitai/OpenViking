@@ -62,6 +62,9 @@ class AddResourceRequest(BaseModel):
         exclude: Glob pattern for files to exclude during parsing.
         directly_upload_media: Whether to directly upload media files. Default is True.
         preserve_structure: Whether to preserve directory structure when adding directories.
+        verbatim_documents: Whether to store text/markdown documents verbatim (as plain
+            files) instead of parsing them into section directories. Default is False.
+            Use for uploaded-file ingestion that must mirror the user's files exactly.
         watch_interval: Watch interval in minutes for automatic resource monitoring.
             - watch_interval > 0: Creates or updates a watch task. The resource will be
               automatically re-processed at the specified interval.
@@ -94,6 +97,7 @@ class AddResourceRequest(BaseModel):
     exclude: Optional[str] = None
     directly_upload_media: bool = True
     preserve_structure: Optional[bool] = None
+    verbatim_documents: bool = False
     telemetry: TelemetryRequest = False
     watch_interval: float = 0
 
@@ -243,6 +247,7 @@ async def add_resource(
         "include": request.include,
         "exclude": request.exclude,
         "directly_upload_media": request.directly_upload_media,
+        "verbatim_documents": request.verbatim_documents,
         "watch_interval": request.watch_interval,
         "create_parent": request.create_parent,
     }

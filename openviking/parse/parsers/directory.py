@@ -123,6 +123,11 @@ class DirectoryParser(BaseParser):
                 exclude=kwargs.get("exclude"),
             )
             directly_upload_media = kwargs.get("directly_upload_media", True)
+            # When True, store text/markdown documents verbatim (as plain files)
+            # instead of routing them through their parser (which would explode a
+            # markdown file into a directory of sections). Used so uploaded-file
+            # trees stay a faithful mirror of what the user uploaded.
+            verbatim_documents = kwargs.get("verbatim_documents", False)
             preserve_structure = kwargs.get("preserve_structure")
             if preserve_structure is None:
                 # Fall back to config default
@@ -167,6 +172,17 @@ class DirectoryParser(BaseParser):
 
             for cf in processable_files:
                 file_parser = self._assign_parser(cf, registry)
+                # Force verbatim storage for text/markdown documents: dropping the
+                # parser routes them through the raw read_bytes -> write_file branch
+                # in _process_single_file, so they land as plain files (e.g.
+                # ``output-quality.md``) rather than a directory of sections.
+                if (
+                    verbatim_documents
+                    and file_parser is not None
+                    and Path(cf.path).suffix.lower()
+                    in {".md", ".markdown", ".mdown", ".mkd", ".txt", ".text"}
+                ):
+                    file_parser = None
                 parser_name = type(file_parser).__name__ if file_parser else "direct"
 
                 # Check if this is a media parser and we should directly upload
