@@ -159,7 +159,7 @@ L1: """
 多媒体文件的存储采用以下层级结构：
 
 ```
-viking://resource/
+wfs://resource/
 ├── images/     # 图片文件
 │   └── 20240820/  # 上传日期（YYYYMMDD）
 │       └── 20240820_123456_jpg/  # 文件文件夹（文件名_扩展名）
@@ -182,13 +182,13 @@ viking://resource/
 
 详细说明：
 
-1. **媒体子目录**: 在 `viking://resource` 下按类型划分为三个子目录
-   - `viking://resource/images`: 存储未明确指定目标路径的图片文件
-   - `viking://resource/audio`: 存储未明确指定目标路径的音频文件
-   - `viking://resource/video`: 存储未明确指定目标路径的视频文件
+1. **媒体子目录**: 在 `wfs://resource` 下按类型划分为三个子目录
+   - `wfs://resource/images`: 存储未明确指定目标路径的图片文件
+   - `wfs://resource/audio`: 存储未明确指定目标路径的音频文件
+   - `wfs://resource/video`: 存储未明确指定目标路径的视频文件
 
 2. **日期子目录**: 每次上传的文件按当前日期（格式：YYYYMMDD）组织，而非文件内部元信息的时间
-   - 例如：`viking://resource/images/20240820/` 存储 2024年8月20日上传的所有图片
+   - 例如：`wfs://resource/images/20240820/` 存储 2024年8月20日上传的所有图片
 
 3. **文件文件夹**: 为每个多媒体文件创建一个专属文件夹，命名规则为：`文件名_扩展名`（扩展名不含点）
    - 示例：上传 `20240820_123456.jpg` → 创建文件夹 `20240820_123456_jpg`
@@ -451,7 +451,7 @@ registry.register_callback(".simple", simple_parser, name="simple_parser")
 混合目录结构示例（章节有子章节时，小章节合并）：
 
 ```
-viking://resources/Python_异步编程指南/
+wfs://resources/Python_异步编程指南/
 ├── .abstract.md                              # L0: 目录摘要
 ├── .overview.md                              # L1: 目录概览
 ├── Python_异步编程指南_第一章_asyncio_基础.md  # 直接内容 + 第一章合并（均 < 800 tokens）
@@ -477,7 +477,7 @@ viking://resources/Python_异步编程指南/
 ### 临时目录结构
 
 ```
-viking://temp/abc123/
+wfs://temp/abc123/
 └── document/
     ├── Python_异步编程指南.md
     ├── 第一章_asyncio_基础.md

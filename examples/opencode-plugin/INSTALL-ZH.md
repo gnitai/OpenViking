@@ -132,7 +132,7 @@ export OPENVIKING_API_KEY="your-api-key-here"
 插件会通过 OpenCode `tool` hook 暴露这些工具：
 
 - `memsearch`：语义检索 memories/resources/skills
-- `memread`：读取具体 `viking://` URI
+- `memread`：读取具体 `wfs://` URI
 - `membrowse`：浏览 OpenViking 文件系统
 - `memcommit`：提交当前 session 并触发记忆提取
 - `memgrep`：精确文本或模式搜索，替代原 `ov grep`
@@ -161,8 +161,8 @@ export OPENVIKING_API_KEY="your-api-key-here"
 相对路径会按 OpenCode 当前项目目录解析。示例：
 
 ```text
-memadd path="https://example.com/spec.md" to="viking://resources/spec"
-memadd path="./docs/notes.md" parent="viking://resources/"
+memadd path="https://example.com/spec.md" to="wfs://resources/spec"
+memadd path="./docs/notes.md" parent="wfs://resources/"
 memadd path="file:///home/alice/project/notes.md" reason="project notes"
 ```
 

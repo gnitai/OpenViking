@@ -39,9 +39,9 @@ VikingFS 是统一的 URI 抽象层，屏蔽底层存储细节。
 ### URI 映射
 
 ```
-viking://resources/docs/auth  →  /local/{account_id}/resources/docs/auth
-viking://user/memories        →  /local/{account_id}/user/{user_id}/memories
-viking://agent/skills         →  /local/{account_id}/agent/{agent_id}/skills
+wfs://resources/docs/auth  →  /local/{account_id}/resources/docs/auth
+wfs://user/memories        →  /local/{account_id}/user/{user_id}/memories
+wfs://agent/skills         →  /local/{account_id}/agent/{agent_id}/skills
 ```
 
 ### 核心 API
@@ -65,13 +65,13 @@ VikingFS 通过 `.relations.json` 管理资源间的关联：
 ```python
 # 创建关联
 viking_fs.link(
-    from_uri="viking://resources/docs/auth",
-    uris=["viking://resources/docs/security"],
+    from_uri="wfs://resources/docs/auth",
+    uris=["wfs://resources/docs/security"],
     reason="相关安全文档"
 )
 
 # 获取关联
-relations = viking_fs.relations("viking://resources/docs/auth")
+relations = viking_fs.relations("wfs://resources/docs/auth")
 ```
 
 ## AGFS 底层存储
@@ -91,7 +91,7 @@ AGFS 提供 POSIX 风格的文件操作，支持多种后端。
 每个上下文目录遵循统一结构：
 
 ```
-viking://resources/docs/auth/
+wfs://resources/docs/auth/
 ├── .abstract.md          # L0 摘要
 ├── .overview.md          # L1 概览
 ├── .relations.json       # 关联
@@ -144,7 +144,7 @@ VikingFS 自动维护向量库与 AGFS 的一致性。
 ### 删除同步
 
 ```python
-viking_fs.rm("viking://resources/docs/auth", recursive=True)
+viking_fs.rm("wfs://resources/docs/auth", recursive=True)
 # 自动递归删除向量库中所有 uri 以此开头的记录
 ```
 
@@ -152,8 +152,8 @@ viking_fs.rm("viking://resources/docs/auth", recursive=True)
 
 ```python
 viking_fs.mv(
-    "viking://resources/docs/auth",
-    "viking://resources/docs/authentication"
+    "wfs://resources/docs/auth",
+    "wfs://resources/docs/authentication"
 )
 # 自动更新向量库中的 uri 和 parent_uri 字段
 ```

@@ -202,7 +202,7 @@ def test_attach_telemetry_payload_adds_telemetry_to_dict_result():
     from openviking.telemetry.execution import attach_telemetry_payload
 
     result = attach_telemetry_payload(
-        {"root_uri": "viking://resources/demo"},
+        {"root_uri": "wfs://resources/demo"},
         {"id": "tm_123", "summary": {"operation": "resources.add_resource"}},
     )
 

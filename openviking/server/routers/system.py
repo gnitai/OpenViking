@@ -107,7 +107,7 @@ async def readiness_check(request: Request):
     # 1. AGFS: try to list root
     try:
         viking_fs = get_viking_fs()
-        await viking_fs.ls("viking://", ctx=None)
+        await viking_fs.ls("wfs://", ctx=None)
         checks["agfs"] = "ok"
     except Exception as e:
         checks["agfs"] = f"error: {e}"

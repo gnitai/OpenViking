@@ -272,11 +272,11 @@ class TestUploadTextFiles:
         f.write_text("print('hi')", encoding="utf-8")
         file_paths = [(f, "hello.py")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/abc", viking_fs)
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/abc", viking_fs)
 
         assert count == 1
         assert len(warnings) == 0
-        assert "viking://temp/abc/hello.py" in viking_fs.files
+        assert "wfs://temp/abc/hello.py" in viking_fs.files
 
     @pytest.mark.asyncio
     async def test_upload_multiple(self, tmp_path: Path, viking_fs: FakeVikingFS) -> None:
@@ -286,7 +286,7 @@ class TestUploadTextFiles:
         f2.write_text("b", encoding="utf-8")
         file_paths = [(f1, "a.py"), (f2, "b.md")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/x", viking_fs)
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/x", viking_fs)
 
         assert count == 2
         assert len(warnings) == 0
@@ -299,10 +299,10 @@ class TestUploadTextFiles:
         f.write_bytes("你好".encode("gbk"))
         file_paths = [(f, "chinese.py")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/enc", viking_fs)
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/enc", viking_fs)
 
         assert count == 1
-        uploaded = viking_fs.files["viking://temp/enc/chinese.py"]
+        uploaded = viking_fs.files["wfs://temp/enc/chinese.py"]
         assert uploaded.decode("utf-8") == "你好"
 
     @pytest.mark.asyncio
@@ -310,7 +310,7 @@ class TestUploadTextFiles:
         fake = tmp_path / "nonexistent.py"
         file_paths = [(fake, "nonexistent.py")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/err", viking_fs)
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/err", viking_fs)
 
         assert count == 0
         assert len(warnings) == 1
@@ -324,16 +324,16 @@ class TestUploadTextFiles:
 class TestUploadDirectory:
     @pytest.mark.asyncio
     async def test_basic_upload(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        count, warnings = await upload_directory(tmp_dir, "viking://temp/test", viking_fs)
+        count, warnings = await upload_directory(tmp_dir, "wfs://temp/test", viking_fs)
 
         # Should upload: hello.py, readme.md, config.yaml, src/main.go
         # Should skip: .hidden, image.png, empty.txt, __pycache__/mod.pyc
         assert count == 4
-        assert "viking://temp/test/hello.py" in viking_fs.files
-        assert "viking://temp/test/readme.md" in viking_fs.files
-        assert "viking://temp/test/config.yaml" in viking_fs.files
-        assert "viking://temp/test/src/main.go" in viking_fs.files
-        assert "viking://temp/test/hello.py" in viking_fs.write_file_bytes_calls
+        assert "wfs://temp/test/hello.py" in viking_fs.files
+        assert "wfs://temp/test/readme.md" in viking_fs.files
+        assert "wfs://temp/test/config.yaml" in viking_fs.files
+        assert "wfs://temp/test/src/main.go" in viking_fs.files
+        assert "wfs://temp/test/hello.py" in viking_fs.write_file_bytes_calls
 
     @pytest.mark.asyncio
     async def test_uses_vikingfs_write_api_for_file_content(self, tmp_path: Path) -> None:
@@ -349,50 +349,50 @@ class TestUploadDirectory:
         (tmp_path / "hello.py").write_text("print('hello')", encoding="utf-8")
         viking_fs = GuardedVikingFS()
 
-        count, warnings = await upload_directory(tmp_path, "viking://temp/guarded", viking_fs)
+        count, warnings = await upload_directory(tmp_path, "wfs://temp/guarded", viking_fs)
 
         assert count == 1
         assert warnings == []
-        assert viking_fs.files["viking://temp/guarded/hello.py"] == b"print('hello')"
+        assert viking_fs.files["wfs://temp/guarded/hello.py"] == b"print('hello')"
 
     @pytest.mark.asyncio
     async def test_skips_hidden_files(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        await upload_directory(tmp_dir, "viking://temp/test", viking_fs)
+        await upload_directory(tmp_dir, "wfs://temp/test", viking_fs)
         assert all(".hidden" not in uri for uri in viking_fs.files)
 
     @pytest.mark.asyncio
     async def test_skips_ignored_dirs(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        await upload_directory(tmp_dir, "viking://temp/test", viking_fs)
+        await upload_directory(tmp_dir, "wfs://temp/test", viking_fs)
         assert all("__pycache__" not in uri for uri in viking_fs.files)
 
     @pytest.mark.asyncio
     async def test_skips_ignored_extensions(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        await upload_directory(tmp_dir, "viking://temp/test", viking_fs)
+        await upload_directory(tmp_dir, "wfs://temp/test", viking_fs)
         assert all(".png" not in uri for uri in viking_fs.files)
 
     @pytest.mark.asyncio
     async def test_skips_empty_files(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        await upload_directory(tmp_dir, "viking://temp/test", viking_fs)
+        await upload_directory(tmp_dir, "wfs://temp/test", viking_fs)
         assert all("empty.txt" not in uri for uri in viking_fs.files)
 
     @pytest.mark.asyncio
     async def test_creates_root_dir(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        await upload_directory(tmp_dir, "viking://temp/root", viking_fs)
-        assert "viking://temp/root" in viking_fs.dirs
+        await upload_directory(tmp_dir, "wfs://temp/root", viking_fs)
+        assert "wfs://temp/root" in viking_fs.dirs
 
     @pytest.mark.asyncio
     async def test_custom_ignore_dirs(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
         count, _ = await upload_directory(
-            tmp_dir, "viking://temp/test", viking_fs, ignore_dirs={"src"}
+            tmp_dir, "wfs://temp/test", viking_fs, ignore_dirs={"src"}
         )
         assert all("src/" not in uri for uri in viking_fs.files)
         # Positive assertion: non-ignored files should still be uploaded
         assert count > 0
-        assert "viking://temp/test/hello.py" in viking_fs.files
+        assert "wfs://temp/test/hello.py" in viking_fs.files
 
     @pytest.mark.asyncio
     async def test_custom_max_file_size(self, tmp_dir: Path, viking_fs: FakeVikingFS) -> None:
-        count, _ = await upload_directory(tmp_dir, "viking://temp/test", viking_fs, max_file_size=5)
+        count, _ = await upload_directory(tmp_dir, "wfs://temp/test", viking_fs, max_file_size=5)
         # Most files are > 5 bytes, so fewer uploads
         assert count < 4
 
@@ -402,11 +402,11 @@ class TestUploadDirectory:
         (tmp_path / "keep.txt").write_text("ok", encoding="utf-8")
         (tmp_path / "skip.tmp").write_text("no", encoding="utf-8")
 
-        count, _ = await upload_directory(tmp_path, "viking://temp/gi", viking_fs)
+        count, _ = await upload_directory(tmp_path, "wfs://temp/gi", viking_fs)
 
         assert count == 1
-        assert "viking://temp/gi/keep.txt" in viking_fs.files
-        assert "viking://temp/gi/skip.tmp" not in viking_fs.files
+        assert "wfs://temp/gi/keep.txt" in viking_fs.files
+        assert "wfs://temp/gi/skip.tmp" not in viking_fs.files
 
 
 # ---------------------------------------------------------------------------
@@ -506,7 +506,7 @@ class TestUploadTextFilesEdgeCases:
         f.write_text("hack", encoding="utf-8")
         file_paths = [(f, "../../../etc/passwd")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/safe", viking_fs)
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/safe", viking_fs)
 
         assert count == 0
         assert len(warnings) == 1
@@ -524,7 +524,7 @@ class TestUploadTextFilesEdgeCases:
         f.write_text("print(1)", encoding="utf-8")
         file_paths = [(f, "ok.py")]
 
-        count, warnings = await upload_text_files(file_paths, "viking://temp/fail", FailingFS())
+        count, warnings = await upload_text_files(file_paths, "wfs://temp/fail", FailingFS())
 
         assert count == 0
         assert len(warnings) == 1
@@ -557,7 +557,7 @@ class TestUploadDirectoryEdgeCases:
 
         (tmp_path / "ok.py").write_text("print(1)", encoding="utf-8")
 
-        count, warnings = await upload_directory(tmp_path, "viking://temp/fail", FailingWriteFS())
+        count, warnings = await upload_directory(tmp_path, "wfs://temp/fail", FailingWriteFS())
 
         assert count == 0
         assert len(warnings) == 1

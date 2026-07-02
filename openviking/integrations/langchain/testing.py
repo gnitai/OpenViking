@@ -182,7 +182,7 @@ class InMemoryOpenVikingClient:
             values.append(child_uri if simple else {"uri": child_uri, "rel_path": rel})
         return values
 
-    def glob(self, pattern: str, uri: str = "viking://") -> dict[str, Any]:
+    def glob(self, pattern: str, uri: str = "wfs://") -> dict[str, Any]:
         prefix = uri.rstrip("/") + "/"
         matches = []
         for key in sorted(self.records):
@@ -324,7 +324,7 @@ class InMemoryOpenVikingClient:
         archive_id = f"archive_{len(self.archives[session_id]) + 1:03d}"
         overview = "\n".join(_message_text(message) for message in messages)
         if messages:
-            archive_uri = f"viking://session/{session_id}/history/{archive_id}"
+            archive_uri = f"wfs://session/{session_id}/history/{archive_id}"
             self.archives[session_id].append(
                 {
                     "archive_id": archive_id,
@@ -352,19 +352,19 @@ class InMemoryOpenVikingClient:
         self.sessions.pop(session_id, None)
         self.archives.pop(session_id, None)
         self.pending_tokens.pop(session_id, None)
-        session_uri = f"viking://session/{session_id}"
+        session_uri = f"wfs://session/{session_id}"
         for uri in list(self.records):
             if uri == session_uri or uri.startswith(f"{session_uri}/"):
                 del self.records[uri]
 
     def add_resource(self, path: str, to: str | None = None, **_: Any) -> dict[str, Any]:
-        uri = to or f"viking://resources/{path.rstrip('/').split('/')[-1]}"
+        uri = to or f"wfs://resources/{path.rstrip('/').split('/')[-1]}"
         self.records.setdefault(uri, f"Resource imported from {path}")
         return {"status": "completed", "root_uri": uri}
 
     def add_skill(self, data: Any, **_: Any) -> dict[str, Any]:
         name = data.get("name", "skill") if isinstance(data, dict) else "skill"
-        uri = f"viking://agent/skills/{name}.md"
+        uri = f"wfs://agent/skills/{name}.md"
         self.records[uri] = str(data)
         return {"status": "completed", "uri": uri, "name": name}
 

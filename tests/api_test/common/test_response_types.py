@@ -7,7 +7,7 @@ import pytest
 
 class TestResponseDataTypes:
     def test_fs_stat_response_types(self, api_client):
-        dir_uri = f"viking://resources/type_check_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/type_check_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             if mkdir_resp.status_code != 200:
@@ -36,7 +36,7 @@ class TestResponseDataTypes:
                 pass
 
     def test_fs_ls_response_types(self, api_client):
-        dir_uri = f"viking://resources/ls_type_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/ls_type_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             if mkdir_resp.status_code != 200:
@@ -138,7 +138,7 @@ class TestResponseDataTypes:
                 api_client.delete_session(session_id)
 
     def test_error_response_has_consistent_structure(self, api_client):
-        resp = api_client.fs_stat("viking://resources/nonexistent_type_check_xyz")
+        resp = api_client.fs_stat("wfs://resources/nonexistent_type_check_xyz")
         if resp.status_code >= 400:
             data = resp.json()
             if "error" in data:

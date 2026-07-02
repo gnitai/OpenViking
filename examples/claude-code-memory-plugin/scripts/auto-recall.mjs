@@ -130,7 +130,7 @@ async function resolveScopeSpace(scope) {
   }
 
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
-  const lsRes = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`viking://${scope}`)}&output=original`);
+  const lsRes = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`wfs://${scope}`)}&output=original`);
   if (lsRes.ok && Array.isArray(lsRes.result)) {
     const spaces = lsRes.result
       .filter(e => e?.isDir)
@@ -148,7 +148,7 @@ async function resolveScopeSpace(scope) {
 
 async function resolveTargetUri(targetUri) {
   const trimmed = targetUri.trim().replace(/\/+$/, "");
-  const m = trimmed.match(/^viking:\/\/(user|agent)(?:\/(.*))?$/);
+  const m = trimmed.match(/^wfs:\/\/(user|agent)(?:\/(.*))?$/);
   if (!m) return trimmed;
   const scope = m[1];
   const rawRest = (m[2] ?? "").trim();
@@ -158,7 +158,7 @@ async function resolveTargetUri(targetUri) {
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
   if (!reservedDirs.has(parts[0])) return trimmed;
   const space = await resolveScopeSpace(scope);
-  return `viking://${scope}/${space}/${parts.join("/")}`;
+  return `wfs://${scope}/${space}/${parts.join("/")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,9 +167,9 @@ async function resolveTargetUri(targetUri) {
 // ---------------------------------------------------------------------------
 
 const SOURCES = [
-  { type: "memory", uri: "viking://user/memories",  bucket: "memories" },
-  { type: "memory", uri: "viking://agent/memories", bucket: "memories" },
-  { type: "skill",  uri: "viking://agent/skills",   bucket: "skills"   },
+  { type: "memory", uri: "wfs://user/memories",  bucket: "memories" },
+  { type: "memory", uri: "wfs://agent/memories", bucket: "memories" },
+  { type: "skill",  uri: "wfs://agent/skills",   bucket: "skills"   },
 ];
 
 async function searchOneSource(query, source, limit) {

@@ -450,7 +450,7 @@ class TestVikingFSEncryptionWithAccounts:
 
         # Write test file directly via VikingFS
         test_content = "This is a test resource file content that needs encrypted storage"
-        test_uri = "viking://default/test_encrypted.txt"
+        test_uri = "wfs://default/test_encrypted.txt"
 
         await svc.viking_fs.write_file(test_uri, test_content, ctx=ctx)
 
@@ -518,7 +518,7 @@ class TestVikingFSEncryptionWithAccounts:
         ctx = RequestContext(user=default_user, role=Role.ROOT)
 
         # Create skill directory and files directly via VikingFS
-        skill_uri = "viking://default/skill/test-skill"
+        skill_uri = "wfs://default/skill/test-skill"
         await svc.viking_fs.mkdir(skill_uri, ctx=ctx)
 
         # Create SKILL.md file with YAML frontmatter
@@ -656,7 +656,7 @@ This is a test skill for verifying encryption functionality.
         root_ctx = RequestContext(user=test_user, role=Role.ROOT)
 
         agfs_client = svc._agfs_client
-        account_root_uri = f"viking://{test_account_id}"
+        account_root_uri = f"wfs://{test_account_id}"
 
         await self._check_all_files_encrypted(account_root_uri, ctx, svc, agfs_client)
 
@@ -672,12 +672,12 @@ This is a test skill for verifying encryption functionality.
         test_resource_content = "This is test resource file content for verifying encryption functionality. Contains keyword OpenViking."
 
         # Create test file directly using VikingFS
-        test_resource_uri = "viking://resources/test_encryption_file.txt"
+        test_resource_uri = "wfs://resources/test_encryption_file.txt"
         await svc.viking_fs.write_file(test_resource_uri, test_resource_content, ctx=ctx)
         print(f"  ✓ Test file created successfully: {test_resource_uri}")
 
         # Create a test directory
-        test_dir_uri = "viking://resources/test_encryption_dir"
+        test_dir_uri = "wfs://resources/test_encryption_dir"
         await svc.viking_fs.mkdir(test_dir_uri, ctx=ctx)
         test_file_in_dir_uri = f"{test_dir_uri}/nested_file.txt"
         await svc.viking_fs.write_file(test_file_in_dir_uri, "This is nested file content", ctx=ctx)
@@ -685,7 +685,7 @@ This is a test skill for verifying encryption functionality.
 
         # Check all files in resources directory are encrypted
         print("[1.1] Check files in resources directory are encrypted")
-        resources_dir_uri = "viking://resources"
+        resources_dir_uri = "wfs://resources"
         await self._check_all_files_encrypted(resources_dir_uri, ctx, svc, agfs_client)
 
         # 1.2 Execute various operations to verify returns unencrypted
@@ -778,15 +778,15 @@ This is a test skill for verifying encryption functionality.
 """
 
         # Create test file directly using VikingFS (using root_ctx to access agent directory)
-        test_skill_uri = "viking://agent/test_encryption_skill/SKILL.md"
-        test_skill_dir_uri = "viking://agent/test_encryption_skill"
+        test_skill_uri = "wfs://agent/test_encryption_skill/SKILL.md"
+        test_skill_dir_uri = "wfs://agent/test_encryption_skill"
         await svc.viking_fs.mkdir(test_skill_dir_uri, ctx=root_ctx)
         await svc.viking_fs.write_file(test_skill_uri, skill_content, ctx=root_ctx)
         print(f"  ✓ Test skill created successfully: {test_skill_uri}")
 
         # Check all files in agent directory are encrypted
         print("[2.1] Check files in agent directory are encrypted")
-        agent_dir_uri = "viking://agent"
+        agent_dir_uri = "wfs://agent"
         await self._check_all_files_encrypted(agent_dir_uri, root_ctx, svc, agfs_client)
 
         # 2.2 Verify various operations return unencrypted
@@ -854,7 +854,7 @@ This is a test skill for verifying encryption functionality.
         print("=" * 80)
 
         print("[3.1] Add memory file")
-        memory_dir_uri = f"viking://{test_account_id}/user/{test_user_id}/memories"
+        memory_dir_uri = f"wfs://{test_account_id}/user/{test_user_id}/memories"
 
         # Create memories directory
         try:
@@ -877,7 +877,7 @@ This is a test skill for verifying encryption functionality.
 
         # Check all files in user directory are encrypted
         print("[3.1] Check files in user directory are encrypted")
-        user_dir_uri = f"viking://{test_account_id}/user/{test_user_id}"
+        user_dir_uri = f"wfs://{test_account_id}/user/{test_user_id}"
         await self._check_all_files_encrypted(user_dir_uri, ctx, svc, agfs_client)
 
         # 3.2 Verify various operations return unencrypted
@@ -951,7 +951,7 @@ This is a test skill for verifying encryption functionality.
 
         # Check session directory files are encrypted
         print("[4.1] Check files in session directory are encrypted")
-        session_dir_uri = f"viking://{test_account_id}/session"
+        session_dir_uri = f"wfs://{test_account_id}/session"
         await self._check_all_files_encrypted(session_dir_uri, ctx, svc, agfs_client)
 
         # 4.2 Verify various operations return unencrypted
@@ -1032,11 +1032,11 @@ This is a test skill for verifying encryption functionality.
 
         print("[5.1] Create two resource files directly using VikingFS")
         # Create relation_test directory
-        relation_test_dir_uri = "viking://resources/relation_test"
+        relation_test_dir_uri = "wfs://resources/relation_test"
         await svc.viking_fs.mkdir(relation_test_dir_uri, ctx=ctx)
 
         # Create resource A directory and file
-        dir_a_uri = "viking://resources/relation_test/resource_a"
+        dir_a_uri = "wfs://resources/relation_test/resource_a"
         await svc.viking_fs.mkdir(dir_a_uri, ctx=ctx)
         resource_a_content = "This is resource A content for testing relation functionality."
         resource_a_file_uri = f"{dir_a_uri}/resource_a.txt"
@@ -1044,7 +1044,7 @@ This is a test skill for verifying encryption functionality.
         print(f"  ✓ Resource A created: {dir_a_uri}")
 
         # Create resource B directory and file
-        dir_b_uri = "viking://resources/relation_test/resource_b"
+        dir_b_uri = "wfs://resources/relation_test/resource_b"
         await svc.viking_fs.mkdir(dir_b_uri, ctx=ctx)
         resource_b_content = "This is resource B content for testing relation functionality."
         resource_b_file_uri = f"{dir_b_uri}/resource_b.txt"
@@ -1118,7 +1118,7 @@ This is a test skill for verifying encryption functionality.
             "Line 4: Fifth and final line",
         ]
         test_content = "\n".join(test_lines)
-        test_uri = "viking://default/test_multiline.txt"
+        test_uri = "wfs://default/test_multiline.txt"
 
         await svc.viking_fs.write_file(test_uri, test_content, ctx=ctx)
 
@@ -1165,7 +1165,7 @@ This is a test skill for verifying encryption functionality.
 
         # Write a test file
         test_content = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        test_uri = "viking://default/test_bytes.txt"
+        test_uri = "wfs://default/test_bytes.txt"
 
         await svc.viking_fs.write_file(test_uri, test_content.decode("utf-8"), ctx=ctx)
 

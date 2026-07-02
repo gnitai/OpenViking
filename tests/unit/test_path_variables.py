@@ -188,95 +188,95 @@ class TestPathVariableResolver:
         return PathVariableResolver()
 
     def test_resolve_no_variables_returns_unchanged(self, resolver):
-        uri = "viking://resources/docs/api.md"
+        uri = "wfs://resources/docs/api.md"
         assert resolver.resolve(uri) == uri
 
     def test_resolve_single_calendar_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/emails/{calendar:year}/inbox"
+        uri = "wfs://resources/emails/{calendar:year}/inbox"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/inbox"
+        assert resolved == "wfs://resources/emails/2026/inbox"
 
     def test_resolve_multiple_calendar_variables(self, resolver, sample_datetime):
-        uri = "viking://resources/logs/{calendar:year}/{calendar:month}/app.log"
+        uri = "wfs://resources/logs/{calendar:year}/{calendar:month}/app.log"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/logs/2026/05/app.log"
+        assert resolved == "wfs://resources/logs/2026/05/app.log"
 
     def test_resolve_today_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/emails/{calendar:today}/inbox"
+        uri = "wfs://resources/emails/{calendar:today}/inbox"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/05/07/inbox"
+        assert resolved == "wfs://resources/emails/2026/05/07/inbox"
 
     def test_resolve_yesterday_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/emails/{calendar:yesterday}/inbox"
+        uri = "wfs://resources/emails/{calendar:yesterday}/inbox"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/05/06/inbox"
+        assert resolved == "wfs://resources/emails/2026/05/06/inbox"
 
     def test_resolve_tomorrow_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/emails/{calendar:tomorrow}/inbox"
+        uri = "wfs://resources/emails/{calendar:tomorrow}/inbox"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/05/08/inbox"
+        assert resolved == "wfs://resources/emails/2026/05/08/inbox"
 
     def test_resolve_ym_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/reports/{calendar:ym}/summary.pdf"
+        uri = "wfs://resources/reports/{calendar:ym}/summary.pdf"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/reports/2026/05/summary.pdf"
+        assert resolved == "wfs://resources/reports/2026/05/summary.pdf"
 
     def test_resolve_quarter_variables(self, resolver, sample_datetime):
-        uri = "viking://resources/quarterly/{calendar:yq}/report.pdf"
+        uri = "wfs://resources/quarterly/{calendar:yq}/report.pdf"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/quarterly/2026/Q2/report.pdf"
+        assert resolved == "wfs://resources/quarterly/2026/Q2/report.pdf"
 
     def test_resolve_week_variables(self, resolver, sample_datetime):
-        uri = "viking://resources/weekly/{calendar:yw}/summary.pdf"
+        uri = "wfs://resources/weekly/{calendar:yw}/summary.pdf"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/weekly/2026/w19/summary.pdf"
+        assert resolved == "wfs://resources/weekly/2026/w19/summary.pdf"
 
     def test_resolve_unknown_namespace_raises_error(self, resolver):
-        uri = "viking://resources/{env:production}/config"
+        uri = "wfs://resources/{env:production}/config"
 
         with pytest.raises(ValueError, match="Cannot resolve variables"):
             resolver.resolve(uri)
 
     def test_resolve_unknown_key_raises_error(self, resolver):
-        uri = "viking://resources/{calendar:nonexistent}/path"
+        uri = "wfs://resources/{calendar:nonexistent}/path"
 
         with pytest.raises(ValueError, match="Cannot resolve variables"):
             resolver.resolve(uri)
 
     def test_has_variables_true(self, resolver):
-        assert resolver.has_variables("viking://resources/{calendar:year}/docs") is True
+        assert resolver.has_variables("wfs://resources/{calendar:year}/docs") is True
         assert resolver.has_variables("{calendar:today}") is True
 
     def test_has_variables_false(self, resolver):
-        assert resolver.has_variables("viking://resources/docs") is False
+        assert resolver.has_variables("wfs://resources/docs") is False
         assert resolver.has_variables("") is False
         assert resolver.has_variables("no variables here") is False
 
     def test_extract_variables(self, resolver):
-        uri = "viking://resources/{calendar:year}/{calendar:month}/{calendar:day}"
+        uri = "wfs://resources/{calendar:year}/{calendar:month}/{calendar:day}"
         variables = resolver.extract_variables(uri)
 
         assert variables == {"calendar:year", "calendar:month", "calendar:day"}
 
     def test_extract_variables_none(self, resolver):
-        uri = "viking://resources/docs/api.md"
+        uri = "wfs://resources/docs/api.md"
         variables = resolver.extract_variables(uri)
 
         assert variables == set()
 
     def test_multiple_occurrences_same_variable(self, resolver, sample_datetime):
-        uri = "viking://resources/{calendar:year}/backup/{calendar:year}/data"
+        uri = "wfs://resources/{calendar:year}/backup/{calendar:year}/data"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/2026/backup/2026/data"
+        assert resolved == "wfs://resources/2026/backup/2026/data"
 
 
 class TestConvenienceFunctions:
@@ -288,16 +288,16 @@ class TestConvenienceFunctions:
         return datetime(2026, 5, 7, 14, 30, 0)
 
     def test_resolve_path_variables(self, sample_datetime):
-        uri = "viking://resources/emails/{calendar:today}/inbox"
+        uri = "wfs://resources/emails/{calendar:today}/inbox"
         resolved = resolve_path_variables(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/05/07/inbox"
+        assert resolved == "wfs://resources/emails/2026/05/07/inbox"
 
     def test_has_path_variables_true(self):
-        assert has_path_variables("viking://resources/{calendar:year}/docs") is True
+        assert has_path_variables("wfs://resources/{calendar:year}/docs") is True
 
     def test_has_path_variables_false(self):
-        assert has_path_variables("viking://resources/docs") is False
+        assert has_path_variables("wfs://resources/docs") is False
 
 
 class TestRealWorldExamples:
@@ -314,43 +314,43 @@ class TestRealWorldExamples:
         return PathVariableResolver()
 
     def test_email_organization(self, resolver, sample_datetime):
-        uri = "viking://resources/emails/{calendar:today}/inbox"
+        uri = "wfs://resources/emails/{calendar:today}/inbox"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/emails/2026/05/07/inbox"
+        assert resolved == "wfs://resources/emails/2026/05/07/inbox"
 
     def test_log_rotation(self, resolver, sample_datetime):
-        uri = "viking://resources/logs/{calendar:year}/{calendar:month}/{calendar:day}/app.log"
+        uri = "wfs://resources/logs/{calendar:year}/{calendar:month}/{calendar:day}/app.log"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/logs/2026/05/07/app.log"
+        assert resolved == "wfs://resources/logs/2026/05/07/app.log"
 
     def test_daily_backups(self, resolver, sample_datetime):
-        uri = "viking://resources/backups/{calendar:ym}/backup_{calendar:today}.zip"
+        uri = "wfs://resources/backups/{calendar:ym}/backup_{calendar:today}.zip"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/backups/2026/05/backup_2026/05/07.zip"
+        assert resolved == "wfs://resources/backups/2026/05/backup_2026/05/07.zip"
 
     def test_quarterly_reports(self, resolver, sample_datetime):
-        uri = "viking://resources/reports/{calendar:yq}/summary.pdf"
+        uri = "wfs://resources/reports/{calendar:yq}/summary.pdf"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/reports/2026/Q2/summary.pdf"
+        assert resolved == "wfs://resources/reports/2026/Q2/summary.pdf"
 
     def test_weekly_summaries(self, resolver, sample_datetime):
-        uri = "viking://resources/summaries/{calendar:yw}/week.pdf"
+        uri = "wfs://resources/summaries/{calendar:yw}/week.pdf"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/summaries/2026/w19/week.pdf"
+        assert resolved == "wfs://resources/summaries/2026/w19/week.pdf"
 
     def test_yesterday_logs(self, resolver, sample_datetime):
-        uri = "viking://resources/logs/{calendar:yesterday}/app.log"
+        uri = "wfs://resources/logs/{calendar:yesterday}/app.log"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/logs/2026/05/06/app.log"
+        assert resolved == "wfs://resources/logs/2026/05/06/app.log"
 
     def test_tomorrow_tasks(self, resolver, sample_datetime):
-        uri = "viking://resources/tasks/{calendar:tomorrow}/todo.md"
+        uri = "wfs://resources/tasks/{calendar:tomorrow}/todo.md"
         resolved = resolver.resolve(uri, dt=sample_datetime)
 
-        assert resolved == "viking://resources/tasks/2026/05/08/todo.md"
+        assert resolved == "wfs://resources/tasks/2026/05/08/todo.md"

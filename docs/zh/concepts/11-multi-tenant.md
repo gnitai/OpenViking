@@ -42,8 +42,8 @@ OpenViking 的多租户不是“为每个团队部署一套独立服务”，而
 `agent_id` 用于区分 agent 级空间。
 
 - Agent URI 形状由 account 级 namespace policy 决定
-- `isolate_agent_scope_by_user = false` 时使用 `viking://agent/{agent_id}/...`
-- `isolate_agent_scope_by_user = true` 时使用 `viking://agent/{agent_id}/user/{user_id}/...`
+- `isolate_agent_scope_by_user = false` 时使用 `wfs://agent/{agent_id}/...`
+- `isolate_agent_scope_by_user = true` 时使用 `wfs://agent/{agent_id}/user/{user_id}/...`
 
 ### 角色
 
@@ -89,12 +89,12 @@ OpenViking Server 支持两种多租户相关认证模式：
 
 ### 存储层
 
-对用户来说，URI 仍然是统一的 `viking://...`：
+对用户来说，URI 仍然是统一的 `wfs://...`：
 
 ```text
-viking://resources/project-a/
-viking://user/alice/memories/
-viking://agent/91f3ab12cd34/memories/
+wfs://resources/project-a/
+wfs://user/alice/memories/
+wfs://agent/91f3ab12cd34/memories/
 ```
 
 但底层存储会自动带上 account 前缀：
@@ -159,7 +159,7 @@ curl -X POST http://localhost:1933/api/v1/admin/accounts/acme/users \
 常规读写、搜索、会话提交等请求，优先用 user key：
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <bob-user-key>" \
   -H "X-OpenViking-Agent: coding-agent"
 ```
@@ -171,7 +171,7 @@ curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
 ROOT 访问 Admin API 不需要租户头，但访问 `ls`、`find`、`sessions` 这类租户级数据 API 时，必须显式指定目标租户：
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <root-key>" \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice" \

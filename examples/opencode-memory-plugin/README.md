@@ -121,14 +121,14 @@ Unified search across memories, resources, and skills.
 Parameters:
 
 - `query`: search query
-- `target_uri?`: narrow search to a URI prefix such as `viking://user/memories/`
+- `target_uri?`: narrow search to a URI prefix such as `wfs://user/memories/`
 - `mode?`: `auto | fast | deep`
 - `limit?`: max results
 - `score_threshold?`: optional minimum score
 
 ### `memread`
 
-Read content from a specific `viking://` URI.
+Read content from a specific `wfs://` URI.
 
 Parameters:
 
@@ -163,7 +163,7 @@ Search and then read:
 ```typescript
 const results = await memsearch({
   query: "user coding preferences",
-  target_uri: "viking://user/memories/",
+  target_uri: "wfs://user/memories/",
   mode: "auto"
 })
 
@@ -177,7 +177,7 @@ Browse first:
 
 ```typescript
 const tree = await membrowse({
-  uri: "viking://resources/",
+  uri: "wfs://resources/",
   view: "tree"
 })
 ```

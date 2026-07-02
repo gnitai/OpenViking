@@ -161,7 +161,7 @@ async def create_agent_namespace(service: OpenVikingService, account_id: str, ag
         user=UserIdentifier(account_id, "system", agent_id),
         role=Role.ROOT,
     )
-    await service.viking_fs.mkdir(f"viking://agent/{agent_id}", ctx=ctx, exist_ok=True)
+    await service.viking_fs.mkdir(f"wfs://agent/{agent_id}", ctx=ctx, exist_ok=True)
 
 
 # ---- Account CRUD ----
@@ -214,7 +214,7 @@ async def test_delete_account(admin_client: httpx.AsyncClient):
 
     # User key should now be invalid
     resp = await admin_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": user_key},
     )
     assert resp.status_code == 401
@@ -260,7 +260,7 @@ async def test_register_user(admin_client: httpx.AsyncClient):
     # Bob's key should work
     bob_key = body["result"]["user_key"]
     resp = await admin_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": bob_key},
     )
     assert resp.status_code == 200
@@ -466,9 +466,9 @@ async def test_list_agents(admin_client: httpx.AsyncClient, admin_service: OpenV
 
     assert resp.status_code == 200
     assert resp.json()["result"] == [
-        {"agent_id": "default", "uri": "viking://agent/default"},
-        {"agent_id": "research", "uri": "viking://agent/research"},
-        {"agent_id": "writer", "uri": "viking://agent/writer"},
+        {"agent_id": "default", "uri": "wfs://agent/default"},
+        {"agent_id": "research", "uri": "wfs://agent/research"},
+        {"agent_id": "writer", "uri": "wfs://agent/writer"},
     ]
 
 
@@ -487,7 +487,7 @@ async def test_list_agents_returns_default_for_new_account(
 
     assert resp.status_code == 200
     assert resp.json()["result"] == [
-        {"agent_id": "default", "uri": "viking://agent/default"},
+        {"agent_id": "default", "uri": "wfs://agent/default"},
     ]
 
 
@@ -512,8 +512,8 @@ async def test_admin_can_list_agents_in_own_account(
 
     assert resp.status_code == 200
     assert resp.json()["result"] == [
-        {"agent_id": "assistant", "uri": "viking://agent/assistant"},
-        {"agent_id": "default", "uri": "viking://agent/default"},
+        {"agent_id": "assistant", "uri": "wfs://agent/assistant"},
+        {"agent_id": "default", "uri": "wfs://agent/default"},
     ]
 
 
@@ -577,7 +577,7 @@ async def test_remove_user(admin_client: httpx.AsyncClient):
 
     # Bob's key should be invalid now
     resp = await admin_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": bob_key},
     )
     assert resp.status_code == 401
@@ -633,14 +633,14 @@ async def test_regenerate_key(admin_client: httpx.AsyncClient):
 
     # Old key invalid
     resp = await admin_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": old_key},
     )
     assert resp.status_code == 401
 
     # New key valid
     resp = await admin_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": new_key},
     )
     assert resp.status_code == 200

@@ -281,12 +281,12 @@ class TestMemoryOperationsIntegration:
         # Note: This would need field-level tolerance applied
         content = """{
             "reasonning": "Removed old memory",
-            "delete_uris": "viking://user/default/memories/old.md"
+            "delete_uris": "wfs://user/default/memories/old.md"
         }"""
         # First parse as raw dict
         data, error = parse_json_with_stability(content)
         assert error is None
-        assert data["delete_uris"] == "viking://user/default/memories/old.md"
+        assert data["delete_uris"] == "wfs://user/default/memories/old.md"
 
     def test_recoverable_invalid_list_item_logs_below_error(self):
         """Test recoverable invalid list items do not emit error-level logs."""

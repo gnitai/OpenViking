@@ -50,8 +50,8 @@ function formatDisplayUri(uri: string): { name: string; parent: string } {
   const name = fileNameFromUri(uri)
   const dir = parentUri(uri)
   const parent =
-    dir === 'viking://'
-      ? 'viking://'
+    dir === 'wfs://'
+      ? 'wfs://'
       : dir.replace(/\/$/, '').split('/').slice(-2).join('/')
   return { name, parent }
 }

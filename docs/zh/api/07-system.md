@@ -245,13 +245,13 @@ Content-Type: application/json
 curl -X POST http://localhost:1933/api/v1/system/consistency \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
-  -d '{"uri":"viking://resources/my-project"}'
+  -d '{"uri":"wfs://resources/my-project"}'
 ```
 
 **Python SDK**
 
 ```python
-report = client.check_consistency("viking://resources/my-project")
+report = client.check_consistency("wfs://resources/my-project")
 print(report["ok"])
 print(report["missing_records"])
 ```
@@ -259,7 +259,7 @@ print(report["missing_records"])
 **CLI**
 
 ```bash
-ov system consistency viking://resources/my-project
+ov system consistency wfs://resources/my-project
 ```
 
 **响应示例**
@@ -274,7 +274,7 @@ ov system consistency viking://resources/my-project
 	    "missing_records_truncated": false,
 	    "missing_records": [
       {
-        "uri": "viking://resources/my-project/README.md",
+        "uri": "wfs://resources/my-project/README.md",
         "path": "README.md",
         "level": 2,
         "key": "README.md#level=2"
@@ -368,7 +368,7 @@ ov system wait --timeout 60
 
 对已经存储在 OpenViking 中的现有内容，重新构建语义产物和/或向量索引。这是一个运维维护接口，适用于 embedding 模型更换、VLM 更换、向量库重刷、版本升级后修复历史索引等场景。
 
-这个接口面向已有的 `viking://...` 内容，不负责导入新文件。常规导入请使用 [Resources](02-resources.md)。
+这个接口面向已有的 `wfs://...` 内容，不负责导入新文件。常规导入请使用 [Resources](02-resources.md)。
 
 **认证**
 
@@ -388,19 +388,19 @@ HTTP 请求体不接受未知字段。`uri` 可以使用其他 content API 支�
 
 **支持的 URI 范围**
 
-- `viking://`
-- `viking://user`
-- `viking://user/<user_id>`
-- `viking://agent`
-- `viking://agent/<agent_id>`
-- `viking://resources`
-- `viking://resources/...`
-- `viking://user/<user_id>/memories/...`
-- `viking://agent/<agent_id>/memories/...`
-- `viking://agent/<agent_id>/skills`
-- `viking://agent/<agent_id>/skills/<skill_name>`
+- `wfs://`
+- `wfs://user`
+- `wfs://user/<user_id>`
+- `wfs://agent`
+- `wfs://agent/<agent_id>`
+- `wfs://resources`
+- `wfs://resources/...`
+- `wfs://user/<user_id>/memories/...`
+- `wfs://agent/<agent_id>/memories/...`
+- `wfs://agent/<agent_id>/skills`
+- `wfs://agent/<agent_id>/skills/<skill_name>`
 
-`reindex()` 不支持 `viking://session/...`。
+`reindex()` 不支持 `wfs://session/...`。
 
 **模式说明**
 
@@ -415,7 +415,7 @@ HTTP 请求体不接受未知字段。`uri` 可以使用其他 content API 支�
 
 ```python
 result = client.reindex(
-    uri="viking://resources",
+    uri="wfs://resources",
     mode="vectors_only",
     wait=True,
 )
@@ -424,7 +424,7 @@ print(result)
 
 ```python
 result = client.reindex(
-    uri="viking://agent/default/skills",
+    uri="wfs://agent/default/skills",
     mode="semantic_and_vectors",
     wait=False,
 )
@@ -445,7 +445,7 @@ curl -X POST http://localhost:1933/api/v1/content/reindex \
   -H "X-API-Key: your-key" \
   -H "X-OpenViking-Account: default" \
   -d '{
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "wait": true
   }'
@@ -454,11 +454,11 @@ curl -X POST http://localhost:1933/api/v1/content/reindex \
 **CLI**
 
 ```bash
-openviking reindex viking://resources --mode vectors_only
+openviking reindex wfs://resources --mode vectors_only
 ```
 
 ```bash
-openviking reindex viking://agent/default/skills --mode semantic_and_vectors --wait false
+openviking reindex wfs://agent/default/skills --mode semantic_and_vectors --wait false
 ```
 
 **同步响应（`wait=true`）**
@@ -467,7 +467,7 @@ openviking reindex viking://agent/default/skills --mode semantic_and_vectors --w
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "status": "completed",
     "object_type": "resource",
@@ -488,7 +488,7 @@ openviking reindex viking://agent/default/skills --mode semantic_and_vectors --w
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "object_type": "resource",
     "status": "accepted",
@@ -509,7 +509,7 @@ curl -X GET http://localhost:1933/api/v1/tasks/task_xxx \
 Reindex 后台任务的 `task_type` 为 `admin_reindex`，`resource_id` 等于请求中的 `uri`，也可以这样列出：
 
 ```text
-GET /api/v1/tasks?task_type=admin_reindex&resource_id=viking://resources
+GET /api/v1/tasks?task_type=admin_reindex&resource_id=wfs://resources
 ```
 
 任务记录保存在内存中，可能过期，也会在服务重启后丢失。
@@ -533,8 +533,8 @@ GET /api/v1/tasks?task_type=admin_reindex&resource_id=viking://resources
 **行为说明**
 
 - Reindex 是非破坏式的，采用重建/覆盖写入，不需要先 drop 向量集合。
-- 对 `viking://` 发起 reindex 时，会向下分发到支持的顶层命名空间，并显式排除 `session`。
-- 命名空间级 reindex，例如 `viking://user` 或 `viking://agent/default`，会继续传播到其支持的子内容类型。
+- 对 `wfs://` 发起 reindex 时，会向下分发到支持的顶层命名空间，并显式排除 `session`。
+- 命名空间级 reindex，例如 `wfs://user` 或 `wfs://agent/default`，会继续传播到其支持的子内容类型。
 - 如果只是 embedding 模型或向量索引需要刷新，应使用 `vectors_only`。
 - 如果语义产物本身也需要重建，再做重向量化，应使用 `semantic_and_vectors`。
 - 同一个 URI 和 owner 同时只能运行一个 reindex 任务。对同一目标的并发请求会返回 conflict。

@@ -320,9 +320,9 @@ const en = {
       remove: 'Remove',
     },
     targetUri: 'Target URI',
-    'targetUri.placeholder': 'viking://resources/',
+    'targetUri.placeholder': 'wfs://resources/',
     'targetUri.hint':
-      'Choose where to store this resource. Defaults to viking://resources/.',
+      'Choose where to store this resource. Defaults to wfs://resources/.',
     'targetUri.browse': 'Browse',
     advancedOptions: 'Advanced Options',
     upload: 'Upload File',
@@ -525,7 +525,7 @@ const en = {
       pathPlaceholder: '/',
       scope: 'Scope',
       customScope: 'Custom scope',
-      customScopePlaceholder: 'resources/project or viking://...',
+      customScopePlaceholder: 'resources/project or wfs://...',
       effectiveScope: 'Scope',
       allContexts: 'All contexts',
       scopes: {

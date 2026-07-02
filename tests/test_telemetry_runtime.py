@@ -512,7 +512,7 @@ async def test_semantic_processor_binds_registered_operation_telemetry(monkeypat
     try:
         await processor.on_dequeue(
             SemanticMsg(
-                uri="viking://resources/demo",
+                uri="wfs://resources/demo",
                 context_type="resource",
                 recursive=False,
                 telemetry_id=telemetry.telemetry_id,
@@ -561,7 +561,7 @@ async def test_semantic_processor_binds_metric_account_context(monkeypatch):
 
     await processor.on_dequeue(
         SemanticMsg(
-            uri="viking://resources/demo",
+            uri="wfs://resources/demo",
             context_type="resource",
             recursive=False,
             account_id="acct-semantic",
@@ -615,7 +615,7 @@ async def test_embedding_handler_binds_registered_operation_telemetry(monkeypatc
                 "telemetry_id": telemetry.telemetry_id,
                 "context_data": {
                     "id": "id-1",
-                    "uri": "viking://resources/sample",
+                    "uri": "wfs://resources/sample",
                     "account_id": "default",
                     "abstract": "sample",
                 },
@@ -655,7 +655,7 @@ async def test_resource_service_add_resource_reports_queue_summary(monkeypatch):
         async def process_resource(self, **kwargs):
             return {
                 "status": "success",
-                "root_uri": "viking://resources/demo",
+                "root_uri": "wfs://resources/demo",
             }
 
     class _DummyRequestWaitTracker:
@@ -700,7 +700,7 @@ async def test_resource_service_add_resource_reports_queue_summary(monkeypatch):
     with bind_telemetry(telemetry):
         result = await service.add_resource(path="/tmp/demo.md", ctx=ctx, wait=True)
 
-    assert result["root_uri"] == "viking://resources/demo"
+    assert result["root_uri"] == "wfs://resources/demo"
     telemetry_result = telemetry.finish()
     summary = telemetry_result.summary
     assert summary["queue"] == {

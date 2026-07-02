@@ -15,9 +15,9 @@ pytestmark = pytest.mark.cli_remote
 
 class TestFsLs:
     def test_ls_root(self):
-        r = ov(["ls", "viking://", "-o", "json"])
+        r = ov(["ls", "wfs://", "-o", "json"])
         if r["exit_code"] != 0:
-            r = ov(["ls", "viking://resources", "-o", "json"])
+            r = ov(["ls", "wfs://resources", "-o", "json"])
         assert r["exit_code"] == 0, (
             f"ov ls should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
         )
@@ -28,21 +28,21 @@ class TestFsLs:
         assert isinstance(data["result"], list), "'result' should be a list"
 
     def test_ls_resources(self):
-        r = ov(["ls", "viking://resources", "-o", "json"])
+        r = ov(["ls", "wfs://resources", "-o", "json"])
         assert r["exit_code"] == 0, (
-            f"ov ls viking://resources should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
+            f"ov ls wfs://resources should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
         )
         data = r["json"]
         assert data is not None and data.get("ok") is True, "Expected ok=true"
 
     def test_ls_simple(self):
-        r = ov(["ls", "viking://resources", "-s", "-o", "json"])
+        r = ov(["ls", "wfs://resources", "-s", "-o", "json"])
         assert r["exit_code"] == 0, (
             f"ov ls --simple should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
         )
 
     def test_ls_recursive(self):
-        r = ov(["ls", "viking://resources", "-r", "-o", "json", "-n", "5"])
+        r = ov(["ls", "wfs://resources", "-r", "-o", "json", "-n", "5"])
         assert r["exit_code"] == 0, (
             f"ov ls --recursive should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
         )
@@ -61,7 +61,7 @@ class TestFsTree:
 
 class TestFsStat:
     def test_stat_root(self):
-        r = ov(["stat", "viking://", "-o", "json"])
+        r = ov(["stat", "wfs://", "-o", "json"])
         assert r["exit_code"] == 0, (
             f"ov stat should exit 0, got {r['exit_code']}: {r['stderr'][:300]}"
         )

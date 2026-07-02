@@ -81,7 +81,7 @@ class TestSessionContextAssembly:
             r = api_client.create_session()
             session_id = r.json()["result"]["session_id"]
 
-            ctx_uri = f"viking://resources/ctx_used_{uuid.uuid4().hex[:6]}"
+            ctx_uri = f"wfs://resources/ctx_used_{uuid.uuid4().hex[:6]}"
             api_client.session_used(session_id, contexts=[ctx_uri])
 
             ctx = api_client.get_session_context(session_id, token_budget=128000)

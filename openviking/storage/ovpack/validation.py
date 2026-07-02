@@ -502,7 +502,7 @@ def validated_import_members(
         rel_path = get_viking_rel_path_from_zip(
             safe_zip_path.rstrip("/") if kind == "directory" else safe_zip_path
         )
-        if root_uri == "viking://" and rel_path == "":
+        if root_uri == "wfs://" and rel_path == "":
             members.append((info, safe_zip_path, kind, rel_path))
             continue
         target_uri = join_uri(root_uri, rel_path)

@@ -38,19 +38,19 @@ class TestLs:
 
         assert isinstance(entries, list)
         assert all(isinstance(e, str) for e in entries)
-        assert all(e.startswith("viking://") for e in entries)
+        assert all(e.startswith("wfs://") for e in entries)
 
     async def test_ls_recursive(self, client_with_resource):
         """Test recursive listing"""
         client, _ = client_with_resource
 
-        entries = await client.ls("viking://", recursive=True)
+        entries = await client.ls("wfs://", recursive=True)
 
         assert isinstance(entries, list)
 
     async def test_ls_root(self, client: AsyncOpenViking):
         """Test listing root directory"""
-        entries = await client.ls("viking://")
+        entries = await client.ls("wfs://")
 
         assert isinstance(entries, list)
 
@@ -73,7 +73,7 @@ class TestRead:
     async def test_read_nonexistent_file(self, client: AsyncOpenViking):
         """Test reading nonexistent file"""
         with pytest.raises(Exception):  # noqa: B017
-            await client.read("viking://nonexistent/file.txt")
+            await client.read("wfs://nonexistent/file.txt")
 
     async def test_write_with_wait_returns_queue_status(self):
         """Test local SDK write(wait=True) preserves queue_status and binds telemetry."""
@@ -96,13 +96,13 @@ class TestRead:
 
         result = await LocalClient.write(
             client,
-            uri="viking://resources/demo.md",
+            uri="wfs://resources/demo.md",
             content="Updated from client test",
             wait=True,
             telemetry=False,
         )
 
-        assert result["uri"] == "viking://resources/demo.md"
+        assert result["uri"] == "wfs://resources/demo.md"
         assert result["queue_status"] == queue_status
         assert seen["enabled"] is True
         assert str(seen["telemetry_id"]).startswith("tm_")
@@ -143,7 +143,7 @@ class TestTree:
         """Test getting directory tree"""
         client, _ = client_with_resource
 
-        tree = await client.tree("viking://")
+        tree = await client.tree("wfs://")
 
         assert isinstance(tree, (list, dict))
 
@@ -164,12 +164,12 @@ async def test_local_client_mkdir_forwards_description():
 
     await LocalClient.mkdir(
         client,
-        "viking://resources/demo-dir/",
+        "wfs://resources/demo-dir/",
         description="Demo directory",
     )
 
     client._service.fs.mkdir.assert_awaited_once_with(
-        "viking://resources/demo-dir/",
+        "wfs://resources/demo-dir/",
         ctx=client._ctx,
         description="Demo directory",
     )
@@ -181,10 +181,10 @@ async def test_sync_openviking_write_updates_existing_file(test_data_dir, sample
     client = OpenViking(path=str(test_data_dir))
 
     try:
-        client._async_client.write = AsyncMock(return_value={"uri": "viking://resources/demo.md"})
+        client._async_client.write = AsyncMock(return_value={"uri": "wfs://resources/demo.md"})
 
         write_result = client.write(
-            "viking://resources/demo.md",
+            "wfs://resources/demo.md",
             "updated content",
             mode="append",
             wait=True,
@@ -192,9 +192,9 @@ async def test_sync_openviking_write_updates_existing_file(test_data_dir, sample
             telemetry=False,
         )
 
-        assert write_result == {"uri": "viking://resources/demo.md"}
+        assert write_result == {"uri": "wfs://resources/demo.md"}
         client._async_client.write.assert_awaited_once_with(
-            uri="viking://resources/demo.md",
+            uri="wfs://resources/demo.md",
             content="updated content",
             mode="append",
             wait=True,

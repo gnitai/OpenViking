@@ -27,7 +27,7 @@ async def test_async_openviking_reindex_forwards_to_local_client(tmp_path):
             mock_reindex.return_value = {"status": "completed"}
 
             result = await client.reindex(
-                "viking://resources/demo",
+                "wfs://resources/demo",
                 mode="vectors_only",
                 wait=False,
             )
@@ -35,7 +35,7 @@ async def test_async_openviking_reindex_forwards_to_local_client(tmp_path):
     assert result == {"status": "completed"}
     mock_init.assert_awaited_once()
     mock_reindex.assert_awaited_once_with(
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         mode="vectors_only",
         wait=False,
     )
@@ -52,7 +52,7 @@ def test_sync_openviking_reindex_forwards_to_async_client():
             "openviking.sync_client.run_async", return_value={"status": "completed"}
         ) as mock_run:
             result = client.reindex(
-                "viking://resources/demo",
+                "wfs://resources/demo",
                 mode="semantic_and_vectors",
                 wait=True,
             )
@@ -68,7 +68,7 @@ async def test_local_client_reindex_forwards_to_service():
 
     result = await LocalClient.reindex(
         client,
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         mode="vectors_only",
         wait=False,
     )
@@ -158,7 +158,7 @@ async def test_async_http_client_reindex_posts_content_reindex():
         client, "_handle_response", return_value={"status": "completed"}
     ) as mock_handle:
         result = await client.reindex(
-            "viking://resources/demo",
+            "wfs://resources/demo",
             mode="vectors_only",
             wait=False,
         )
@@ -167,7 +167,7 @@ async def test_async_http_client_reindex_posts_content_reindex():
     fake_http.post.assert_awaited_once_with(
         "/api/v1/content/reindex",
         json={
-            "uri": "viking://resources/demo",
+            "uri": "wfs://resources/demo",
             "mode": "vectors_only",
             "wait": False,
         },
@@ -187,7 +187,7 @@ def test_sync_http_client_reindex_forwards_to_async_client():
             return_value={"status": "accepted"},
         ) as mock_run:
             result = client.reindex(
-                "viking://resources/demo",
+                "wfs://resources/demo",
                 mode="vectors_only",
                 wait=False,
             )

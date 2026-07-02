@@ -32,7 +32,7 @@ async def test_add_resource_success(
     assert "usage" not in body
     assert "telemetry" not in body
     assert "root_uri" in body["result"]
-    assert body["result"]["root_uri"].startswith("viking://")
+    assert body["result"]["root_uri"].startswith("wfs://")
 
 
 async def test_add_resource_with_wait(
@@ -105,7 +105,7 @@ async def test_add_resource_with_telemetry_includes_resource_breakdown(
         telemetry.set("resource.flags.watch_enabled", False)
         return {
             "status": "success",
-            "root_uri": "viking://resources/demo",
+            "root_uri": "wfs://resources/demo",
         }
 
     monkeypatch.setattr(service.resources, "add_resource", fake_add_resource)
@@ -290,7 +290,7 @@ async def test_add_resource_with_to(
         "/api/v1/resources",
         json={
             "temp_file_id": sample_markdown_file.name,
-            "to": "viking://resources/custom/sample",
+            "to": "wfs://resources/custom/sample",
             "reason": "test resource",
         },
     )
@@ -312,14 +312,14 @@ async def test_add_resource_with_resources_root_to_uses_child_uri(
         "/api/v1/resources",
         json={
             "temp_file_id": archive_path.name,
-            "to": "viking://resources",
+            "to": "wfs://resources",
             "reason": "test resource root import",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"] == "viking://resources/tt_b"
+    assert body["result"]["root_uri"] == "wfs://resources/tt_b"
 
 
 async def test_add_resource_with_resources_root_to_trailing_slash_uses_child_uri(
@@ -334,14 +334,14 @@ async def test_add_resource_with_resources_root_to_trailing_slash_uses_child_uri
         "/api/v1/resources",
         json={
             "temp_file_id": archive_path.name,
-            "to": "viking://resources/",
+            "to": "wfs://resources/",
             "reason": "test resource root import trailing slash",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"] == "viking://resources/tt_b"
+    assert body["result"]["root_uri"] == "wfs://resources/tt_b"
 
 
 async def test_add_resource_with_resources_root_to_keeps_single_file_directory(
@@ -356,14 +356,14 @@ async def test_add_resource_with_resources_root_to_keeps_single_file_directory(
         json={
             "temp_file_id": file_path.name,
             "source_name": "aa.txt",
-            "to": "viking://resources",
+            "to": "wfs://resources",
             "reason": "test resource root file import",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"] == "viking://resources/aa"
+    assert body["result"]["root_uri"] == "wfs://resources/aa"
 
 
 async def test_add_resource_with_resources_root_to_trailing_slash_keeps_single_file_directory(
@@ -378,14 +378,14 @@ async def test_add_resource_with_resources_root_to_trailing_slash_keeps_single_f
         json={
             "temp_file_id": file_path.name,
             "source_name": "aa.txt",
-            "to": "viking://resources/",
+            "to": "wfs://resources/",
             "reason": "test resource root file import trailing slash",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"] == "viking://resources/aa"
+    assert body["result"]["root_uri"] == "wfs://resources/aa"
 
 
 async def test_wait_processed_empty_queue(client: httpx.AsyncClient):
@@ -510,7 +510,7 @@ async def test_add_resource_accepts_temp_uploaded_file(
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"].startswith("viking://")
+    assert body["result"]["root_uri"].startswith("wfs://")
 
 
 async def test_shared_temp_upload_and_add_resource_deletes_upload_dir(
@@ -527,7 +527,7 @@ async def test_shared_temp_upload_and_add_resource_deletes_upload_dir(
     assert temp_file_id.startswith("shared_")
 
     upload_id = temp_file_id[len("shared_") :]
-    upload_root = f"viking://upload/{upload_id}"
+    upload_root = f"wfs://upload/{upload_id}"
     vfs = get_viking_fs()
     assert await vfs.exists(f"{upload_root}/meta.json")
     assert await vfs.exists(f"{upload_root}/content")
@@ -539,7 +539,7 @@ async def test_shared_temp_upload_and_add_resource_deletes_upload_dir(
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["root_uri"].startswith("viking://")
+    assert body["result"]["root_uri"].startswith("wfs://")
     assert not await vfs.exists(upload_root)
 
 
@@ -566,7 +566,7 @@ async def test_shared_temp_upload_failed_consume_is_retryable(
     assert resp.status_code == 500
 
     upload_id = temp_file_id[len("shared_") :]
-    meta_uri = f"viking://upload/{upload_id}/meta.json"
+    meta_uri = f"wfs://upload/{upload_id}/meta.json"
     meta_raw = await get_viking_fs().read_file(meta_uri)
     assert '"state": "uploaded"' in meta_raw
 
@@ -585,7 +585,7 @@ async def test_shared_upload_fs_read_is_denied_for_non_root(
 
     resp = await client.get(
         "/api/v1/fs/read",
-        params={"uri": f"viking://upload/{upload_id}/meta.json"},
+        params={"uri": f"wfs://upload/{upload_id}/meta.json"},
     )
     assert resp.status_code == 403
     body = resp.json()
@@ -791,7 +791,7 @@ async def test_monitor_marks_failed_on_queue_error(
     reset_task_tracker()
 
     async def _fake_process_resource(**kwargs):
-        return {"status": "success", "root_uri": "viking://resources/queue-err-test"}
+        return {"status": "success", "root_uri": "wfs://resources/queue-err-test"}
 
     monkeypatch.setattr(
         service.resources._resource_processor, "process_resource", _fake_process_resource

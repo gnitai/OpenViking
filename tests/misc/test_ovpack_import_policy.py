@@ -57,11 +57,11 @@ class FakeVikingFS:
 class FakeExportVikingFS:
     def __init__(self) -> None:
         self.binary_files = {
-            "viking://resources/demo/notes.txt": b"hello",
+            "wfs://resources/demo/notes.txt": b"hello",
         }
         self.text_files = {
-            "viking://resources/demo/.abstract.md": "root abstract",
-            "viking://resources/demo/.overview.md": "root overview",
+            "wfs://resources/demo/.abstract.md": "root abstract",
+            "wfs://resources/demo/.overview.md": "root overview",
         }
 
     async def tree(
@@ -72,20 +72,20 @@ class FakeExportVikingFS:
         level_limit=None,
         ctx=None,
     ):
-        assert uri == "viking://resources/demo"
+        assert uri == "wfs://resources/demo"
         assert show_all_hidden is True
         assert node_limit is None
         assert level_limit is None
         return [
             {
                 "rel_path": ".overview.md",
-                "uri": "viking://resources/demo/.overview.md",
+                "uri": "wfs://resources/demo/.overview.md",
                 "isDir": False,
                 "size": 13,
             },
             {
                 "rel_path": "notes.txt",
-                "uri": "viking://resources/demo/notes.txt",
+                "uri": "wfs://resources/demo/notes.txt",
                 "isDir": False,
                 "size": 5,
             },
@@ -107,7 +107,7 @@ class OverviewOnlyExportVikingFS(FakeExportVikingFS):
     def __init__(self) -> None:
         super().__init__()
         self.text_files = {
-            "viking://resources/demo/.overview.md": "root overview",
+            "wfs://resources/demo/.overview.md": "root overview",
         }
 
 
@@ -122,9 +122,9 @@ class ReservedPathExportVikingFS(FakeExportVikingFS):
         super().__init__()
         self.binary_files.update(
             {
-                "viking://resources/demo/.ovpack/foo.txt": b"hello",
-                "viking://resources/demo/.notes.txt": b"dot",
-                "viking://resources/demo/_._notes.txt": b"escaped-looking",
+                "wfs://resources/demo/.ovpack/foo.txt": b"hello",
+                "wfs://resources/demo/.notes.txt": b"dot",
+                "wfs://resources/demo/_._notes.txt": b"escaped-looking",
             }
         )
 
@@ -136,29 +136,29 @@ class ReservedPathExportVikingFS(FakeExportVikingFS):
         level_limit=None,
         ctx=None,
     ):
-        assert uri == "viking://resources/demo"
+        assert uri == "wfs://resources/demo"
         return [
             {
                 "rel_path": ".ovpack",
-                "uri": "viking://resources/demo/.ovpack",
+                "uri": "wfs://resources/demo/.ovpack",
                 "isDir": True,
                 "size": 0,
             },
             {
                 "rel_path": ".ovpack/foo.txt",
-                "uri": "viking://resources/demo/.ovpack/foo.txt",
+                "uri": "wfs://resources/demo/.ovpack/foo.txt",
                 "isDir": False,
                 "size": 5,
             },
             {
                 "rel_path": ".notes.txt",
-                "uri": "viking://resources/demo/.notes.txt",
+                "uri": "wfs://resources/demo/.notes.txt",
                 "isDir": False,
                 "size": 3,
             },
             {
                 "rel_path": "_._notes.txt",
-                "uri": "viking://resources/demo/_._notes.txt",
+                "uri": "wfs://resources/demo/_._notes.txt",
                 "isDir": False,
                 "size": 15,
             },
@@ -168,8 +168,8 @@ class ReservedPathExportVikingFS(FakeExportVikingFS):
 class FakeBackupVikingFS:
     def __init__(self) -> None:
         self.binary_files = {
-            "viking://resources/README.md": b"hello",
-            "viking://session/sess_1/.meta.json": b'{"session_id":"sess_1"}',
+            "wfs://resources/README.md": b"hello",
+            "wfs://session/sess_1/.meta.json": b'{"session_id":"sess_1"}',
         }
 
     async def tree(
@@ -183,26 +183,26 @@ class FakeBackupVikingFS:
         assert show_all_hidden is True
         assert node_limit is None
         assert level_limit is None
-        if uri == "viking://resources":
+        if uri == "wfs://resources":
             return [
                 {
                     "rel_path": "README.md",
-                    "uri": "viking://resources/README.md",
+                    "uri": "wfs://resources/README.md",
                     "isDir": False,
                     "size": 5,
                 }
             ]
-        if uri == "viking://session":
+        if uri == "wfs://session":
             return [
                 {
                     "rel_path": "sess_1",
-                    "uri": "viking://session/sess_1",
+                    "uri": "wfs://session/sess_1",
                     "isDir": True,
                     "size": 0,
                 },
                 {
                     "rel_path": "sess_1/.meta.json",
-                    "uri": "viking://session/sess_1/.meta.json",
+                    "uri": "wfs://session/sess_1/.meta.json",
                     "isDir": False,
                     "size": 23,
                 },
@@ -228,11 +228,11 @@ class MissingSidecarBackupVikingFS(FakeBackupVikingFS):
         level_limit=None,
         ctx=None,
     ):
-        if uri == "viking://agent":
+        if uri == "wfs://agent":
             return [
                 {
                     "rel_path": ".overview.md",
-                    "uri": "viking://agent/.overview.md",
+                    "uri": "wfs://agent/.overview.md",
                     "isDir": False,
                     "size": 0,
                 }
@@ -249,11 +249,11 @@ class MissingSidecarBackupVikingFS(FakeBackupVikingFS):
 class FakeRestoreVectorVikingFS(FakeVikingFS):
     async def tree(self, uri: str, node_limit=None, level_limit=None, ctx=None):
         self.tree_calls.append(uri)
-        if uri == "viking://resources":
+        if uri == "wfs://resources":
             return [
                 {
                     "rel_path": "README.md",
-                    "uri": "viking://resources/README.md",
+                    "uri": "wfs://resources/README.md",
                     "isDir": False,
                     "name": "README.md",
                 }
@@ -267,7 +267,7 @@ class FakeVectorStore:
 
     async def filter(self, **kwargs):
         uri = kwargs["filter"].value
-        if uri == "viking://resources/demo":
+        if uri == "wfs://resources/demo":
             return [
                 {
                     "uri": uri,
@@ -284,7 +284,7 @@ class FakeVectorStore:
                     "vector": [0.7, 0.8, 0.9],
                 },
             ]
-        if uri == "viking://resources/demo/notes.txt":
+        if uri == "wfs://resources/demo/notes.txt":
             return [
                 {
                     "uri": uri,
@@ -310,7 +310,7 @@ class IncompleteVectorStore(FakeVectorStore):
 class OverviewOnlyVectorStore(FakeVectorStore):
     async def filter(self, **kwargs):
         uri = kwargs["filter"].value
-        if uri == "viking://resources/demo":
+        if uri == "wfs://resources/demo":
             return [
                 {
                     "uri": uri,
@@ -320,7 +320,7 @@ class OverviewOnlyVectorStore(FakeVectorStore):
                     "vector": [0.7, 0.8, 0.9],
                 }
             ]
-        if uri == "viking://resources/demo/notes.txt":
+        if uri == "wfs://resources/demo/notes.txt":
             return await super().filter(**kwargs)
         return []
 
@@ -421,7 +421,7 @@ def _manifest_for_files(root_name: str, files: dict[str, str]) -> dict[str, obje
         "format_version": 2,
         "root": {
             "name": root_name,
-            "uri": f"viking://resources/{root_name}",
+            "uri": f"wfs://resources/{root_name}",
             "scope": "resources",
         },
         "entries": entries,
@@ -491,7 +491,7 @@ def _rewrite_ovpack_manifest(path: Path, root_name: str, mutate) -> None:
 def test_index_consistency_report_limits_public_and_error_records():
     missing = tuple(
         IndexExpectation(
-            uri=f"viking://resources/demo/file_{index}.md",
+            uri=f"wfs://resources/demo/file_{index}.md",
             rel_path=f"file_{index}.md",
             level=2,
         )
@@ -518,7 +518,7 @@ async def test_export_ovpack_writes_v2_manifest_with_semantic_sidecars(
 ):
     await export_ovpack(
         FakeExportVikingFS(),
-        "viking://resources/demo",
+        "wfs://resources/demo",
         str(temp_ovpack_path),
         ctx=request_ctx,
     )
@@ -560,7 +560,7 @@ async def test_export_ovpack_skips_missing_semantic_sidecars(
 ):
     await export_ovpack(
         MissingSidecarExportVikingFS(),
-        "viking://resources/demo",
+        "wfs://resources/demo",
         str(temp_ovpack_path),
         ctx=request_ctx,
     )
@@ -591,22 +591,22 @@ async def test_backup_restore_contract(temp_ovpack_path: Path, request_ctx: Requ
     assert "openviking-backup/files/session/sess_1/.meta.json" in names
     assert manifest["root"] == {
         "name": "openviking-backup",
-        "uri": "viking://",
+        "uri": "wfs://",
         "scope": "root",
         "package_type": "backup",
     }
     assert manifest["scopes"] == ["resources", "user", "agent", "session"]
 
     with pytest.raises(InvalidArgumentError, match=r"must be restored"):
-        await import_ovpack(FakeVikingFS(), str(temp_ovpack_path), "viking://", request_ctx)
+        await import_ovpack(FakeVikingFS(), str(temp_ovpack_path), "wfs://", request_ctx)
 
     fake_fs = FakeVikingFS()
-    assert await restore_ovpack(fake_fs, str(temp_ovpack_path), request_ctx) == "viking://"
+    assert await restore_ovpack(fake_fs, str(temp_ovpack_path), request_ctx) == "wfs://"
     assert fake_fs.written_files == [
-        "viking://resources/README.md",
-        "viking://session/sess_1/.meta.json",
+        "wfs://resources/README.md",
+        "wfs://session/sess_1/.meta.json",
     ]
-    assert fake_fs.tree_calls == ["viking://resources", "viking://user", "viking://agent"]
+    assert fake_fs.tree_calls == ["wfs://resources", "wfs://user", "wfs://agent"]
 
 
 @pytest.mark.asyncio
@@ -671,7 +671,7 @@ async def test_restore_ovpack_applies_backup_manifest_scalar_metadata(
     await restore_ovpack(FakeRestoreVectorVikingFS(), str(temp_ovpack_path), request_ctx)
 
     assert len(vectorized_files) == 1
-    assert vectorized_files[0]["file_path"] == "viking://resources/README.md"
+    assert vectorized_files[0]["file_path"] == "wfs://resources/README.md"
     assert vectorized_files[0]["summary_dict"] == {
         "name": "README.md",
         "summary": "portable summary",
@@ -689,7 +689,7 @@ async def test_export_include_vectors_rejects_missing_index_records(
     ) as exc_info:
         await export_ovpack(
             FakeExportVikingFS(),
-            "viking://resources/demo",
+            "wfs://resources/demo",
             str(temp_ovpack_path),
             ctx=request_ctx,
             vector_store=IncompleteVectorStore(),
@@ -708,7 +708,7 @@ async def test_export_include_vectors_allows_overview_without_abstract(
 ):
     await export_ovpack(
         OverviewOnlyExportVikingFS(),
-        "viking://resources/demo",
+        "wfs://resources/demo",
         str(temp_ovpack_path),
         ctx=request_ctx,
         vector_store=OverviewOnlyVectorStore(),
@@ -741,7 +741,7 @@ async def test_ovpack_roundtrips_dot_and_escaped_looking_user_paths(
 
     await export_ovpack(
         ReservedPathExportVikingFS(),
-        "viking://resources/demo",
+        "wfs://resources/demo",
         str(temp_ovpack_path),
         ctx=request_ctx,
     )
@@ -757,12 +757,12 @@ async def test_ovpack_roundtrips_dot_and_escaped_looking_user_paths(
     assert {".ovpack", ".ovpack/foo.txt", ".notes.txt", "_._notes.txt"} <= manifest_paths
 
     fake_fs = FakeVikingFS()
-    await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources/imported", request_ctx)
+    await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources/imported", request_ctx)
 
     assert fake_fs.written_files == [
-        "viking://resources/imported/demo/.ovpack/foo.txt",
-        "viking://resources/imported/demo/.notes.txt",
-        "viking://resources/imported/demo/_._notes.txt",
+        "wfs://resources/imported/demo/.ovpack/foo.txt",
+        "wfs://resources/imported/demo/.notes.txt",
+        "wfs://resources/imported/demo/_._notes.txt",
     ]
 
 
@@ -776,7 +776,7 @@ async def test_export_include_vectors_rejects_hybrid_index_snapshot(
     ) as exc_info:
         await export_ovpack(
             FakeExportVikingFS(),
-            "viking://resources/demo",
+            "wfs://resources/demo",
             str(temp_ovpack_path),
             ctx=request_ctx,
             vector_store=HybridIndexVectorStore(),
@@ -808,7 +808,7 @@ async def test_import_ovpack_restores_required_dense_vector_snapshot(
 
     await export_ovpack(
         FakeExportVikingFS(),
-        "viking://resources/demo",
+        "wfs://resources/demo",
         str(temp_ovpack_path),
         ctx=request_ctx,
         vector_store=FakeVectorStore(),
@@ -823,19 +823,19 @@ async def test_import_ovpack_restores_required_dense_vector_snapshot(
     result = await import_ovpack(
         fake_fs,
         str(temp_ovpack_path),
-        "viking://resources/imported",
+        "wfs://resources/imported",
         request_ctx,
         vector_mode="require",
         vector_store=vector_store,
     )
 
-    assert result == "viking://resources/imported/demo"
+    assert result == "wfs://resources/imported/demo"
     assert fake_fs.tree_calls == []
     assert len(vector_store.upserts) == 3
     note_record = next(
         record
         for record in vector_store.upserts
-        if record["uri"] == "viking://resources/imported/demo/notes.txt"
+        if record["uri"] == "wfs://resources/imported/demo/notes.txt"
     )
     assert note_record["vector"] == pytest.approx([0.1, 0.2, 0.3])
     assert note_record["tags"] == ["snapshot"]
@@ -858,7 +858,7 @@ async def test_import_legacy_ovpack_without_manifest_is_rejected(
     fake_fs = FakeVikingFS()
 
     with pytest.raises(InvalidArgumentError, match=r"Missing ovpack manifest"):
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
 
     assert fake_fs.written_files == []
 
@@ -877,7 +877,7 @@ async def test_import_ovpack_rejects_manifest_file_hash_mismatch(
     fake_fs = FakeVikingFS()
 
     with pytest.raises(InvalidArgumentError, match=r"sha256 does not match manifest"):
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
 
     assert fake_fs.written_files == []
 
@@ -892,7 +892,7 @@ async def test_import_ovpack_rejects_legacy_manifest_version(
     fake_fs = FakeVikingFS()
 
     with pytest.raises(InvalidArgumentError, match=r"Unsupported ovpack format_version 1"):
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
 
     assert fake_fs.written_files == []
 
@@ -917,7 +917,7 @@ async def test_import_ovpack_rejects_manifest_unexpected_directory(
     fake_fs = FakeVikingFS()
 
     with pytest.raises(InvalidArgumentError, match=r"entries do not match manifest") as exc_info:
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
 
     assert exc_info.value.details["unexpected_directories"] == ["empty"]
     assert fake_fs.written_files == []
@@ -934,7 +934,7 @@ async def test_import_ovpack_restores_session_without_vectorization(
     manifest = _manifest_for_files("victim", files)
     manifest["root"] = {
         "name": "victim",
-        "uri": "viking://session/victim",
+        "uri": "wfs://session/victim",
         "scope": "session",
     }
     _write_ovpack_with_manifest(
@@ -945,23 +945,23 @@ async def test_import_ovpack_restores_session_without_vectorization(
     )
     fake_fs = FakeVikingFS()
 
-    result = await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://session", request_ctx)
+    result = await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://session", request_ctx)
 
-    assert result == "viking://session/victim"
+    assert result == "wfs://session/victim"
     assert fake_fs.written_files == [
-        "viking://session/victim/.meta.json",
-        "viking://session/victim/messages.jsonl",
+        "wfs://session/victim/.meta.json",
+        "wfs://session/victim/messages.jsonl",
     ]
     assert fake_fs.tree_calls == []
 
     invalid_fs = FakeVikingFS()
     with pytest.raises(InvalidArgumentError, match=r"source scope does not match target scope"):
-        await import_ovpack(invalid_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+        await import_ovpack(invalid_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
     with pytest.raises(InvalidArgumentError, match=r"source path is incompatible"):
         await import_ovpack(
             invalid_fs,
             str(temp_ovpack_path),
-            "viking://session/victim",
+            "wfs://session/victim",
             request_ctx,
         )
     assert invalid_fs.written_files == []
@@ -976,7 +976,7 @@ async def test_import_ovpack_rejects_scope_mismatch(
     fake_fs = FakeVikingFS()
 
     with pytest.raises(InvalidArgumentError, match=r"source scope does not match target scope"):
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://session", request_ctx)
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://session", request_ctx)
 
     assert fake_fs.written_files == []
 
@@ -988,7 +988,7 @@ async def test_import_top_level_scope_package_requires_root_target(
     manifest = _manifest_for_files("resources", {"README.md": "hello"})
     manifest["root"] = {
         "name": "resources",
-        "uri": "viking://resources",
+        "uri": "wfs://resources",
         "scope": "resources",
     }
     _write_ovpack_with_manifest(
@@ -999,11 +999,11 @@ async def test_import_top_level_scope_package_requires_root_target(
     )
     fake_fs = FakeVikingFS()
 
-    with pytest.raises(InvalidArgumentError, match=r"must be imported to viking://"):
-        await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://resources", request_ctx)
+    with pytest.raises(InvalidArgumentError, match=r"must be imported to wfs://"):
+        await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://resources", request_ctx)
 
-    assert await import_ovpack(fake_fs, str(temp_ovpack_path), "viking://", request_ctx) == (
-        "viking://resources"
+    assert await import_ovpack(fake_fs, str(temp_ovpack_path), "wfs://", request_ctx) == (
+        "wfs://resources"
     )
 
     _write_ovpack_with_manifest(
@@ -1014,5 +1014,5 @@ async def test_import_top_level_scope_package_requires_root_target(
     )
     with pytest.raises(InvalidArgumentError, match=r"root name does not match zip root"):
         await import_ovpack(
-            FakeVikingFS(), str(temp_ovpack_path), "viking://resources", request_ctx
+            FakeVikingFS(), str(temp_ovpack_path), "wfs://resources", request_ctx
         )

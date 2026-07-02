@@ -113,7 +113,7 @@ def create_openviking_tools(
         return _format_retrieval_result(result)
 
     def viking_browse(
-        uri: str = "viking://",
+        uri: str = "wfs://",
         recursive: bool = False,
         pattern: str | None = None,
     ) -> str:
@@ -440,7 +440,7 @@ def _grep_session_history(
     query: str,
     max_matches: int,
 ) -> dict[str, Any]:
-    history_uri = f"viking://session/{session_id}/history"
+    history_uri = f"wfs://session/{session_id}/history"
     tokens = _archive_query_tokens(query)
     try:
         result = call_openviking(

@@ -56,13 +56,13 @@ HTTPS 配置、部署模板和完整授权流程详见 [OAuth 2.1 指南](../gui
 | 工具 | 说明 |
 |------|------|
 | `search` | 跨记忆、资源、技能的语义搜索 |
-| `read` | 读取一个或多个 `viking://` URI |
-| `list` | 列出 `viking://` 目录下的条目 |
+| `read` | 读取一个或多个 `wfs://` URI |
+| `list` | 列出 `wfs://` 目录下的条目 |
 | `store` | 存储消息到长期记忆 |
 | `add_resource` | 添加本地文件或 URL 作为资源 |
 | `grep` | 正则内容搜索 |
 | `glob` | 按 glob 模式查找文件 |
-| `forget` | 删除 `viking://` URI |
+| `forget` | 删除 `wfs://` URI |
 | `code_outline` | 展示文件的符号结构 |
 | `code_search` | 跨目录搜索符号名 |
 | `code_expand` | 返回单个符号的完整源码 |

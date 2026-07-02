@@ -3,8 +3,8 @@ import uuid
 
 class TestFsMvDeep:
     def test_mv_file_preserves_content(self, api_client):
-        src = f"viking://resources/mvdeep_src_{uuid.uuid4().hex[:8]}.md"
-        dst = f"viking://resources/mvdeep_dst_{uuid.uuid4().hex[:8]}.md"
+        src = f"wfs://resources/mvdeep_src_{uuid.uuid4().hex[:8]}.md"
+        dst = f"wfs://resources/mvdeep_dst_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(src, "Content preserved during mv", mode="create", wait=True)
             mv_resp = api_client.fs_mv(src, dst)
@@ -25,8 +25,8 @@ class TestFsMvDeep:
                 pass
 
     def test_mv_directory_with_children(self, api_client):
-        src_dir = f"viking://resources/mvdeep_dir_{uuid.uuid4().hex[:8]}"
-        dst_dir = f"viking://resources/mvdeep_dir_dst_{uuid.uuid4().hex[:8]}"
+        src_dir = f"wfs://resources/mvdeep_dir_{uuid.uuid4().hex[:8]}"
+        dst_dir = f"wfs://resources/mvdeep_dir_dst_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(src_dir)
             api_client.fs_write(
@@ -56,8 +56,8 @@ class TestFsMvDeep:
                 pass
 
     def test_mv_to_existing_directory(self, api_client):
-        src = f"viking://resources/mvdeep_exist_{uuid.uuid4().hex[:8]}.md"
-        dst_dir = f"viking://resources/mvdeep_target_dir_{uuid.uuid4().hex[:8]}"
+        src = f"wfs://resources/mvdeep_exist_{uuid.uuid4().hex[:8]}.md"
+        dst_dir = f"wfs://resources/mvdeep_target_dir_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_write(src, "File moved to existing dir", mode="create", wait=True)
             api_client.fs_mkdir(dst_dir)
@@ -77,15 +77,15 @@ class TestFsMvDeep:
 
     def test_mv_nonexistent_src_returns_error(self, api_client):
         mv_resp = api_client.fs_mv(
-            "viking://resources/nonexistent_mv_src_99999.md", "viking://resources/mv_dst.md"
+            "wfs://resources/nonexistent_mv_src_99999.md", "wfs://resources/mv_dst.md"
         )
         assert mv_resp.status_code == 404, (
             f"mv nonexistent src should return error, got {mv_resp.status_code}"
         )
 
     def test_mv_then_stat_new_location(self, api_client):
-        src = f"viking://resources/mvdeep_stat_{uuid.uuid4().hex[:8]}.md"
-        dst = f"viking://resources/mvdeep_stat_new_{uuid.uuid4().hex[:8]}.md"
+        src = f"wfs://resources/mvdeep_stat_{uuid.uuid4().hex[:8]}.md"
+        dst = f"wfs://resources/mvdeep_stat_new_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(src, "Stat after mv test", mode="create", wait=True)
             mv_resp = api_client.fs_mv(src, dst)
@@ -103,8 +103,8 @@ class TestFsMvDeep:
                 pass
 
     def test_mv_preserves_searchability(self, api_client):
-        src = f"viking://resources/mvdeep_search_{uuid.uuid4().hex[:8]}.md"
-        dst = f"viking://resources/mvdeep_search_new_{uuid.uuid4().hex[:8]}.md"
+        src = f"wfs://resources/mvdeep_search_{uuid.uuid4().hex[:8]}.md"
+        dst = f"wfs://resources/mvdeep_search_new_{uuid.uuid4().hex[:8]}.md"
         unique_kw = f"mvsearch_{uuid.uuid4().hex[:6]}"
         try:
             api_client.fs_write(
@@ -131,8 +131,8 @@ class TestFsMvDeep:
                 pass
 
     def test_mv_then_rm_new_location(self, api_client):
-        src = f"viking://resources/mvdeep_rm_{uuid.uuid4().hex[:8]}.md"
-        dst = f"viking://resources/mvdeep_rm_new_{uuid.uuid4().hex[:8]}.md"
+        src = f"wfs://resources/mvdeep_rm_{uuid.uuid4().hex[:8]}.md"
+        dst = f"wfs://resources/mvdeep_rm_new_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(src, "Content to be moved then deleted", mode="create", wait=True)
             mv_resp = api_client.fs_mv(src, dst)
@@ -154,8 +154,8 @@ class TestFsMvDeep:
                 pass
 
     def test_mv_then_write_to_new_location(self, api_client):
-        src = f"viking://resources/mvdeep_rw_{uuid.uuid4().hex[:8]}.md"
-        dst = f"viking://resources/mvdeep_rw_new_{uuid.uuid4().hex[:8]}.md"
+        src = f"wfs://resources/mvdeep_rw_{uuid.uuid4().hex[:8]}.md"
+        dst = f"wfs://resources/mvdeep_rw_new_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(src, "Original before mv", mode="create", wait=True)
             mv_resp = api_client.fs_mv(src, dst)

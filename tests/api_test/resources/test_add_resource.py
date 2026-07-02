@@ -48,8 +48,8 @@ class TestAddResource:
 
                 imported_uri = result.get("root_uri")
                 assert imported_uri is not None, "Imported URI should not be None"
-                assert imported_uri.startswith("viking://"), (
-                    f"URI should start with 'viking://', got {imported_uri}"
+                assert imported_uri.startswith("wfs://"), (
+                    f"URI should start with 'wfs://', got {imported_uri}"
                 )
 
                 print(f"✓ 文件成功导入，URI: {imported_uri}")

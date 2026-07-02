@@ -758,7 +758,7 @@ class AsyncHTTPClient(BaseClient):
         )
         return self._handle_response(response)
 
-    async def glob(self, pattern: str, uri: str = "viking://") -> Dict[str, Any]:
+    async def glob(self, pattern: str, uri: str = "wfs://") -> Dict[str, Any]:
         """File pattern matching."""
         uri = VikingURI.normalize(uri)
         response = await self._http.post(

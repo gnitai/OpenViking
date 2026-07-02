@@ -1127,7 +1127,7 @@ For memory-related settings, add a `memory` section in `ov.conf`:
 | `version` | Memory implementation version. Only `"v2"` is supported (legacy `"v1"` removed in #2264 — passing `"v1"` now raises a `ValueError` at config load). | `"v2"` |
 | `agent_scope_mode` | Deprecated and ignored. Kept only for backward compatibility with older `ov.conf` files. Agent/user namespace behavior is now controlled by per-account namespace policy. | `"user+agent"` |
 
-`agent_scope_mode` no longer changes namespace behavior. The server now uses account-level namespace policy to choose between `viking://agent/{agent_id}/...` and `viking://agent/{agent_id}/user/{user_id}/...`.
+`agent_scope_mode` no longer changes namespace behavior. The server now uses account-level namespace policy to choose between `wfs://agent/{agent_id}/...` and `wfs://agent/{agent_id}/user/{user_id}/...`.
 
 ### ovcli.conf
 
@@ -1170,7 +1170,7 @@ Local directory uploads respect `.gitignore` files (root and nested). `ignore_di
 CLI flags can override these identity fields per command:
 
 ```bash
-openviking --account acme --user alice --agent-id assistant-2 ls viking://
+openviking --account acme --user alice --agent-id assistant-2 ls wfs://
 ```
 
 For `add-resource`, upload filter flags are merged additively with `ovcli.conf` defaults:
@@ -1201,7 +1201,7 @@ When running OpenViking as an HTTP service, add a `server` section to `ov.conf`:
     "temp_upload": {
       "default_mode": "local",
       "shared_max_size_bytes": 536870912,
-      "shared_prefix": "viking://upload"
+      "shared_prefix": "wfs://upload"
     }
   }
 }
@@ -1219,7 +1219,7 @@ When running OpenViking as an HTTP service, add a `server` section to `ov.conf`:
 | `upload_signed_ttl_seconds` | int | TTL in seconds for one-shot tokens minted by the MCP `add_resource` tool for local-file uploads via the signed `POST /api/v1/resources/temp_upload_signed` endpoint. | `600` (10 minutes) |
 | `temp_upload.default_mode` | str | Server-side default for `POST /api/v1/resources/temp_upload` when the client does not send `upload_mode`: `"local"` (per-instance disk, current single-node behavior) or `"shared"` (distributed shared store usable across replicas). | `"local"` |
 | `temp_upload.shared_max_size_bytes` | int | Maximum size accepted in `shared` mode, in bytes. Requests above this size are rejected before object-store write. | `536870912` (512 MiB) |
-| `temp_upload.shared_prefix` | str | URI prefix used when allocating shared `temp_file_id` objects. | `"viking://upload"` |
+| `temp_upload.shared_prefix` | str | URI prefix used when allocating shared `temp_file_id` objects. | `"wfs://upload"` |
 
 `api_key` mode uses API keys and is the default. `trusted` mode trusts `X-OpenViking-Account` / `X-OpenViking-User` headers from a trusted gateway or internal caller.
 

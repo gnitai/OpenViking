@@ -11,7 +11,7 @@ The new plugin exposes everything through OpenCode tool hooks and talks to OpenV
 
 ## What It Does
 
-- Injects indexed `viking://resources/` repositories into the system prompt.
+- Injects indexed `wfs://resources/` repositories into the system prompt.
 - Exposes repository search, grep, glob, read, browse, add, remove, and queue status as tools.
 - Maps each OpenCode session to an OpenViking session.
 - Captures user and assistant text messages into OpenViking.
@@ -140,11 +140,11 @@ For advanced setups, `OPENVIKING_PLUGIN_CONFIG` can point to another config file
 
 Semantic search across memories, resources, and skills.
 
-Use for conceptual questions, repository internals, user preferences, and context-aware retrieval. Use `target_uri` to narrow scope, for example `viking://resources/fastapi/`.
+Use for conceptual questions, repository internals, user preferences, and context-aware retrieval. Use `target_uri` to narrow scope, for example `wfs://resources/fastapi/`.
 
 ### `memread`
 
-Read a specific `viking://` URI using `abstract`, `overview`, `read`, or `auto`.
+Read a specific `wfs://` URI using `abstract`, `overview`, `read`, or `auto`.
 
 Use after `memsearch`, `memgrep`, `memglob`, or `membrowse` returns a URI.
 
@@ -187,8 +187,8 @@ Local paths may be absolute, relative to the OpenCode project directory, or
 Examples:
 
 ```text
-memadd path="https://example.com/spec.md" to="viking://resources/spec"
-memadd path="./docs/notes.md" parent="viking://resources/"
+memadd path="https://example.com/spec.md" to="wfs://resources/spec"
+memadd path="./docs/notes.md" parent="wfs://resources/"
 memadd path="file:///home/alice/project/notes.md" reason="project notes"
 ```
 
@@ -196,7 +196,7 @@ After adding a resource, the tool also returns `GET /api/v1/observer/queue` stat
 
 ### `memremove`
 
-Remove a `viking://` URI through `DELETE /api/v1/fs`.
+Remove a `wfs://` URI through `DELETE /api/v1/fs`.
 
 This tool requires `confirm: true`. The user must explicitly confirm deletion before the agent calls it.
 

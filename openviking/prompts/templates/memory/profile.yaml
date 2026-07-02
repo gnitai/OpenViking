@@ -21,7 +21,7 @@ description: |
   - Merge similar items; keep latest if conflicting
 
 
-directory: "viking://user/{{ user_space }}/memories"
+directory: "wfs://user/{{ user_space }}/memories"
 filename_template: "profile.md"
 enabled: true
 fields:

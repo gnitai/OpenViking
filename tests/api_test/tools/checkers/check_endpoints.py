@@ -25,7 +25,7 @@ def check_endpoints():
 
     # Check fs_ls
     try:
-        response = client.fs_ls("viking://")
+        response = client.fs_ls("wfs://")
         print(f"\n2. /api/v1/fs/ls: {response.status_code}")
         if response.status_code == 200:
             print(f"   Response: {response.json()}")

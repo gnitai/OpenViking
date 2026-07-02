@@ -88,7 +88,7 @@ async def test_process_time_header(client: httpx.AsyncClient):
 
 async def test_openviking_error_handler(client: httpx.AsyncClient):
     """Requesting a non-existent resource should return structured error."""
-    resp = await client.get("/api/v1/fs/stat", params={"uri": "viking://nonexistent/path"})
+    resp = await client.get("/api/v1/fs/stat", params={"uri": "wfs://nonexistent/path"})
     assert resp.status_code == 404
     body = resp.json()
     assert body["status"] == "error"

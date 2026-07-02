@@ -119,7 +119,7 @@ class _FakeVikingFS:
         self.agfs.write(self._uri_to_path(target_uri, ctx=ctx), b"content")
 
     def _uri_to_path(self, uri, ctx=None):
-        return f"/mock/{uri.replace('viking://', '')}"
+        return f"/mock/{uri.replace('wfs://', '')}"
 
 
 @pytest.mark.asyncio
@@ -144,7 +144,7 @@ async def test_resource_processor_first_add_summarizes_from_committed_uri(monkey
     rp._get_media_processor = MagicMock()
     rp._get_media_processor.return_value.process = AsyncMock(
         return_value=SimpleNamespace(
-            temp_dir_path="viking://temp/tmpdir",
+            temp_dir_path="wfs://temp/tmpdir",
             source_path="x",
             source_format="text",
             meta={},
@@ -153,7 +153,7 @@ async def test_resource_processor_first_add_summarizes_from_committed_uri(monkey
     )
     rp.tree_builder.finalize_from_temp = AsyncMock(
         return_value=SimpleNamespace(
-            root=SimpleNamespace(uri="viking://resources/root", temp_uri="viking://temp/root_tmp")
+            root=SimpleNamespace(uri="wfs://resources/root", temp_uri="wfs://temp/root_tmp")
         )
     )
     rp._summarizer = SimpleNamespace(
@@ -167,10 +167,10 @@ async def test_resource_processor_first_add_summarizes_from_committed_uri(monkey
     result = await rp.process_resource(path="x", ctx=object(), build_index=True)
 
     assert result["status"] == "success"
-    assert result["root_uri"] == "viking://resources/root"
-    assert fake_fs.persist_calls == [("viking://temp/root_tmp", "viking://resources/root")]
-    assert fake_fs.delete_temp_calls == ["viking://temp/tmpdir"]
-    assert summarize_calls[0]["temp_uris"] == ["viking://resources/root"]
+    assert result["root_uri"] == "wfs://resources/root"
+    assert fake_fs.persist_calls == [("wfs://temp/root_tmp", "wfs://resources/root")]
+    assert fake_fs.delete_temp_calls == ["wfs://temp/tmpdir"]
+    assert summarize_calls[0]["temp_uris"] == ["wfs://resources/root"]
     assert summarize_calls[0]["target_preexisting"] is False
 
 
@@ -196,7 +196,7 @@ async def test_resource_processor_second_add_preserves_temp_uri_for_incremental(
     rp._get_media_processor = MagicMock()
     rp._get_media_processor.return_value.process = AsyncMock(
         return_value=SimpleNamespace(
-            temp_dir_path="viking://temp/tmpdir",
+            temp_dir_path="wfs://temp/tmpdir",
             source_path="x",
             source_format="text",
             meta={},
@@ -205,7 +205,7 @@ async def test_resource_processor_second_add_preserves_temp_uri_for_incremental(
     )
 
     context_tree = SimpleNamespace(
-        root=SimpleNamespace(uri="viking://resources/root", temp_uri="viking://temp/root_tmp")
+        root=SimpleNamespace(uri="wfs://resources/root", temp_uri="wfs://temp/root_tmp")
     )
     rp.tree_builder.finalize_from_temp = AsyncMock(return_value=context_tree)
     rp._summarizer = SimpleNamespace(
@@ -219,8 +219,8 @@ async def test_resource_processor_second_add_preserves_temp_uri_for_incremental(
     result = await rp.process_resource(path="x", ctx=object(), build_index=True)
 
     assert result["status"] == "success"
-    assert result["root_uri"] == "viking://resources/root"
-    assert summarize_calls[0]["temp_uris"] == ["viking://temp/root_tmp"]
+    assert result["root_uri"] == "wfs://resources/root"
+    assert summarize_calls[0]["temp_uris"] == ["wfs://temp/root_tmp"]
     assert summarize_calls[0]["target_preexisting"] is True
     assert fake_fs.persist_calls == []
 
@@ -229,7 +229,7 @@ async def test_resource_processor_second_add_preserves_temp_uri_for_incremental(
 async def test_resource_processor_auto_candidate_skips_existing_and_busy(monkeypatch):
     from openviking.utils.resource_processor import ResourceProcessor
 
-    fake_fs = _FakeVikingFS(existing_uris={"viking://resources/root"})
+    fake_fs = _FakeVikingFS(existing_uris={"wfs://resources/root"})
     fake_lock_manager = _FakeLockManager(busy_tree_paths={"/mock/resources/root_1"})
     summarize_calls = []
 
@@ -247,7 +247,7 @@ async def test_resource_processor_auto_candidate_skips_existing_and_busy(monkeyp
     rp._get_media_processor = MagicMock()
     rp._get_media_processor.return_value.process = AsyncMock(
         return_value=SimpleNamespace(
-            temp_dir_path="viking://temp/tmpdir",
+            temp_dir_path="wfs://temp/tmpdir",
             source_path="x",
             source_format="text",
             meta={},
@@ -256,8 +256,8 @@ async def test_resource_processor_auto_candidate_skips_existing_and_busy(monkeyp
     )
 
     context_tree = SimpleNamespace(
-        root=SimpleNamespace(uri="viking://resources/root", temp_uri="viking://temp/root_tmp"),
-        _candidate_uri="viking://resources/root",
+        root=SimpleNamespace(uri="wfs://resources/root", temp_uri="wfs://temp/root_tmp"),
+        _candidate_uri="wfs://resources/root",
     )
     rp.tree_builder.finalize_from_temp = AsyncMock(return_value=context_tree)
     rp._summarizer = SimpleNamespace(
@@ -271,11 +271,11 @@ async def test_resource_processor_auto_candidate_skips_existing_and_busy(monkeyp
     result = await rp.process_resource(path="x", ctx=object(), build_index=True)
 
     assert result["status"] == "success"
-    assert result["root_uri"] == "viking://resources/root_2"
+    assert result["root_uri"] == "wfs://resources/root_2"
     assert fake_fs.exists_calls == [
-        "viking://resources/root",
-        "viking://resources/root_1",
-        "viking://resources/root_2",
+        "wfs://resources/root",
+        "wfs://resources/root_1",
+        "wfs://resources/root_2",
     ]
     assert fake_lock_manager.tree_attempts == [
         ("/mock/resources/root_1", 0.0),
@@ -283,6 +283,6 @@ async def test_resource_processor_auto_candidate_skips_existing_and_busy(monkeyp
     ]
     assert fake_lock_manager.acquired_exact_paths == []
     assert fake_lock_manager.acquired_tree_paths == ["/mock/resources/root_2"]
-    assert summarize_calls[0]["temp_uris"] == ["viking://resources/root_2"]
+    assert summarize_calls[0]["temp_uris"] == ["wfs://resources/root_2"]
     assert summarize_calls[0]["target_preexisting"] is False
-    assert fake_fs.persist_calls == [("viking://temp/root_tmp", "viking://resources/root_2")]
+    assert fake_fs.persist_calls == [("wfs://temp/root_tmp", "wfs://resources/root_2")]

@@ -290,8 +290,8 @@ class TestAgentMemoryE2E:
 
         policy = local_test_env["policy"]
         agent_space = to_agent_space(policy, "alice", "travelbot")
-        trajectories_dir = f"viking://agent/{agent_space}/memories/trajectories"
-        experiences_dir = f"viking://agent/{agent_space}/memories/experiences"
+        trajectories_dir = f"wfs://agent/{agent_space}/memories/trajectories"
+        experiences_dir = f"wfs://agent/{agent_space}/memories/experiences"
 
         client = None
         try:

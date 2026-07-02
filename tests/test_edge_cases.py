@@ -232,7 +232,7 @@ class TestDuplicateFilenameHandling:
 
         # Upload the same file 10 times
         for _ in range(10):
-            await upload_text_files([str(test_file)], "viking://test/", mock_fs)
+            await upload_text_files([str(test_file)], "wfs://test/", mock_fs)
 
         # Should handle duplicates without crashing
         assert mock_fs.write_file_bytes.call_count == 10
@@ -278,7 +278,7 @@ class TestConcurrentOperations:
         # Create 20 concurrent write tasks
         async def write_task(i):
             content = f"Content for file {i}"
-            uri = f"viking://concurrent/file_{i}.txt"
+            uri = f"wfs://concurrent/file_{i}.txt"
             await mock_fs.write_file_bytes(uri, content.encode("utf-8"))
 
         tasks = [write_task(i) for i in range(20)]
@@ -423,11 +423,11 @@ class TestSecurityEdgeCases:
     def test_malformed_uri_handling(self):
         """Test handling of malformed URIs."""
         malformed_uris = [
-            "viking://",  # Empty path
-            "viking:///",  # Multiple slashes
-            "viking://\x00null",  # Null byte in URI
-            "viking://path with spaces",  # Unescaped spaces
-            "viking://../../../etc/passwd",  # Path traversal
+            "wfs://",  # Empty path
+            "wfs:///",  # Multiple slashes
+            "wfs://\x00null",  # Null byte in URI
+            "wfs://path with spaces",  # Unescaped spaces
+            "wfs://../../../etc/passwd",  # Path traversal
         ]
 
         for uri in malformed_uris:
@@ -503,7 +503,7 @@ class TestBoundaryConditions:
 
         # Should handle circular links without infinite recursion
         try:
-            result = await upload_directory(tmp_path, "viking://test/", MockFS())
+            result = await upload_directory(tmp_path, "wfs://test/", MockFS())
             # Should complete without hanging
             assert result is None or result is not None
         except Exception as e:

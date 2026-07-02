@@ -98,7 +98,7 @@ class PackService:
 
         Args:
             file_path: Local .ovpack file path
-            parent: Target parent URI (e.g., viking://user/alice/resources/references/)
+            parent: Target parent URI (e.g., wfs://user/alice/resources/references/)
             on_conflict: One of "fail", "overwrite", or "skip"
 
         Returns:

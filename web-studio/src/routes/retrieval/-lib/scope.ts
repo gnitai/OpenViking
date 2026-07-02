@@ -5,11 +5,11 @@ import type { RetrievalScope } from '../-types/retrieval'
 
 export function normalizeScopeInput(value: string): string | undefined {
   const trimmed = value.trim()
-  if (!trimmed || trimmed === '/' || trimmed === 'viking://') {
+  if (!trimmed || trimmed === '/' || trimmed === 'wfs://') {
     return undefined
   }
 
-  if (trimmed.startsWith('viking://')) {
+  if (trimmed.startsWith('wfs://')) {
     return normalizeDirUri(trimmed)
   }
 
@@ -20,7 +20,7 @@ export function normalizeScopeInput(value: string): string | undefined {
 
   const [scope] = path.split('/')
   const scopedPath = KNOWN_VIKING_SCOPES.has(scope) ? path : `resources/${path}`
-  return normalizeDirUri(`viking://${scopedPath}`)
+  return normalizeDirUri(`wfs://${scopedPath}`)
 }
 
 export function resolveScopeTargetUri(
@@ -32,7 +32,7 @@ export function resolveScopeTargetUri(
   }
 
   if (scope === 'resources') {
-    return 'viking://resources/'
+    return 'wfs://resources/'
   }
 
   return normalizeScopeInput(customPathInput)

@@ -12,10 +12,10 @@ from openviking_cli.exceptions import InvalidURIError
 @pytest.mark.parametrize(
     "uri",
     [
-        "viking://resources/docs",
+        "wfs://resources/docs",
         "resources/docs",
         "/resources/docs",
-        "viking://",
+        "wfs://",
     ],
 )
 def test_validate_viking_uri_accepts_supported_forms(uri: str):
@@ -27,12 +27,13 @@ def test_validate_viking_uri_accepts_supported_forms(uri: str):
     [
         "",
         "   ",
-        "viking:/resources/docs",
+        "wfs:/resources/docs",
+        "viking://resources/docs",
         "s3://bucket/key",
         "https://example.com/doc.md",
-        "viking://unsupported/doc.md",
-        "viking://temp/generated",
-        "viking://queue/tasks",
+        "wfs://unsupported/doc.md",
+        "wfs://temp/generated",
+        "wfs://queue/tasks",
     ],
 )
 def test_validate_viking_uri_rejects_invalid_or_unsupported_forms(uri: str):
@@ -52,10 +53,10 @@ def test_validate_viking_uri_hides_internal_scopes_in_public_error():
 
 
 def test_validate_viking_uri_supports_internal_and_operation_scopes():
-    assert validate_viking_uri("viking://temp/generated", allow_internal=True)
+    assert validate_viking_uri("wfs://temp/generated", allow_internal=True)
 
     with pytest.raises(InvalidURIError) as exc_info:
-        validate_viking_uri("viking://user/memories", allowed_scopes={"resources"})
+        validate_viking_uri("wfs://user/memories", allowed_scopes={"resources"})
 
     message = str(exc_info.value)
     assert "resources" in message

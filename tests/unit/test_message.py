@@ -70,12 +70,12 @@ class TestContextPart:
     def test_custom_values(self):
         """Test custom values."""
         part = ContextPart(
-            uri="viking://resources/docs/test.md",
+            uri="wfs://resources/docs/test.md",
             context_type="resource",
             abstract="This is a test document",
         )
 
-        assert part.uri == "viking://resources/docs/test.md"
+        assert part.uri == "wfs://resources/docs/test.md"
         assert part.context_type == "resource"
         assert part.abstract == "This is a test document"
         assert part.type == "context"
@@ -83,7 +83,7 @@ class TestContextPart:
     def test_memory_context_type(self):
         """Test memory context type."""
         part = ContextPart(
-            uri="viking://memories/profile/test.md",
+            uri="wfs://memories/profile/test.md",
             context_type="memory",
         )
 
@@ -92,7 +92,7 @@ class TestContextPart:
     def test_skill_context_type(self):
         """Test skill context type."""
         part = ContextPart(
-            uri="viking://skills/my-skill/",
+            uri="wfs://skills/my-skill/",
             context_type="skill",
         )
 
@@ -101,7 +101,7 @@ class TestContextPart:
     def test_resource_context_type(self):
         """Test resource context type."""
         part = ContextPart(
-            uri="viking://resources/docs/readme.md",
+            uri="wfs://resources/docs/readme.md",
             context_type="resource",
         )
 
@@ -135,15 +135,15 @@ class TestToolPart:
         part = ToolPart(
             tool_id="call-123",
             tool_name="search",
-            tool_uri="viking://session/test/tools/call-123",
-            skill_uri="viking://agent/test/skills/search",
+            tool_uri="wfs://session/test/tools/call-123",
+            skill_uri="wfs://agent/test/skills/search",
             tool_input={"query": "test"},
             tool_output="Result",
             tool_status="completed",
             duration_ms=150.5,
             prompt_tokens=100,
             completion_tokens=50,
-            tool_output_ref="viking://session/s1/tool-results/tr_call",
+            tool_output_ref="wfs://session/s1/tool-results/tr_call",
             tool_output_truncated=True,
             tool_output_original_chars=1000,
             tool_output_preview_chars=100,
@@ -154,15 +154,15 @@ class TestToolPart:
 
         assert part.tool_id == "call-123"
         assert part.tool_name == "search"
-        assert part.tool_uri == "viking://session/test/tools/call-123"
-        assert part.skill_uri == "viking://agent/test/skills/search"
+        assert part.tool_uri == "wfs://session/test/tools/call-123"
+        assert part.skill_uri == "wfs://agent/test/skills/search"
         assert part.tool_input == {"query": "test"}
         assert part.tool_output == "Result"
         assert part.tool_status == "completed"
         assert part.duration_ms == 150.5
         assert part.prompt_tokens == 100
         assert part.completion_tokens == 50
-        assert part.tool_output_ref == "viking://session/s1/tool-results/tr_call"
+        assert part.tool_output_ref == "wfs://session/s1/tool-results/tr_call"
         assert part.tool_output_truncated is True
         assert part.tool_output_original_chars == 1000
         assert part.tool_output_preview_chars == 100
@@ -213,7 +213,7 @@ class TestPartFromDict:
         """Test creating ContextPart from dict."""
         data = {
             "type": "context",
-            "uri": "viking://test/",
+            "uri": "wfs://test/",
             "context_type": "resource",
             "abstract": "Test abstract",
         }
@@ -221,7 +221,7 @@ class TestPartFromDict:
         part = part_from_dict(data)
 
         assert isinstance(part, ContextPart)
-        assert part.uri == "viking://test/"
+        assert part.uri == "wfs://test/"
         assert part.context_type == "resource"
         assert part.abstract == "Test abstract"
 
@@ -231,15 +231,15 @@ class TestPartFromDict:
             "type": "tool",
             "tool_id": "call-123",
             "tool_name": "search",
-            "tool_uri": "viking://session/test/tools/call-123",
-            "skill_uri": "viking://agent/test/skills/search",
+            "tool_uri": "wfs://session/test/tools/call-123",
+            "skill_uri": "wfs://agent/test/skills/search",
             "tool_input": {"query": "test"},
             "tool_output": "Result",
             "tool_status": "completed",
             "duration_ms": 150.0,
             "prompt_tokens": 100,
             "completion_tokens": 50,
-            "tool_output_ref": "viking://session/s1/tool-results/tr_call",
+            "tool_output_ref": "wfs://session/s1/tool-results/tr_call",
             "tool_output_truncated": True,
             "tool_output_original_chars": 1000,
             "tool_output_preview_chars": 100,
@@ -252,7 +252,7 @@ class TestPartFromDict:
         assert part.tool_id == "call-123"
         assert part.tool_name == "search"
         assert part.tool_status == "completed"
-        assert part.tool_output_ref == "viking://session/s1/tool-results/tr_call"
+        assert part.tool_output_ref == "wfs://session/s1/tool-results/tr_call"
         assert part.tool_output_truncated is True
         assert part.tool_output_original_chars == 1000
         assert part.tool_output_preview_chars == 100
@@ -343,7 +343,7 @@ class TestMessageInit:
             role="assistant",
             parts=[
                 TextPart(text="Here's what I found:"),
-                ContextPart(uri="viking://resources/docs/test.md"),
+                ContextPart(uri="wfs://resources/docs/test.md"),
                 ToolPart(tool_id="call-1", tool_name="search"),
             ],
         )
@@ -369,7 +369,7 @@ class TestMessageContent:
         msg = Message(
             id="msg-1",
             role="assistant",
-            parts=[ContextPart(uri="viking://test/")],
+            parts=[ContextPart(uri="wfs://test/")],
         )
 
         assert msg.content == ""
@@ -380,7 +380,7 @@ class TestMessageContent:
             id="msg-1",
             role="assistant",
             parts=[
-                ContextPart(uri="viking://test/"),
+                ContextPart(uri="wfs://test/"),
                 TextPart(text="Hello"),
                 ToolPart(tool_id="call-1"),
             ],
@@ -429,7 +429,7 @@ class TestMessageToDict:
             role="assistant",
             parts=[
                 TextPart(text="Hello"),
-                ContextPart(uri="viking://test/", context_type="memory"),
+                ContextPart(uri="wfs://test/", context_type="memory"),
             ],
         )
 
@@ -448,12 +448,12 @@ class TestMessageToDict:
                 ToolPart(
                     tool_id="call-1",
                     tool_name="search",
-                    tool_uri="viking://tools/1",
+                    tool_uri="wfs://tools/1",
                     tool_status="completed",
                     duration_ms=100,
                     prompt_tokens=50,
                     completion_tokens=25,
-                    tool_output_ref="viking://session/s1/tool-results/tr_call",
+                    tool_output_ref="wfs://session/s1/tool-results/tr_call",
                     tool_output_truncated=True,
                     tool_output_original_chars=1000,
                     tool_output_preview_chars=100,
@@ -467,7 +467,7 @@ class TestMessageToDict:
         assert d["parts"][0]["type"] == "tool"
         assert d["parts"][0]["tool_id"] == "call-1"
         assert d["parts"][0]["duration_ms"] == 100
-        assert d["parts"][0]["tool_output_ref"] == "viking://session/s1/tool-results/tr_call"
+        assert d["parts"][0]["tool_output_ref"] == "wfs://session/s1/tool-results/tr_call"
         assert d["parts"][0]["tool_output_truncated"] is True
         assert d["parts"][0]["tool_output_original_chars"] == 1000
         assert d["parts"][0]["tool_output_preview_chars"] == 100
@@ -516,7 +516,7 @@ class TestMessageFromDict:
             "parts": [
                 {
                     "type": "context",
-                    "uri": "viking://test/",
+                    "uri": "wfs://test/",
                     "context_type": "memory",
                     "abstract": "Test",
                 }
@@ -527,7 +527,7 @@ class TestMessageFromDict:
         msg = Message.from_dict(d)
 
         assert isinstance(msg.parts[0], ContextPart)
-        assert msg.parts[0].uri == "viking://test/"
+        assert msg.parts[0].uri == "wfs://test/"
 
     def test_from_dict_with_tool_part(self):
         """Test from_dict with ToolPart."""
@@ -539,9 +539,9 @@ class TestMessageFromDict:
                     "type": "tool",
                     "tool_id": "call-1",
                     "tool_name": "search",
-                    "tool_uri": "viking://tools/1",
+                    "tool_uri": "wfs://tools/1",
                     "tool_status": "completed",
-                    "tool_output_ref": "viking://session/s1/tool-results/tr_call",
+                    "tool_output_ref": "wfs://session/s1/tool-results/tr_call",
                     "tool_output_truncated": True,
                     "tool_output_original_chars": 1000,
                     "tool_output_preview_chars": 100,
@@ -555,7 +555,7 @@ class TestMessageFromDict:
 
         assert isinstance(msg.parts[0], ToolPart)
         assert msg.parts[0].tool_id == "call-1"
-        assert msg.parts[0].tool_output_ref == "viking://session/s1/tool-results/tr_call"
+        assert msg.parts[0].tool_output_ref == "wfs://session/s1/tool-results/tr_call"
         assert msg.parts[0].tool_output_truncated is True
         assert msg.parts[0].tool_output_original_chars == 1000
         assert msg.parts[0].tool_output_preview_chars == 100
@@ -586,7 +586,7 @@ class TestMessageFromDict:
             role="assistant",
             parts=[
                 TextPart(text="Hello"),
-                ContextPart(uri="viking://test/", context_type="memory"),
+                ContextPart(uri="wfs://test/", context_type="memory"),
             ],
         )
 
@@ -654,8 +654,8 @@ class TestMessageFactoryMethods:
         msg = Message.create_assistant(
             content="Here's what I found:",
             context_refs=[
-                {"uri": "viking://test/1.md", "context_type": "memory"},
-                {"uri": "viking://test/2.md", "context_type": "resource"},
+                {"uri": "wfs://test/1.md", "context_type": "memory"},
+                {"uri": "wfs://test/2.md", "context_type": "resource"},
             ],
         )
 
@@ -667,7 +667,7 @@ class TestMessageFactoryMethods:
         msg = Message.create_assistant(
             content="Let me search for that.",
             tool_calls=[
-                {"id": "call-1", "name": "search", "uri": "viking://tools/1"},
+                {"id": "call-1", "name": "search", "uri": "wfs://tools/1"},
             ],
         )
 
@@ -693,9 +693,9 @@ class TestMessageMethods:
             role="assistant",
             parts=[
                 TextPart(text="Hello"),
-                ContextPart(uri="viking://test/1.md"),
+                ContextPart(uri="wfs://test/1.md"),
                 TextPart(text="More text"),
-                ContextPart(uri="viking://test/2.md"),
+                ContextPart(uri="wfs://test/2.md"),
             ],
         )
 

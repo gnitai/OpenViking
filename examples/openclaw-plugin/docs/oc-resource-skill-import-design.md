@@ -8,8 +8,8 @@
 
 随着 OpenViking 的 resource 和 skill 能力完善，OpenClaw 侧也需要一个自然入口，让用户可以在 OpenClaw 对话或显式命令中把外部资料导入到 OpenViking：
 
-- Resource：项目文档、代码仓库、网页、PDF、Markdown、本地目录等，落到 `viking://resources/...`
-- Skill：`SKILL.md`、skill 目录、raw skill 内容或 MCP tool dict，落到 `viking://agent/skills/...`
+- Resource：项目文档、代码仓库、网页、PDF、Markdown、本地目录等，落到 `wfs://resources/...`
+- Skill：`SKILL.md`、skill 目录、raw skill 内容或 MCP tool dict，落到 `wfs://agent/skills/...`
 
 本 RFC 讨论 OpenClaw plugin 侧的导入入口、HTTP 对接方式、安全边界和测试方案。
 
@@ -60,7 +60,7 @@ OpenViking 当前已经有独立的 skill 导入链路：
 - HTTP API：`POST /api/v1/skills`
 - Service 层：`ResourceService.add_skill(...)`
 - Processor：`SkillProcessor.process_skill(...)`
-- 存储位置：`viking://agent/skills/{skill_name}`
+- 存储位置：`wfs://agent/skills/{skill_name}`
 
 支持的输入形态包括：
 
@@ -85,7 +85,7 @@ Resource 和 skill 的落点、参数和服务端 API 不同，对外暴露两�
 Resource 导入：
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
 ```
 
 Skill 导入：
@@ -155,30 +155,30 @@ Resource 的导入路径由 `to` 或 `parent` 控制，二者互斥：
 
 - `to`：精确指定最终 resource URI。
 - `parent`：只指定父目录，由 OpenViking 根据源文件名、目录名、URL 或仓库名生成子路径。
-- 二者都不传：由 OpenViking 在 `viking://resources/...` 下按默认规则生成路径。
+- 二者都不传：由 OpenViking 在 `wfs://resources/...` 下按默认规则生成路径。
 
 推荐用户在希望得到稳定引用 URI 时使用 `to`：
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
 ```
 
 结果会尽量落到：
 
 ```text
-viking://resources/openviking-readme
+wfs://resources/openviking-readme
 ```
 
 如果只想把资源放到某个集合下，可使用 `parent`：
 
 ```text
-/add-resource ./README.md --parent viking://resources/docs --wait
+/add-resource ./README.md --parent wfs://resources/docs --wait
 ```
 
 结果会落在类似：
 
 ```text
-viking://resources/docs/README
+wfs://resources/docs/README
 ```
 
 ### 5. Slash Command 参数设计
@@ -193,13 +193,13 @@ viking://resources/docs/README
 导入 resource：
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
 ```
 
 导入远程 resource：
 
 ```text
-/add-resource https://github.com/volcengine/OpenViking --to viking://resources/openviking-repo --reason "OpenViking source docs"
+/add-resource https://github.com/volcengine/OpenViking --to wfs://resources/openviking-repo --reason "OpenViking source docs"
 ```
 
 导入 skill：
@@ -298,17 +298,17 @@ raw SKILL.md or MCP dict
 示例：
 
 ```text
-Imported OpenViking resource: viking://resources/openviking-readme
+Imported OpenViking resource: wfs://resources/openviking-readme
 Processing: completed
-Try: /ov-search "OpenViking install" --uri viking://resources/openviking-readme
+Try: /ov-search "OpenViking install" --uri wfs://resources/openviking-readme
 ```
 
 `add_skill` 导入 skill 后也应返回 skill URI，并给出 skill 检索建议：
 
 ```text
-Imported OpenViking skill: viking://agent/skills/install-openviking-memory
+Imported OpenViking skill: wfs://agent/skills/install-openviking-memory
 Processing: completed
-Try: /ov-search "<query>" --uri viking://agent/skills
+Try: /ov-search "<query>" --uri wfs://agent/skills
 ```
 
 #### ov_search 参数设计
@@ -326,9 +326,9 @@ v1 建议保持简洁：
 示例命令：
 
 ```text
-/ov-search "OpenViking install" --uri viking://resources/openviking-readme
-/ov-search "API usage" --uri viking://resources
-/ov-search "<query>" --uri viking://agent/skills
+/ov-search "OpenViking install" --uri wfs://resources/openviking-readme
+/ov-search "API usage" --uri wfs://resources
+/ov-search "<query>" --uri wfs://agent/skills
 ```
 
 对应 LLM tool 示例：
@@ -336,7 +336,7 @@ v1 建议保持简洁：
 ```ts
 {
   query: "OpenViking install",
-  uri: "viking://resources/openviking-readme",
+  uri: "wfs://resources/openviking-readme",
   limit: 5
 }
 ```
@@ -389,16 +389,16 @@ v1 建议保持简洁：
 Found 4 OpenViking results for "OpenViking install"
 
 Resources
-1. viking://resources/openviking-readme/README.md
+1. wfs://resources/openviking-readme/README.md
    OpenViking installation guide and setup commands...
    score: 0.82
 
-2. viking://resources/openviking-readme/INSTALL.md
+2. wfs://resources/openviking-readme/INSTALL.md
    Plugin install flow for OpenClaw and OpenViking...
    score: 0.76
 
 Skills
-1. viking://agent/skills/install-openviking-memory
+1. wfs://agent/skills/install-openviking-memory
    Install and operate OpenViking memory integration...
    score: 0.69
 ```
@@ -416,13 +416,13 @@ Skills
   details: {
     action: "searched",
     query: "OpenViking install",
-    uri: "viking://resources/openviking-readme",
+    uri: "wfs://resources/openviking-readme",
     total: 4,
     memories: [],
     resources: [
       {
         context_type: "resource",
-        uri: "viking://resources/openviking-readme/README.md",
+        uri: "wfs://resources/openviking-readme/README.md",
         level: 2,
         score: 0.82,
         category: "",
@@ -435,7 +435,7 @@ Skills
     skills: [
       {
         context_type: "skill",
-        uri: "viking://agent/skills/install-openviking-memory",
+        uri: "wfs://agent/skills/install-openviking-memory",
         level: 0,
         score: 0.69,
         category: "",
@@ -461,7 +461,7 @@ No OpenViking resource or skill results found for "OpenViking install".
 {
   action: "searched",
   query: "OpenViking install",
-  uri: "viking://resources/openviking-readme",
+  uri: "wfs://resources/openviking-readme",
   total: 0,
   memories: [],
   resources: [],
@@ -482,7 +482,7 @@ v1 建议只返回检索结果摘要和 URI，不直接返回完整文件内容�
 `memory_recall` 当前偏向长期记忆，不适合作为 resource/skill 导入后的默认消费入口。`ov_search` v1 应检索：
 
 ```ts
-uris = ["viking://resources", "viking://agent/skills"]
+uris = ["wfs://resources", "wfs://agent/skills"]
 ```
 
 后续如果希望统一上下文检索 memory/resource/skill，可扩展：
@@ -535,7 +535,7 @@ v1 暂不加入，避免把导入 RFC 扩展成完整 OpenViking CLI replica。
 
 - 注册单个 tool：`ov_search`
 - 注册单个 command：`/ov-search`
-- 未指定 `uri` 时默认检索 `viking://resources` 和 `viking://agent/skills`
+- 未指定 `uri` 时默认检索 `wfs://resources` 和 `wfs://agent/skills`
 - 指定 `--uri` 时只检索该范围
 - OpenViking error response 透传为可读错误
 - 查询为空时返回 usage error
@@ -543,16 +543,16 @@ v1 暂不加入，避免把导入 RFC 扩展成完整 OpenViking CLI replica。
 ### Manual smoke
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
-/ov-search "OpenViking install" --uri viking://resources/openviking-readme
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
+/ov-search "OpenViking install" --uri wfs://resources/openviking-readme
 /add-skill ./skills/install-openviking-memory --wait
-/ov-search "install OpenViking memory" --uri viking://agent/skills
+/ov-search "install OpenViking memory" --uri wfs://agent/skills
 ```
 
 以及自然语言触发：
 
 ```text
-把 ./README.md 导入 OpenViking resource，目标是 viking://resources/openviking-readme，并等待处理完成。
+把 ./README.md 导入 OpenViking resource，目标是 wfs://resources/openviking-readme，并等待处理完成。
 ```
 
 ```text
@@ -570,7 +570,7 @@ v1 暂不加入，避免把导入 RFC 扩展成完整 OpenViking CLI replica。
    - 当前建议先使用显式 `/add-skill`，避免在 `/add-resource` 中自动猜测并改变用户意图。
 4. 导入本地大目录前是否需要确认机制？
    - 当前方案先不加确认；后续可基于文件数量/zip 大小增加保护。
-5. `ov_search` v1 是否默认检索 `viking://resources` 和 `viking://agent/skills`？
+5. `ov_search` v1 是否默认检索 `wfs://resources` 和 `wfs://agent/skills`？
    - 当前建议是。memory 仍交给既有 `memory_recall`，避免职责重叠。
 6. 是否需要在 v1 同时提供 `/ov-read` 或 `/ov-tree`？
    - 当前建议不加，先用 `ov_search` 完成导入后的最小消费闭环。

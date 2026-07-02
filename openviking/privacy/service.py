@@ -32,7 +32,7 @@ class UserPrivacyConfigService:
         return canonical_user_root(ctx)
 
     def _user_space(self, ctx: RequestContext) -> str:
-        return self._user_root(ctx)[len("viking://user/") :]
+        return self._user_root(ctx)[len("wfs://user/") :]
 
     def get_config_root(self, ctx: RequestContext, category: str, target_key: str) -> str:
         return config_root_uri(self._user_space(ctx), category, target_key)

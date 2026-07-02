@@ -64,14 +64,14 @@ class _FakeTracker:
 
 async def test_ls_permission_denied_returns_structured_error(app, service, monkeypatch):
     async def fake_ls(*args, **kwargs):
-        raise PermissionError("Access denied for viking://resources")
+        raise PermissionError("Access denied for wfs://resources")
 
     monkeypatch.setattr(service.fs, "ls", fake_ls)
     response = await _request_with_handler(
         app,
         "GET",
         "/api/v1/fs/ls",
-        params={"uri": "viking://resources"},
+        params={"uri": "wfs://resources"},
     )
     _assert_error(
         response,
@@ -90,7 +90,7 @@ async def test_tree_missing_uri_returns_not_found(app, service, monkeypatch):
         app,
         "GET",
         "/api/v1/fs/tree",
-        params={"uri": "viking://resources/missing"},
+        params={"uri": "wfs://resources/missing"},
     )
     _assert_error(response, status_code=404, error_code="NOT_FOUND")
 
@@ -104,21 +104,21 @@ async def test_stat_backend_unavailable_returns_structured_error(app, service, m
         app,
         "GET",
         "/api/v1/fs/stat",
-        params={"uri": "viking://resources/unavailable"},
+        params={"uri": "wfs://resources/unavailable"},
     )
     _assert_error(response, status_code=503, error_code="UNAVAILABLE")
 
 
 async def test_mkdir_permission_denied_returns_structured_error(app, service, monkeypatch):
     async def fake_mkdir(*args, **kwargs):
-        raise PermissionError("Access denied for viking://resources/blocked")
+        raise PermissionError("Access denied for wfs://resources/blocked")
 
     monkeypatch.setattr(service.fs, "mkdir", fake_mkdir)
     response = await _request_with_handler(
         app,
         "POST",
         "/api/v1/fs/mkdir",
-        json={"uri": "viking://resources/blocked"},
+        json={"uri": "wfs://resources/blocked"},
     )
     _assert_error(response, status_code=403, error_code="PERMISSION_DENIED")
 
@@ -133,8 +133,8 @@ async def test_mv_missing_source_returns_not_found(app, service, monkeypatch):
         "POST",
         "/api/v1/fs/mv",
         json={
-            "from_uri": "viking://resources/missing",
-            "to_uri": "viking://resources/target",
+            "from_uri": "wfs://resources/missing",
+            "to_uri": "wfs://resources/target",
         },
     )
     _assert_error(response, status_code=404, error_code="NOT_FOUND")
@@ -149,7 +149,7 @@ async def test_read_missing_uri_returns_not_found(app, service, monkeypatch):
         app,
         "GET",
         "/api/v1/content/read",
-        params={"uri": "viking://resources/missing.md"},
+        params={"uri": "wfs://resources/missing.md"},
     )
     _assert_error(response, status_code=404, error_code="NOT_FOUND")
 
@@ -173,14 +173,14 @@ async def test_download_missing_uri_returns_not_found(app, service, monkeypatch)
         app,
         "GET",
         "/api/v1/content/download",
-        params={"uri": "viking://resources/missing.bin"},
+        params={"uri": "wfs://resources/missing.bin"},
     )
     _assert_error(response, status_code=404, error_code="NOT_FOUND")
 
 
 async def test_write_permission_denied_returns_structured_error(app, service, monkeypatch):
     async def fake_write(*args, **kwargs):
-        raise PermissionError("Access denied for viking://resources/protected.md")
+        raise PermissionError("Access denied for wfs://resources/protected.md")
 
     monkeypatch.setattr(service.fs, "write", fake_write)
     response = await _request_with_handler(
@@ -188,7 +188,7 @@ async def test_write_permission_denied_returns_structured_error(app, service, mo
         "POST",
         "/api/v1/content/write",
         json={
-            "uri": "viking://resources/protected.md",
+            "uri": "wfs://resources/protected.md",
             "content": "hello",
             "mode": "replace",
         },
@@ -206,7 +206,7 @@ async def test_reindex_missing_uri_returns_not_found_error_payload(client, monke
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/missing", "mode": "vectors_only", "wait": True},
+        json={"uri": "wfs://resources/missing", "mode": "vectors_only", "wait": True},
     )
     _assert_error(response, status_code=404, error_code="NOT_FOUND")
 
@@ -225,7 +225,7 @@ async def test_reindex_sync_conflict_returns_error_payload(client, monkeypatch):
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/conflict", "mode": "vectors_only", "wait": True},
+        json={"uri": "wfs://resources/conflict", "mode": "vectors_only", "wait": True},
     )
     _assert_error(response, status_code=409, error_code="CONFLICT")
 
@@ -238,7 +238,7 @@ async def test_reindex_sync_success_returns_ok_payload(client, monkeypatch):
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/demo", "mode": "semantic_and_vectors", "wait": True},
+        json={"uri": "wfs://resources/demo", "mode": "semantic_and_vectors", "wait": True},
     )
     assert response.status_code == 200
     body = response.json()
@@ -261,7 +261,7 @@ async def test_reindex_async_returns_task_id(client, monkeypatch):
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/demo", "mode": "vectors_only", "wait": False},
+        json={"uri": "wfs://resources/demo", "mode": "vectors_only", "wait": False},
     )
     assert response.status_code == 200
     body = response.json()

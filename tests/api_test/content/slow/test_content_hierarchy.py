@@ -124,7 +124,7 @@ class TestContentHierarchy:
                 assert content_type != "", "download response should have Content-Type header"
 
     def test_content_download_nonexistent_uri(self, api_client):
-        download_resp = api_client.content_download("viking://resources/nonexistent_download_test")
+        download_resp = api_client.content_download("wfs://resources/nonexistent_download_test")
         assert download_resp.status_code == 404, (
             f"download nonexistent URI should return error, got {download_resp.status_code}"
         )

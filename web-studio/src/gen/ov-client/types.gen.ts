@@ -66,7 +66,7 @@ export type AddMessageRequest = {
  * Either path or temp_file_id must be provided.
  * temp_file_id: Temporary upload id returned by /api/v1/resources/temp_upload.
  * Either path or temp_file_id must be provided.
- * to: Target URI for the resource (e.g., "viking://resources/my_resource").
+ * to: Target URI for the resource (e.g., "wfs://resources/my_resource").
  * If not specified, an auto-generated URI will be used.
  * parent: Parent URI under which the resource will be stored.
  * Cannot be used together with 'to'.

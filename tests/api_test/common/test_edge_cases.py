@@ -60,7 +60,7 @@ class TestResourceEdgeCases:
                 f.write("scope test")
 
             resp = api_client.add_resource(
-                path=test_file, to="viking://agent/skills/invalid", wait=False
+                path=test_file, to="wfs://agent/skills/invalid", wait=False
             )
             assert resp.status_code == 400, (
                 f"adding resource to non-resources scope should return 400, got {resp.status_code}: {resp.text[:200]}"
@@ -90,7 +90,7 @@ class TestResourceEdgeCases:
 
 class TestContentEdgeCases:
     def test_content_write_creates_new_file(self, api_client):
-        test_uri = f"viking://resources/write_new_{uuid.uuid4().hex[:8]}/new_file.txt"
+        test_uri = f"wfs://resources/write_new_{uuid.uuid4().hex[:8]}/new_file.txt"
         try:
             mkdir_resp = api_client.fs_mkdir(test_uri.rsplit("/", 1)[0])
             assert mkdir_resp.status_code == 200
@@ -115,7 +115,7 @@ class TestContentEdgeCases:
                 pass
 
     def test_content_write_empty_content(self, api_client):
-        test_uri = f"viking://resources/write_empty_{uuid.uuid4().hex[:8]}/empty.txt"
+        test_uri = f"wfs://resources/write_empty_{uuid.uuid4().hex[:8]}/empty.txt"
         try:
             mkdir_resp = api_client.fs_mkdir(test_uri.rsplit("/", 1)[0])
             assert mkdir_resp.status_code == 200
@@ -131,7 +131,7 @@ class TestContentEdgeCases:
                 pass
 
     def test_content_download_response_headers(self, api_client):
-        test_uri = f"viking://resources/dl_header_test_{uuid.uuid4().hex[:8]}"
+        test_uri = f"wfs://resources/dl_header_test_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(test_uri)
             api_client.fs_write(
@@ -153,7 +153,7 @@ class TestContentEdgeCases:
                 pass
 
     def test_content_read_with_offset(self, api_client):
-        test_uri = f"viking://resources/read_offset_test_{uuid.uuid4().hex[:8]}"
+        test_uri = f"wfs://resources/read_offset_test_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(test_uri)
             api_client.fs_write(
@@ -209,7 +209,7 @@ class TestFilesystemEdgeCases:
         resp = api_client._request_with_retry(
             "GET",
             f"{api_client.server_url}/api/v1/fs/ls",
-            params={"uri": "viking://resources/", "depth": 1},
+            params={"uri": "wfs://resources/", "depth": 1},
         )
         assert resp.status_code == 200, (
             f"ls with depth should return 200, got {resp.status_code}: {resp.text[:200]}"

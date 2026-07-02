@@ -155,7 +155,7 @@ async def test_temp_scope_user_id_matching_legacy_pattern_stays_isolated(viking_
     await viking_fs.mkdir(temp_uri, exist_ok=True, ctx=owner_ctx)
     await viking_fs.write(secret_uri, "owner secret", ctx=owner_ctx)
 
-    assert temp_uri.startswith("viking://temp/04011234_abcdef/")
+    assert temp_uri.startswith("wfs://temp/04011234_abcdef/")
     with pytest.raises(PermissionError):
         await viking_fs.read(secret_uri, ctx=other_ctx)
 
@@ -180,8 +180,8 @@ async def test_temp_root_listing_only_shows_callers_own_entries(viking_fs):
     await viking_fs.mkdir(bob_temp_uri, exist_ok=True, ctx=bob_ctx)
     await viking_fs.write(f"{bob_temp_uri}/bob.txt", "bob", ctx=bob_ctx)
 
-    alice_entries = await viking_fs.tree("viking://temp", output="original", ctx=alice_ctx)
-    bob_entries = await viking_fs.tree("viking://temp", output="original", ctx=bob_ctx)
+    alice_entries = await viking_fs.tree("wfs://temp", output="original", ctx=alice_ctx)
+    bob_entries = await viking_fs.tree("wfs://temp", output="original", ctx=bob_ctx)
 
     alice_uris = {entry["uri"] for entry in alice_entries}
     bob_uris = {entry["uri"] for entry in bob_entries}
@@ -201,10 +201,10 @@ async def test_temp_root_destructive_operations_are_blocked_for_non_root_users(v
     )
 
     with pytest.raises(PermissionError):
-        await viking_fs.rm("viking://temp", recursive=True, ctx=alice_ctx)
+        await viking_fs.rm("wfs://temp", recursive=True, ctx=alice_ctx)
 
     with pytest.raises(PermissionError):
-        await viking_fs.delete_temp("viking://temp", ctx=alice_ctx)
+        await viking_fs.delete_temp("wfs://temp", ctx=alice_ctx)
 
 
 @pytest.mark.asyncio
@@ -218,7 +218,7 @@ async def test_legacy_temp_trees_remain_accessible_for_same_account_users(viking
         role=Role.USER,
     )
 
-    legacy_temp_uri = "viking://temp/04011234_abcdef"
+    legacy_temp_uri = "wfs://temp/04011234_abcdef"
     legacy_secret_uri = f"{legacy_temp_uri}/legacy.txt"
 
     await viking_fs.mkdir(legacy_temp_uri, exist_ok=True, ctx=alice_ctx)
@@ -226,7 +226,7 @@ async def test_legacy_temp_trees_remain_accessible_for_same_account_users(viking
 
     assert (await viking_fs.read(legacy_secret_uri, ctx=bob_ctx)).decode("utf-8") == "legacy"
 
-    bob_entries = await viking_fs.tree("viking://temp", output="original", ctx=bob_ctx)
+    bob_entries = await viking_fs.tree("wfs://temp", output="original", ctx=bob_ctx)
     bob_uris = {entry["uri"] for entry in bob_entries}
 
     assert legacy_temp_uri in bob_uris
@@ -240,13 +240,13 @@ def test_create_temp_uri_uses_user_scope_segment(viking_fs):
 
     temp_uri = viking_fs.create_temp_uri(ctx=ctx)
 
-    assert temp_uri.startswith(f"viking://temp/{ctx.user.user_space_name()}/")
+    assert temp_uri.startswith(f"wfs://temp/{ctx.user.user_space_name()}/")
 
 
 def test_create_temp_uri_without_context_preserves_legacy_shape(viking_fs):
     temp_uri = viking_fs.create_temp_uri()
 
-    assert temp_uri.startswith("viking://temp/")
+    assert temp_uri.startswith("wfs://temp/")
     assert temp_uri.count("/") == 3
 
 
@@ -290,6 +290,6 @@ async def test_non_root_cannot_delete_temp_root_recursively(viking_fs):
     await viking_fs.write(bob_secret_uri, "bob secret", ctx=bob_ctx)
 
     with pytest.raises(PermissionError):
-        await viking_fs.rm("viking://temp", recursive=True, ctx=alice_ctx)
+        await viking_fs.rm("wfs://temp", recursive=True, ctx=alice_ctx)
 
     assert (await viking_fs.read(bob_secret_uri, ctx=bob_ctx)).decode("utf-8") == "bob secret"

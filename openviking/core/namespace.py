@@ -92,11 +92,11 @@ class UriClassification:
 def uri_parts(uri: str) -> list[str]:
     """Return normalized Viking URI path segments without query parameters."""
     normalized = VikingURI.normalize(uri.split("?", 1)[0]).rstrip("/")
-    if normalized == "viking:":
-        normalized = "viking://"
-    if normalized == "viking://":
+    if normalized == "wfs:":
+        normalized = "wfs://"
+    if normalized == "wfs://":
         return []
-    return [part for part in normalized[len("viking://") :].split("/") if part]
+    return [part for part in normalized[len("wfs://") :].split("/") if part]
 
 
 def uri_depth(uri: str) -> int:
@@ -160,7 +160,7 @@ def context_type_for_uri(uri: str) -> str:
 
 
 def canonical_user_root(ctx: RequestContext) -> str:
-    return f"viking://user/{user_space_fragment(ctx)}"
+    return f"wfs://user/{user_space_fragment(ctx)}"
 
 
 def user_space_fragment(ctx: RequestContext) -> str:
@@ -174,7 +174,7 @@ def to_user_space(namespace_policy, user_id, agent_id) -> str:
 
 
 def canonical_agent_root(ctx: RequestContext) -> str:
-    return f"viking://agent/{agent_space_fragment(ctx)}"
+    return f"wfs://agent/{agent_space_fragment(ctx)}"
 
 
 def agent_space_fragment(ctx: RequestContext) -> str:
@@ -189,14 +189,14 @@ def to_agent_space(namespace_policy, user_id, agent_id) -> str:
 
 def canonical_session_uri(session_id: Optional[str] = None) -> str:
     if not session_id:
-        return "viking://session"
-    return f"viking://session/{session_id}"
+        return "wfs://session"
+    return f"wfs://session/{session_id}"
 
 
 def visible_roots(ctx: RequestContext) -> list[str]:
     return [
-        "viking://resources",
-        "viking://session",
+        "wfs://resources",
+        "wfs://session",
         canonical_user_root(ctx),
         canonical_agent_root(ctx),
     ]
@@ -212,7 +212,7 @@ def resolve_uri(
 
     parts = uri_parts(uri)
     if not parts:
-        return ResolvedNamespace(uri="viking://", scope="", is_container=True)
+        return ResolvedNamespace(uri="wfs://", scope="", is_container=True)
 
     scope = parts[0]
     if scope == "user":
@@ -324,9 +324,9 @@ def _resolve_user_uri(
     *,
     require_canonical: bool,
 ) -> ResolvedNamespace:
-    normalized = "viking://" + "/".join(parts)
+    normalized = "wfs://" + "/".join(parts)
     if len(parts) == 1:
-        return ResolvedNamespace(uri="viking://user", scope="user", is_container=True)
+        return ResolvedNamespace(uri="wfs://user", scope="user", is_container=True)
 
     second = parts[1]
     if second in _USER_SHORTHAND_SEGMENTS:
@@ -336,7 +336,7 @@ def _resolve_user_uri(
             raise NamespaceShapeError(f"User shorthand URI requires request context: {normalized}")
         suffix = parts[1:]
         return resolve_uri(
-            "/".join([canonical_user_root(ctx)[len("viking://") :], *suffix]), ctx=ctx
+            "/".join([canonical_user_root(ctx)[len("wfs://") :], *suffix]), ctx=ctx
         )
 
     user_id = second
@@ -344,13 +344,13 @@ def _resolve_user_uri(
     if len(parts) == 2:
         if policy.isolate_user_scope_by_agent:
             return ResolvedNamespace(
-                uri=f"viking://user/{user_id}",
+                uri=f"wfs://user/{user_id}",
                 scope="user",
                 owner_user_id=user_id,
                 is_container=True,
             )
         return ResolvedNamespace(
-            uri=f"viking://user/{user_id}",
+            uri=f"wfs://user/{user_id}",
             scope="user",
             owner_user_id=user_id,
         )
@@ -362,7 +362,7 @@ def _resolve_user_uri(
             )
         agent_id = parts[3]
         suffix = parts[4:]
-        canonical = f"viking://user/{user_id}/agent/{agent_id}"
+        canonical = f"wfs://user/{user_id}/agent/{agent_id}"
         if suffix:
             canonical = f"{canonical}/{'/'.join(suffix)}"
         return ResolvedNamespace(
@@ -373,7 +373,7 @@ def _resolve_user_uri(
         )
 
     suffix = parts[2:]
-    canonical = f"viking://user/{user_id}"
+    canonical = f"wfs://user/{user_id}"
     if suffix:
         canonical = f"{canonical}/{'/'.join(suffix)}"
     return ResolvedNamespace(
@@ -389,9 +389,9 @@ def _resolve_agent_uri(
     *,
     require_canonical: bool,
 ) -> ResolvedNamespace:
-    normalized = "viking://" + "/".join(parts)
+    normalized = "wfs://" + "/".join(parts)
     if len(parts) == 1:
-        return ResolvedNamespace(uri="viking://agent", scope="agent", is_container=True)
+        return ResolvedNamespace(uri="wfs://agent", scope="agent", is_container=True)
 
     second = parts[1]
     if second in _AGENT_SHORTHAND_SEGMENTS:
@@ -401,7 +401,7 @@ def _resolve_agent_uri(
             raise NamespaceShapeError(f"Agent shorthand URI requires request context: {normalized}")
         suffix = parts[1:]
         return resolve_uri(
-            "/".join([canonical_agent_root(ctx)[len("viking://") :], *suffix]), ctx=ctx
+            "/".join([canonical_agent_root(ctx)[len("wfs://") :], *suffix]), ctx=ctx
         )
 
     agent_id = second
@@ -409,13 +409,13 @@ def _resolve_agent_uri(
     if len(parts) == 2:
         if policy.isolate_agent_scope_by_user:
             return ResolvedNamespace(
-                uri=f"viking://agent/{agent_id}",
+                uri=f"wfs://agent/{agent_id}",
                 scope="agent",
                 owner_agent_id=agent_id,
                 is_container=True,
             )
         return ResolvedNamespace(
-            uri=f"viking://agent/{agent_id}",
+            uri=f"wfs://agent/{agent_id}",
             scope="agent",
             owner_agent_id=agent_id,
         )
@@ -427,7 +427,7 @@ def _resolve_agent_uri(
             )
         user_id = parts[3]
         suffix = parts[4:]
-        canonical = f"viking://agent/{agent_id}/user/{user_id}"
+        canonical = f"wfs://agent/{agent_id}/user/{user_id}"
         if suffix:
             canonical = f"{canonical}/{'/'.join(suffix)}"
         return ResolvedNamespace(
@@ -438,7 +438,7 @@ def _resolve_agent_uri(
         )
 
     suffix = parts[2:]
-    canonical = f"viking://agent/{agent_id}"
+    canonical = f"wfs://agent/{agent_id}"
     if suffix:
         canonical = f"{canonical}/{'/'.join(suffix)}"
     return ResolvedNamespace(
@@ -450,9 +450,9 @@ def _resolve_agent_uri(
 
 def _resolve_session_uri(parts: list[str]) -> ResolvedNamespace:
     if len(parts) == 1:
-        return ResolvedNamespace(uri="viking://session", scope="session", is_container=True)
+        return ResolvedNamespace(uri="wfs://session", scope="session", is_container=True)
     session_id = parts[1]
-    canonical = f"viking://session/{session_id}"
+    canonical = f"wfs://session/{session_id}"
     if len(parts) > 2:
         canonical = f"{canonical}/{'/'.join(parts[2:])}"
     return ResolvedNamespace(uri=canonical, scope="session")

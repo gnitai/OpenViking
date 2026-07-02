@@ -40,8 +40,8 @@ class MockVikingFS:
 
     def _uri_to_path(self, uri: str) -> str:
         """Convert URI to path."""
-        if uri.startswith("viking://"):
-            return uri.replace("viking://", "/local/default/")
+        if uri.startswith("wfs://"):
+            return uri.replace("wfs://", "/local/default/")
         return uri
 
 
@@ -55,7 +55,7 @@ class MockResourceProcessor:
     async def process_resource(self, **kwargs):
         self.call_count += 1
         self.processed_paths.append(kwargs.get("path"))
-        return {"root_uri": kwargs.get("to", "viking://resources/test")}
+        return {"root_uri": kwargs.get("to", "wfs://resources/test")}
 
 
 class MockSkillProcessor:
@@ -107,13 +107,13 @@ class TestServiceRestartRecovery:
 
         task1 = await manager1.create_task(
             path="/test/path1",
-            to_uri="viking://resources/test1",
+            to_uri="wfs://resources/test1",
             reason="Task 1",
             watch_interval=30.0,
         )
         task2 = await manager1.create_task(
             path="/test/path2",
-            to_uri="viking://resources/test2",
+            to_uri="wfs://resources/test2",
             reason="Task 2",
             watch_interval=60.0,
         )
@@ -129,14 +129,14 @@ class TestServiceRestartRecovery:
 
         assert loaded_task1 is not None
         assert loaded_task1.path == "/test/path1"
-        assert loaded_task1.to_uri == "viking://resources/test1"
+        assert loaded_task1.to_uri == "wfs://resources/test1"
         assert loaded_task1.reason == "Task 1"
         assert loaded_task1.watch_interval == 30.0
         assert loaded_task1.is_active is True
 
         assert loaded_task2 is not None
         assert loaded_task2.path == "/test/path2"
-        assert loaded_task2.to_uri == "viking://resources/test2"
+        assert loaded_task2.to_uri == "wfs://resources/test2"
         assert loaded_task2.watch_interval == 60.0
 
     @pytest.mark.asyncio
@@ -147,7 +147,7 @@ class TestServiceRestartRecovery:
         task_data = {
             "task_id": "backup-task-id",
             "path": "/test/backup",
-            "to_uri": "viking://resources/backup",
+            "to_uri": "wfs://resources/backup",
             "reason": "Backup task",
             "instruction": "",
             "watch_interval": 60.0,
@@ -172,7 +172,7 @@ class TestServiceRestartRecovery:
         loaded_task = await manager.get_task("backup-task-id")
         assert loaded_task is not None
         assert loaded_task.path == "/test/backup"
-        assert loaded_task.to_uri == "viking://resources/backup"
+        assert loaded_task.to_uri == "wfs://resources/backup"
 
         assert mock_viking_fs.agfs.exists(storage_path) is True
 
@@ -188,7 +188,7 @@ class TestServiceRestartRecovery:
         task_data = {
             "task_id": "expired-task-id",
             "path": "/test/expired",
-            "to_uri": "viking://resources/expired",
+            "to_uri": "wfs://resources/expired",
             "reason": "Expired task",
             "instruction": "",
             "watch_interval": 60.0,
@@ -223,7 +223,7 @@ class TestServiceRestartRecovery:
         task_data = {
             "task_id": "future-task-id",
             "path": "/test/future",
-            "to_uri": "viking://resources/future",
+            "to_uri": "wfs://resources/future",
             "reason": "Future task",
             "instruction": "",
             "watch_interval": 60.0,
@@ -257,7 +257,7 @@ class TestServiceRestartRecovery:
         task_data = {
             "task_id": "inactive-task-id",
             "path": "/test/inactive",
-            "to_uri": "viking://resources/inactive",
+            "to_uri": "wfs://resources/inactive",
             "reason": "Inactive task",
             "instruction": "",
             "watch_interval": 60.0,
@@ -308,7 +308,7 @@ class TestResourceExistenceCheck:
 
         task = await watch_manager.create_task(
             path="/nonexistent/path/to/resource",
-            to_uri="viking://resources/deleted",
+            to_uri="wfs://resources/deleted",
             reason="Test deleted resource",
             watch_interval=30.0,
         )
@@ -349,7 +349,7 @@ class TestResourceExistenceCheck:
 
         task = await watch_manager.create_task(
             path=str(test_file),
-            to_uri="viking://resources/existing",
+            to_uri="wfs://resources/existing",
             reason="Test existing resource",
             watch_interval=30.0,
         )
@@ -386,7 +386,7 @@ class TestResourceExistenceCheck:
 
         task = await watch_manager.create_task(
             path="https://example.com/resource",
-            to_uri="viking://resources/url",
+            to_uri="wfs://resources/url",
             reason="Test URL resource",
             watch_interval=30.0,
         )
@@ -431,7 +431,7 @@ class TestSchedulerIntegration:
 
         await watch_manager.create_task(
             path=str(test_file),
-            to_uri="viking://resources/test",
+            to_uri="wfs://resources/test",
             reason="Test task",
             watch_interval=0.001,
         )
@@ -473,13 +473,13 @@ class TestSchedulerIntegration:
 
         await watch_manager.create_task(
             path=str(test_file1),
-            to_uri="viking://resources/test1",
+            to_uri="wfs://resources/test1",
             reason="Task 1",
             watch_interval=0.001,
         )
         await watch_manager.create_task(
             path=str(test_file2),
-            to_uri="viking://resources/test2",
+            to_uri="wfs://resources/test2",
             reason="Task 2",
             watch_interval=0.001,
         )
@@ -519,7 +519,7 @@ class TestSchedulerIntegration:
 
         task = await watch_manager.create_task(
             path=str(test_file),
-            to_uri="viking://resources/test",
+            to_uri="wfs://resources/test",
             reason="Inactive task",
             watch_interval=0.001,
         )
@@ -552,7 +552,7 @@ class TestTaskExecutionTimeRecovery:
 
         task = await manager1.create_task(
             path="/test/path",
-            to_uri="viking://resources/test",
+            to_uri="wfs://resources/test",
             watch_interval=30.0,
         )
 
@@ -585,7 +585,7 @@ class TestTaskExecutionTimeRecovery:
         task_data = {
             "task_id": "test-task-id",
             "path": "/test/path",
-            "to_uri": "viking://resources/test",
+            "to_uri": "wfs://resources/test",
             "reason": "Test",
             "instruction": "",
             "watch_interval": 30.0,

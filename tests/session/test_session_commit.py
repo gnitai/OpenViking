@@ -73,7 +73,7 @@ class TestCommit:
             session_with_messages._session_compressor.extract_agent_memories = AsyncMock(
                 return_value={
                     "contexts": [],
-                    "session_skills": [{"uri": "viking://account/test/agent/skills/code-review"}],
+                    "session_skills": [{"uri": "wfs://account/test/agent/skills/code-review"}],
                 }
             )
 
@@ -84,7 +84,7 @@ class TestCommit:
         assert task_result["result"]["memories_extracted"] == {}
         assert task_result["result"]["session_skills_extracted"] == 1
         assert task_result["result"]["session_skill_uris"] == [
-            "viking://account/test/agent/skills/code-review"
+            "wfs://account/test/agent/skills/code-review"
         ]
         session_with_messages._session_compressor.extract_long_term_memories.assert_not_awaited()
         session_with_messages._session_compressor.extract_agent_memories.assert_awaited_once()

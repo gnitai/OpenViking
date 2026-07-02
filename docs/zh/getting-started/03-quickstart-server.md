@@ -148,7 +148,7 @@ openviking observer system
 openviking add-resource https://raw.githubusercontent.com/volcengine/OpenViking/refs/heads/main/README.md
 
 # List all synchronized resources
-openviking ls viking://resources
+openviking ls wfs://resources
 
 # Query
 openviking find "what is openviking"
@@ -171,7 +171,7 @@ curl -X POST http://localhost:1933/api/v1/resources \
   -d '{"path": "https://raw.githubusercontent.com/volcengine/OpenViking/refs/heads/main/README.md"}'
 
 # List resources
-curl "http://localhost:1933/api/v1/fs/ls?uri=viking://resources/"
+curl "http://localhost:1933/api/v1/fs/ls?uri=wfs://resources/"
 
 # Semantic search
 curl -X POST http://localhost:1933/api/v1/search/find \
@@ -357,7 +357,7 @@ openviking observer system
 openviking add-resource https://raw.githubusercontent.com/ZaynJarvis/doc-eval/refs/heads/main/text.md
 
 # 列出资源
-openviking ls viking://resources
+openviking ls wfs://resources
 
 # 检索测试
 openviking find "who is Alice"

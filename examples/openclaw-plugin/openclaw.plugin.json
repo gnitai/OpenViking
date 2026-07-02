@@ -104,13 +104,13 @@
     "isolateUserScopeByAgent": {
       "label": "Isolate User Scope By Agent",
       "placeholder": "false",
-      "help": "Canonical namespace policy. false (default): user alias expands to viking://user/<user_id>/... . true: expands to viking://user/<user_id>/agent/<agent_id>/... . Must match the server-side account namespace policy.",
+      "help": "Canonical namespace policy. false (default): user alias expands to wfs://user/<user_id>/... . true: expands to wfs://user/<user_id>/agent/<agent_id>/... . Must match the server-side account namespace policy.",
       "advanced": true
     },
     "isolateAgentScopeByUser": {
       "label": "Isolate Agent Scope By User",
       "placeholder": "false",
-      "help": "Canonical namespace policy. false (default): agent alias expands to viking://agent/<agent_id>/... . true: expands to viking://agent/<agent_id>/user/<user_id>/... . Must match the server-side account namespace policy.",
+      "help": "Canonical namespace policy. false (default): agent alias expands to wfs://agent/<agent_id>/... . true: expands to wfs://agent/<agent_id>/user/<user_id>/... . Must match the server-side account namespace policy.",
       "advanced": true
     },
     "agentScopeMode": {
@@ -121,7 +121,7 @@
     },
     "targetUri": {
       "label": "Search Target URI",
-      "placeholder": "viking://user/memories",
+      "placeholder": "wfs://user/memories",
       "help": "Default OpenViking target URI for memory search"
     },
     "timeoutMs": {
@@ -151,7 +151,7 @@
     },
     "recallResources": {
       "label": "Recall Resources",
-      "help": "Include resources (viking://resources) in auto-recall and default memory_recall search. Enables account-level shared knowledge retrieval.",
+      "help": "Include resources (wfs://resources) in auto-recall and default memory_recall search. Enables account-level shared knowledge retrieval.",
       "advanced": true
     },
     "recallLimit": {

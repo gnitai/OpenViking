@@ -7,7 +7,7 @@ import requests
 class TestGrep:
     def test_grep_basic(self, api_client):
         try:
-            response = api_client.grep("viking://user/", "viking")
+            response = api_client.grep("wfs://user/", "viking")
             print(f"\nGrep API status code: {response.status_code}")
 
             if response.status_code == 200:

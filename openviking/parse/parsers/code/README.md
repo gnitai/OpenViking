@@ -31,14 +31,14 @@ OpenViking 通过 **Code Parser** 模块实现对代码仓库的整体解析与�
 ```python
 client.add_resource(
     "https://github.com/volcengine/OpenViking",
-    to="viking://resources/github/volcengine/OpenViking"
+    to="wfs://resources/github/volcengine/OpenViking"
 )
 ```
 
 系统将生成如下标准化的目录树结构，能够完整体现深层级的文件路径：
 
 ```text
-viking://resources/github/volcengine/OpenViking/
+wfs://resources/github/volcengine/OpenViking/
 ├── .abstract.md        # L0: 项目级摘要
 ├── .overview.md        # L1: 项目级概览
 ├── docs/
@@ -100,12 +100,12 @@ viking://resources/github/volcengine/OpenViking/
 解析器遵循 V5.0 的异步处理架构：
 
 1.  **物理搬运 (Parser Phase)**：
-    *   将拉取到的代码仓库（经过过滤）完整上传到 `viking://temp/{uuid}/` 临时目录。
+    *   将拉取到的代码仓库（经过过滤）完整上传到 `wfs://temp/{uuid}/` 临时目录。
     *   在此阶段**不进行**任何 LLM 调用，确保 `add_resource` 接口能快速返回。
     *   仅进行基础的静态分析（如文件类型识别）。
 
 2.  **异步理解 (Semantic Phase)**：
-    *   `TreeBuilder` 将临时目录移入正式路径（如 `viking://resources/...`）。
+    *   `TreeBuilder` 将临时目录移入正式路径（如 `wfs://resources/...`）。
     *   系统自动生成 `SemanticMsg` 并推入 `SemanticQueue`。
     *   后台 `SemanticProcessor` 消费消息，遍历目录树，异步生成各级目录的 `.abstract.md` 和 `.overview.md`。
 
@@ -115,14 +115,14 @@ viking://resources/github/volcengine/OpenViking/
 # 导入代码仓库
 client.add_resource(
     "https://github.com/volcengine/OpenViking",
-    to="viking://resources/github/volcengine/OpenViking",
+    to="wfs://resources/github/volcengine/OpenViking",
     reason="引入 OpenViking 源码作为参考"
 )
 
 # 搜索代码逻辑
 results = client.find(
     "OpenViking 和 VikingDB 的关系是什么？",
-    target_uri="viking://resources/github/volcengine/OpenViking/OpenViking/docs/zh/"
+    target_uri="wfs://resources/github/volcengine/OpenViking/OpenViking/docs/zh/"
 )
 ```
 

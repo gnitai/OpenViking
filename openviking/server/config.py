@@ -138,7 +138,7 @@ class TempUploadConfig(BaseModel):
 
     default_mode: str = "local"
     shared_max_size_bytes: int = 512 * 1024 * 1024
-    shared_prefix: str = "viking://upload"
+    shared_prefix: str = "wfs://upload"
 
     model_config = {"extra": "forbid"}
 

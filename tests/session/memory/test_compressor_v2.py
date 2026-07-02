@@ -50,7 +50,7 @@ class MockVikingFS:
 
     def _get_parent_uri(self, uri: str) -> str:
         """Get parent directory URI."""
-        # Handle URIs like "viking://agent/default/memories/cards/file.md"
+        # Handle URIs like "wfs://agent/default/memories/cards/file.md"
         parts = uri.split("/")
         if len(parts) <= 3:
             return uri  # Root or protocol level
@@ -269,8 +269,8 @@ def create_test_conversation() -> List[Message]:
         role="user",
         parts=[
             TextPart(
-                "Cards are stored in viking://agent/{agent_space}/memories/cards, each card has name and content fields. "
-                "Events are stored in viking://user/{user_space}/memories/events, each event has event_name, event_time, and content fields."
+                "Cards are stored in wfs://agent/{agent_space}/memories/cards, each card has name and content fields. "
+                "Events are stored in wfs://user/{user_space}/memories/events, each event has event_name, event_time, and content fields."
             )
         ],
     )
@@ -493,14 +493,14 @@ class TestCompressorV2:
         messages = [Message.create_user("test")]
 
         class FixedSchema:
-            directory = "viking://user/{{ user_space }}/memories"
+            directory = "wfs://user/{{ user_space }}/memories"
             filename_template = "profile.md"
 
             def filename_has_variables(self):
                 return False
 
         class VariableSchema:
-            directory = "viking://user/{{ user_space }}/memories/events"
+            directory = "wfs://user/{{ user_space }}/memories/events"
             filename_template = "{{ event_name }}.md"
 
             def filename_has_variables(self):
@@ -591,7 +591,7 @@ class TestCompressorV2:
             async def apply_operations(self, operations, ctx, **kwargs):
                 events.append("apply")
                 result = MemoryUpdateResult()
-                result.written_uris = ["viking://agent/default/memories/experiences/debug.md"]
+                result.written_uris = ["wfs://agent/default/memories/experiences/debug.md"]
                 return result
 
         config = SimpleNamespace(
@@ -618,7 +618,7 @@ class TestCompressorV2:
         )
 
         async def post_apply(result, inheritance_map, lock_handle):
-            assert result.written_uris == ["viking://agent/default/memories/experiences/debug.md"]
+            assert result.written_uris == ["wfs://agent/default/memories/experiences/debug.md"]
             assert inheritance_map == {}
             assert lock_handle is handle
             events.append("post_apply")
@@ -644,7 +644,7 @@ class TestCompressorV2:
                 post_apply=post_apply,
             )
 
-        assert result[0] == ["viking://agent/default/memories/experiences/debug.md"]
+        assert result[0] == ["wfs://agent/default/memories/experiences/debug.md"]
         assert events == ["acquire", "apply", "post_apply", "release"]
 
     @pytest.mark.asyncio
@@ -653,10 +653,10 @@ class TestCompressorV2:
         compressor = SessionCompressorV2(vikingdb=None)
         user = UserIdentifier.the_default_user()
         ctx = RequestContext(user=user, role=Role.ROOT)
-        exp_uri = "viking://agent/default/memories/experiences/debug.md"
+        exp_uri = "wfs://agent/default/memories/experiences/debug.md"
         events: List[str] = []
 
-        traj_uri = "viking://agent/default/memories/trajectories/traj-1.md"
+        traj_uri = "wfs://agent/default/memories/trajectories/traj-1.md"
 
         class FakeVikingFS:
             def __init__(self):
@@ -734,7 +734,7 @@ class TestExtractLoopPatchRepair:
         schema = MemoryTypeSchema(
             memory_type="profile",
             description="User profile",
-            directory="viking://user/{{ user_space }}/memories",
+            directory="wfs://user/{{ user_space }}/memories",
             filename_template="profile.md",
             fields=[
                 MemoryField(
@@ -745,8 +745,8 @@ class TestExtractLoopPatchRepair:
                 )
             ],
         )
-        target_uri = "viking://user/default/memories/profile.md"
-        other_uri = "viking://user/default/memories/other.md"
+        target_uri = "wfs://user/default/memories/profile.md"
+        other_uri = "wfs://user/default/memories/other.md"
         target_file = MemoryFile(uri=target_uri, content="# Tim\n- Likes reading")
         other_file = MemoryFile(uri=other_uri, content="# Other\n- Has been reading as usual")
 
@@ -837,7 +837,7 @@ class TestExtractLoopPatchRepair:
         schema = MemoryTypeSchema(
             memory_type="profile",
             description="User profile",
-            directory="viking://user/{{ user_space }}/memories",
+            directory="wfs://user/{{ user_space }}/memories",
             filename_template="profile.md",
             fields=[
                 MemoryField(
@@ -848,7 +848,7 @@ class TestExtractLoopPatchRepair:
                 )
             ],
         )
-        target_uri = "viking://user/default/memories/profile.md"
+        target_uri = "wfs://user/default/memories/profile.md"
         target_file = MemoryFile(uri=target_uri, content="# Tim\n- Likes reading")
 
         class DummyRegistry:
@@ -934,7 +934,7 @@ class TestExtractLoopPatchRepair:
         schema = MemoryTypeSchema(
             memory_type="profile",
             description="User profile",
-            directory="viking://user/{{ user_space }}/memories",
+            directory="wfs://user/{{ user_space }}/memories",
             filename_template="profile.md",
             fields=[
                 MemoryField(
@@ -945,7 +945,7 @@ class TestExtractLoopPatchRepair:
                 )
             ],
         )
-        target_uri = "viking://user/default/memories/profile.md"
+        target_uri = "wfs://user/default/memories/profile.md"
         target_file = MemoryFile(uri=target_uri, content="# Tim\n- Likes reading every night")
 
         class DummyRegistry:

@@ -38,7 +38,7 @@ export function resourceSearchForResult(item: FindResultItem): {
 } {
   const uri = item.uri.trim()
   if (!uri) {
-    return { uri: 'viking://' }
+    return { uri: 'wfs://' }
   }
 
   if (isDirectoryResult(item)) {

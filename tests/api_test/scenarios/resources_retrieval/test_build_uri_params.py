@@ -15,7 +15,7 @@ class TestBuildUriParams:
         """TC-E18 指定parent参数构建：验证 root_uri 以 parent 为前缀"""
         random_id = str(uuid.uuid4())[:8]
         unique_keyword = f"parent_keyword_{random_id}"
-        parent_uri = f"viking://resources/parent_test_{random_id}"
+        parent_uri = f"wfs://resources/parent_test_{random_id}"
 
         mkdir_resp = api_client.fs_mkdir(parent_uri)
         assert mkdir_resp.status_code == 200, (
@@ -53,14 +53,14 @@ class TestBuildUriParams:
             cleanup_temp_dir(temp_dir)
 
     def test_build_non_resources_scope_rejected(self, api_client):
-        """TC-E11 非resources scope拒绝：验证 to=viking://sessions/xxx 返回错误"""
+        """TC-E11 非resources scope拒绝：验证 to=wfs://sessions/xxx 返回错误"""
         random_id = str(uuid.uuid4())[:8]
         test_content = f"scope测试内容 {random_id}"
         test_file_path, temp_dir = create_test_file(content=test_content, suffix=".txt")
         try:
             response = api_client.add_resource(
                 path=test_file_path,
-                to="viking://sessions/test_session",
+                to="wfs://sessions/test_session",
                 wait=True,
             )
 

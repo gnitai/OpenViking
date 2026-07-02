@@ -44,7 +44,7 @@ async def test_read_directory_uri_returns_invalid_argument(client_with_resource)
     assert "Cannot read directory as file" in body["error"]["message"]
 
 
-@pytest.mark.parametrize("uri", ["viking://temp/generated", "viking://queue/tasks"])
+@pytest.mark.parametrize("uri", ["wfs://temp/generated", "wfs://queue/tasks"])
 async def test_read_internal_scope_uri_returns_invalid_uri(client, uri: str):
     resp = await client.get("/api/v1/content/read", params={"uri": uri})
 
@@ -86,7 +86,7 @@ async def test_abstract_file_uri_returns_failed_precondition(client_with_resourc
 async def test_overview_missing_uri_returns_not_found(client):
     resp = await client.get(
         "/api/v1/content/overview",
-        params={"uri": "viking://resources/does-not-exist-for-overview"},
+        params={"uri": "wfs://resources/does-not-exist-for-overview"},
     )
     assert resp.status_code == 404
     body = resp.json()
@@ -118,7 +118,7 @@ async def test_reindex_request_validation(client):
     # Invalid mode should not be accepted by the endpoint
     resp = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/test", "mode": "not_a_mode"},
+        json={"uri": "wfs://resources/test", "mode": "not_a_mode"},
     )
     assert resp.status_code in (200, 400)
 
@@ -128,7 +128,7 @@ async def test_reindex_wait_parameter_schema(client):
     # Invalid wait type should be coerced or rejected, not crash
     resp = await client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/test", "wait": "invalid"},
+        json={"uri": "wfs://resources/test", "wait": "invalid"},
     )
     # Pydantic coerces or rejects — either way, not a 404/405
     assert resp.status_code != 404
@@ -153,7 +153,7 @@ async def test_reindex_uses_request_tenant_for_exists(monkeypatch):
         role=Role.ADMIN,
     )
     request = ReindexRequest(
-        uri="viking://resources/demo/demo-note.md",
+        uri="wfs://resources/demo/demo-note.md",
         mode="semantic_and_vectors",
         wait=True,
     )
@@ -163,7 +163,7 @@ async def test_reindex_uses_request_tenant_for_exists(monkeypatch):
     response = await reindex(body=request, ctx=ctx)
 
     assert response.status == "ok"
-    assert seen["uri"] == "viking://resources/demo/demo-note.md"
+    assert seen["uri"] == "wfs://resources/demo/demo-note.md"
     assert seen["mode"] == "semantic_and_vectors"
     assert seen["wait"] is True
     assert seen["ctx"] == ctx
@@ -172,7 +172,7 @@ async def test_reindex_uses_request_tenant_for_exists(monkeypatch):
 async def test_content_rebuild_endpoint_removed(client):
     response = await client.post(
         "/api/v1/content/rebuild",
-        json={"uri": "viking://resources/demo", "mode": "vectors_only"},
+        json={"uri": "wfs://resources/demo", "mode": "vectors_only"},
     )
     assert response.status_code == 404
 
@@ -180,6 +180,6 @@ async def test_content_rebuild_endpoint_removed(client):
 async def test_maintenance_reindex_endpoint_removed(client):
     response = await client.post(
         "/api/v1/maintenance/reindex",
-        json={"uri": "viking://resources/demo", "wait": True},
+        json={"uri": "wfs://resources/demo", "wait": True},
     )
     assert response.status_code == 404

@@ -15,7 +15,7 @@
 | 入口 | 适合看什么 | 典型场景 |
 | --- | --- | --- |
 | `/health`、`observer/*` | 服务是否健康、队列是否堆积、VikingDB/VLM 状态 | 部署验收、值班巡检 |
-| `ov tui` | `viking://` 文件树、目录摘要、文件正文、向量记录、受支持图片文件的预览 | 开发调试、核对资源是否真正落库 |
+| `ov tui` | `wfs://` 文件树、目录摘要、文件正文、向量记录、受支持图片文件的预览 | 开发调试、核对资源是否真正落库 |
 | `Web Studio`（`/studio`） | 同 OV server 的 Web UI：Home 看 token / 检索 / context commits 趋势，Resources 浏览 URI，Retrieval 直接发 find，Request Logs 看审计日志 | 不想手敲命令时做交互式排查 |
 | `telemetry` | 单次请求耗时、token、向量检索、资源处理阶段 | 排查一次具体调用为什么慢、为什么结果异常 |
 | `/metrics` | 请求量趋势、错误率、时延分布、队列与探针状态 | Prometheus 抓取、Grafana 看板、告警规则 |
@@ -106,7 +106,7 @@ curl http://localhost:1933/api/v1/debug/health \
 每个 API 响应都包含一个 `X-Process-Time` 请求头，表示服务端处理时间（单位为秒）：
 
 ```bash
-curl -v http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl -v http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-key" 2>&1 | grep X-Process-Time
 # < X-Process-Time: 0.0023
 ```
@@ -124,7 +124,7 @@ ov tui /
 也可以从某个 scope 直接进入：
 
 ```bash
-ov tui viking://resources
+ov tui wfs://resources
 ```
 
 使用前提：
@@ -135,7 +135,7 @@ ov tui viking://resources
 
 这个 TUI 适合做两类观测：
 
-- 看 `viking://resources`、`viking://user`、`viking://agent`、`viking://session` 下实际落了哪些数据
+- 看 `wfs://resources`、`wfs://user`、`wfs://agent`、`wfs://session` 下实际落了哪些数据
 - 看某个 URI 对应的向量记录是否已经写入，以及数量是否符合预期
 
 常用按键：
@@ -151,7 +151,7 @@ ov tui viking://resources
 
 一个常见排查流程是：
 
-1. 用 `ov tui viking://resources` 找到目标文档或目录。
+1. 用 `ov tui wfs://resources` 找到目标文档或目录。
 2. 确认右侧能看到 `abstract` / `overview` / 正文内容（受支持的图片文件 —— `png` / `jpg` / `jpeg` / `gif` / `bmp` / `webp` / `tiff` / `tif` —— 会直接渲染预览）。
 3. 按 `v` 进入向量记录视图，确认该 URI 下是否已经有向量数据。
 4. 按 `c` 查看总量，必要时按 `n` 翻页继续核对。

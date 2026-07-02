@@ -263,7 +263,7 @@ class OpenVikingAPIClient:
 
     def list_memory_files(self, memory_type: str) -> List[str]:
         try:
-            uri = f"viking://user/default/memories/{memory_type}"
+            uri = f"wfs://user/default/memories/{memory_type}"
             resp = requests.get(
                 f"{self.server_url}/api/v1/fs/ls",
                 headers=self.headers,
@@ -478,7 +478,7 @@ class MemoryV2TestSuite:
         before_profile_content = before_files.get("_remote_profile_content", "")
 
         if memory_type == "profile":
-            profile_uri = "viking://user/default/memories/profile.md"
+            profile_uri = "wfs://user/default/memories/profile.md"
             content = self.api.read_memory_file(profile_uri)
             if content is not None:
                 result["all_files"].append(profile_uri)
@@ -789,7 +789,7 @@ class MemoryV2TestSuite:
                 }
                 if scenario["memory_type"] == "profile":
                     before_memory_files["_remote_profile_content"] = (
-                        self.api.read_memory_file("viking://user/default/memories/profile.md") or ""
+                        self.api.read_memory_file("wfs://user/default/memories/profile.md") or ""
                     )
                 if scenario["memory_type"] == "skills":
                     before_alt_uris = self.api.list_memory_files("patterns")

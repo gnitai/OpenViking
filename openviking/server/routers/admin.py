@@ -149,10 +149,10 @@ async def delete_account(
     # Cascade: remove AGFS data for the account
     viking_fs = get_viking_fs()
     account_prefixes = [
-        "viking://user/",
-        "viking://agent/",
-        "viking://session/",
-        "viking://resources/",
+        "wfs://user/",
+        "wfs://agent/",
+        "wfs://session/",
+        "wfs://resources/",
     ]
     for prefix in account_prefixes:
         try:
@@ -246,7 +246,7 @@ async def list_agents(
     )
 
     try:
-        entries = await viking_fs.ls("viking://agent", ctx=list_ctx, output="original")
+        entries = await viking_fs.ls("wfs://agent", ctx=list_ctx, output="original")
     except NotFoundError:
         entries = []
 
@@ -260,7 +260,7 @@ async def list_agents(
         agents.append(
             {
                 "agent_id": agent_id,
-                "uri": f"viking://agent/{agent_id}",
+                "uri": f"wfs://agent/{agent_id}",
             }
         )
 

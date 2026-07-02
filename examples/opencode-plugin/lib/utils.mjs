@@ -315,9 +315,9 @@ export function unwrapResponse(response) {
 }
 
 export function validateVikingUri(uri, toolName = "tool") {
-  if (typeof uri !== "string" || !uri.startsWith("viking://")) {
+  if (typeof uri !== "string" || !uri.startsWith("wfs://")) {
     log("ERROR", toolName, "Invalid Viking URI", { uri })
-    return 'Error: Invalid URI format. Must start with "viking://".'
+    return 'Error: Invalid URI format. Must start with "wfs://".'
   }
   return null
 }

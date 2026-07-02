@@ -22,7 +22,7 @@ class TestAddResource:
         result = await client.add_resource(path=str(sample_markdown_file), reason="Test resource")
 
         assert "root_uri" in result
-        assert result["root_uri"].startswith("viking://")
+        assert result["root_uri"].startswith("wfs://")
 
     async def test_add_resource_with_wait(
         self, client: AsyncOpenViking, sample_markdown_file: Path
@@ -52,7 +52,7 @@ class TestAddResource:
             seen["telemetry_id"] = telemetry.telemetry_id
             seen["kwargs"] = kwargs
             return {
-                "root_uri": "viking://resources/demo",
+                "root_uri": "wfs://resources/demo",
                 "queue_status": queue_status,
             }
 
@@ -70,7 +70,7 @@ class TestAddResource:
             telemetry=False,
         )
 
-        assert result["root_uri"] == "viking://resources/demo"
+        assert result["root_uri"] == "wfs://resources/demo"
         assert result["queue_status"] == queue_status
         assert seen["enabled"] is True
         assert str(seen["telemetry_id"]).startswith("tm_")
@@ -93,7 +93,7 @@ class TestAddResource:
         """Test adding resource to specified target"""
         result = await client.add_resource(
             path=str(sample_markdown_file),
-            to="viking://resources/custom/sample",
+            to="wfs://resources/custom/sample",
             reason="Test resource",
         )
 
@@ -149,7 +149,7 @@ class TestWatchIntervalParameter:
         with patch.object(
             client._client, "add_resource", new_callable=AsyncMock
         ) as mock_add_resource:
-            mock_add_resource.return_value = {"root_uri": "viking://test"}
+            mock_add_resource.return_value = {"root_uri": "wfs://test"}
 
             await client.add_resource(path=str(sample_markdown_file), reason="Test")
 
@@ -163,7 +163,7 @@ class TestWatchIntervalParameter:
         with patch.object(
             client._client, "add_resource", new_callable=AsyncMock
         ) as mock_add_resource:
-            mock_add_resource.return_value = {"root_uri": "viking://test"}
+            mock_add_resource.return_value = {"root_uri": "wfs://test"}
 
             await client.add_resource(
                 path=str(sample_markdown_file),
@@ -181,7 +181,7 @@ class TestWatchIntervalParameter:
         from openviking.client import LocalClient
 
         with patch.object(LocalClient, "add_resource", new_callable=AsyncMock) as mock_add_resource:
-            mock_add_resource.return_value = {"root_uri": "viking://test"}
+            mock_add_resource.return_value = {"root_uri": "wfs://test"}
 
             from openviking import AsyncOpenViking
 

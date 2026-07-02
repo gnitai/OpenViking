@@ -22,7 +22,7 @@ Do not treat those messages as normal conversation. They are explicit operator c
   Manual sync. Read OpenClaw's `sessions.json`, sync eligible chat transcripts to OpenViking, then commit each session when new messages exist.
 
 - `ov recall <query>`
-  Manual recall. Search OpenViking under the default user root URI, `viking://user/default`.
+  Manual recall. Search OpenViking under the default user root URI, `wfs://user/default`.
 
 ## Sync Behavior
 

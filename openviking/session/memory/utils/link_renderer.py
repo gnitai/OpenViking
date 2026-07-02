@@ -48,7 +48,7 @@ class LinkRenderer:
 
         Args:
             content: Plain markdown body.
-            source_uri: The viking:// URI of the file being written.
+            source_uri: The wfs:// URI of the file being written.
             links: List of link dicts (from links + backlinks in MEMORY_FIELDS).
         """
         eligible = [l for l in links if l.get("match_text")]
@@ -91,7 +91,7 @@ class LinkRenderer:
     def strip_links(content: str) -> str:
         """Remove relative markdown links, keeping only the link text.
 
-        External links, viking:// links, anchor links, and absolute-path links are preserved.
+        External links, wfs:// links, anchor links, and absolute-path links are preserved.
         """
 
         def _replace_link(m: re.Match) -> str:
@@ -108,7 +108,7 @@ class LinkRenderer:
 
     @staticmethod
     def relative_path(source_uri: str, target_uri: str) -> Optional[str]:
-        """Compute a relative path from source_uri to target_uri in the viking:// namespace.
+        """Compute a relative path from source_uri to target_uri in the wfs:// namespace.
 
         Returns None if the URIs are in incompatible scopes (e.g. user vs agent).
         """

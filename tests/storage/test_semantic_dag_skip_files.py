@@ -39,7 +39,7 @@ class _FakeVikingFS:
         self.writes.append((path, content))
 
     def _uri_to_path(self, uri, ctx=None):
-        return uri.replace("viking://", "/local/acc1/")
+        return uri.replace("wfs://", "/local/acc1/")
 
 
 class _FakeProcessor:
@@ -91,7 +91,7 @@ class _DummyTracker:
 async def test_messages_jsonl_excluded_from_summary(monkeypatch):
     """messages.jsonl should be skipped by _list_dir and never summarized."""
     _mock_transaction_layer(monkeypatch)
-    root_uri = "viking://session/test-session"
+    root_uri = "wfs://session/test-session"
     tree = {
         root_uri: [
             {"name": "messages.jsonl", "isDir": False},
@@ -126,7 +126,7 @@ async def test_messages_jsonl_excluded_from_summary(monkeypatch):
 async def test_messages_jsonl_excluded_in_subdirectory(monkeypatch):
     """messages.jsonl in a subdirectory should also be skipped."""
     _mock_transaction_layer(monkeypatch)
-    root_uri = "viking://session/test-session"
+    root_uri = "wfs://session/test-session"
     tree = {
         root_uri: [
             {"name": "subdir", "isDir": True},

@@ -55,7 +55,7 @@ class TestMemoryUpdateResult:
     def test_add_written(self):
         """Test adding written URI."""
         result = MemoryUpdateResult()
-        result.add_written("viking://user/test/memories/profile.md")
+        result.add_written("wfs://user/test/memories/profile.md")
 
         assert len(result.written_uris) == 1
         assert result.has_changes() is True
@@ -63,7 +63,7 @@ class TestMemoryUpdateResult:
     def test_add_edited(self):
         """Test adding edited URI."""
         result = MemoryUpdateResult()
-        result.add_edited("viking://user/test/memories/profile.md")
+        result.add_edited("wfs://user/test/memories/profile.md")
 
         assert len(result.edited_uris) == 1
         assert result.has_changes() is True
@@ -71,7 +71,7 @@ class TestMemoryUpdateResult:
     def test_add_deleted(self):
         """Test adding deleted URI."""
         result = MemoryUpdateResult()
-        result.add_deleted("viking://user/test/memories/to_delete.md")
+        result.add_deleted("wfs://user/test/memories/to_delete.md")
 
         assert len(result.deleted_uris) == 1
         assert result.has_changes() is True
@@ -99,7 +99,7 @@ class TestMemoryUpdater:
         )
 
         assert extract_context.page_id_map is not None
-        page_id = extract_context.page_id_map.get_page_id("viking://user/a/memories/profile.md")
+        page_id = extract_context.page_id_map.get_page_id("wfs://user/a/memories/profile.md")
         assert page_id == 1
 
     def test_create(self):
@@ -132,7 +132,7 @@ class TestMemoryUpdater:
         registry.get.return_value = MemoryTypeSchema(
             memory_type="entities",
             description="entity memory",
-            directory="viking://user/{{ user_space }}/memories/entities",
+            directory="wfs://user/{{ user_space }}/memories/entities",
             filename_template="{{ name }}.md",
             fields=[],
         )
@@ -143,8 +143,8 @@ class TestMemoryUpdater:
         updater._vectorize_memories = AsyncMock()
         updater.generate_overview = AsyncMock()
 
-        alice_uri = "viking://user/alice/memories/entities/SharedFact.md"
-        bob_uri = "viking://user/bob/memories/entities/SharedFact.md"
+        alice_uri = "wfs://user/alice/memories/entities/SharedFact.md"
+        bob_uri = "wfs://user/bob/memories/entities/SharedFact.md"
         operation = ResolvedOperation(
             memory_fields={"name": "SharedFact", "content": "shared content"},
             memory_type="entities",
@@ -181,7 +181,7 @@ class TestMemoryUpdater:
         registry.get.return_value = MemoryTypeSchema(
             memory_type="entities",
             description="entity memory",
-            directory="viking://user/{{ user_space }}/memories/entities",
+            directory="wfs://user/{{ user_space }}/memories/entities",
             filename_template="{{ name }}.md",
             fields=[],
         )
@@ -215,9 +215,9 @@ class TestMemoryUpdater:
                     isolate_user_scope_by_agent=True,
                     isolate_agent_scope_by_user=False,
                 ),
-                "viking://user/{{ user_space }}/memories/preferences",
-                "viking://user/alice/agent/bot/memories/preferences/theme.md",
-                "viking://user/alice/agent/bot/memories/preferences",
+                "wfs://user/{{ user_space }}/memories/preferences",
+                "wfs://user/alice/agent/bot/memories/preferences/theme.md",
+                "wfs://user/alice/agent/bot/memories/preferences",
                 "preferences",
             ),
             (
@@ -225,9 +225,9 @@ class TestMemoryUpdater:
                     isolate_user_scope_by_agent=False,
                     isolate_agent_scope_by_user=True,
                 ),
-                "viking://agent/{{ agent_space }}/memories/tools",
-                "viking://agent/bot/user/alice/memories/tools/web_search.md",
-                "viking://agent/bot/user/alice/memories/tools",
+                "wfs://agent/{{ agent_space }}/memories/tools",
+                "wfs://agent/bot/user/alice/memories/tools/web_search.md",
+                "wfs://agent/bot/user/alice/memories/tools",
                 "tools",
             ),
         ],
@@ -288,13 +288,13 @@ class TestMemoryUpdater:
         )
     @pytest.mark.asyncio
     async def test_apply_operations_skips_link_updates_for_deleted_uris(self, monkeypatch):
-        deleted_uri = "viking://agent/agent_sample_3/memories/experiences/old.md"
-        written_uri = "viking://agent/agent_sample_3/memories/experiences/new.md"
+        deleted_uri = "wfs://agent/agent_sample_3/memories/experiences/old.md"
+        written_uri = "wfs://agent/agent_sample_3/memories/experiences/new.md"
 
         schema = MemoryTypeSchema(
             memory_type="experiences",
             description="experience memory",
-            directory="viking://agent/{{ agent_space }}/memories/experiences",
+            directory="wfs://agent/{{ agent_space }}/memories/experiences",
             filename_template="{{ experience_name }}.md",
             fields=[],
             overview_template="overview",
@@ -349,14 +349,14 @@ class TestMemoryUpdater:
 
     @pytest.mark.asyncio
     async def test_apply_operations_routes_backlinks_to_matching_uri_only(self):
-        caroline_uri = "viking://user/Caroline/memories/events/2023/05/08/career_education_planning.md"
-        melanie_uri = "viking://user/Melanie/memories/events/2023/05/08/career_education_planning.md"
-        profile_uri = "viking://user/Caroline/memories/profile.md"
+        caroline_uri = "wfs://user/Caroline/memories/events/2023/05/08/career_education_planning.md"
+        melanie_uri = "wfs://user/Melanie/memories/events/2023/05/08/career_education_planning.md"
+        profile_uri = "wfs://user/Caroline/memories/profile.md"
 
         schema = MemoryTypeSchema(
             memory_type="events",
             description="event memory",
-            directory="viking://user/{{ user_space }}/memories/events/{{ year }}/{{ month }}/{{ day }}",
+            directory="wfs://user/{{ user_space }}/memories/events/{{ year }}/{{ month }}/{{ day }}",
             filename_template="{{ event_name }}.md",
             fields=[],
             overview_template="overview",
@@ -482,7 +482,7 @@ Line 4"""
         op = ResolvedOperation(
             memory_fields={"content": patch},
             memory_type="test",
-            uris=["viking://test/test.md"],
+            uris=["wfs://test/test.md"],
         )
         await updater._apply_upsert(op, mock_ctx)
 
@@ -528,7 +528,7 @@ Goodbye"""
         op = ResolvedOperation(
             memory_fields={"content": patch_dict},
             memory_type="test",
-            uris=["viking://test/test.md"],
+            uris=["wfs://test/test.md"],
         )
         await updater._apply_upsert(op, mock_ctx)
 
@@ -544,14 +544,14 @@ Goodbye"""
         """Patch content should match the stripped read-tool view, not raw markdown links."""
         updater = self._make_updater_with_registry()
 
-        uri = "viking://test/test.md"
+        uri = "wfs://test/test.md"
         original_full_content = (
             "# [John](entities/fitness/beginner-yoga.md)\n"
             "- [爱好](entities/hobbies/reading.md)：游戏开发、音乐演奏、公益活动\n\n"
             "<!-- MEMORY_FIELDS\n"
             '{"memory_type": "test", "name": "test", "links": ['
-            '{"from_uri": "viking://test/test.md", "to_uri": "viking://test/entities/fitness/beginner-yoga.md", "match_text": "John"}, '
-            '{"from_uri": "viking://test/test.md", "to_uri": "viking://test/entities/hobbies/reading.md", "match_text": "爱好"}'
+            '{"from_uri": "wfs://test/test.md", "to_uri": "wfs://test/entities/fitness/beginner-yoga.md", "match_text": "John"}, '
+            '{"from_uri": "wfs://test/test.md", "to_uri": "wfs://test/entities/hobbies/reading.md", "match_text": "爱好"}'
             "]}\n"
             "-->"
         )
@@ -601,7 +601,7 @@ class TestConsecutivePatchesSameURI:
         The second upsert must read the content written by the first from disk,
         not the stale old_memory_file_content from before the batch started.
         """
-        uri = "viking://user/test/memories/notes.md"
+        uri = "wfs://user/test/memories/notes.md"
         memory_type = "notes"
 
         content_field = MemoryField(
@@ -663,7 +663,7 @@ class TestConsecutivePatchesSameURI:
     @pytest.mark.asyncio
     async def test_apply_upsert_skips_failed_field_and_keeps_other_fields(self, monkeypatch):
         memory_type = "notes"
-        uri = "viking://user/test/memories/notes/demo.md"
+        uri = "wfs://user/test/memories/notes/demo.md"
 
         schema = MemoryTypeSchema(
             memory_type=memory_type,
@@ -736,7 +736,7 @@ class TestConsecutivePatchesSameURI:
     @pytest.mark.asyncio
     async def test_apply_upsert_logs_patch_failure_from_memory_updater_only(self, monkeypatch):
         memory_type = "notes"
-        uri = "viking://user/test/memories/notes/demo.md"
+        uri = "wfs://user/test/memories/notes/demo.md"
 
         schema = MemoryTypeSchema(
             memory_type=memory_type,
@@ -799,7 +799,7 @@ class TestConsecutivePatchesSameURI:
     async def test_two_patches_same_uri_second_sees_first_patch(self):
         """Two patches to the same URI: second SEARCH/REPLACE must apply
         against the result of the first, not the original content."""
-        uri = "viking://user/test/memories/notes.md"
+        uri = "wfs://user/test/memories/notes.md"
         memory_type = "notes"
 
         content_field = MemoryField(

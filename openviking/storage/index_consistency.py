@@ -112,7 +112,7 @@ def _directory_candidates(
     entries: list[dict[str, Any]],
 ) -> list[tuple[str, str]]:
     candidates: list[tuple[str, str]] = []
-    if root_uri != "viking://" and _is_index_scope(root_uri):
+    if root_uri != "wfs://" and _is_index_scope(root_uri):
         candidates.append((root_uri, ""))
 
     for entry in entries:

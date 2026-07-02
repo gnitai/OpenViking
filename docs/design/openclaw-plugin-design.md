@@ -38,10 +38,10 @@ OpenClaw Plugin 将 OpenViking 注册为 OpenClaw 的 Context Engine，全面接
       │         Archive           Memories                 │
       │        (归档原文)      (长期记忆提取)                │
       │                                                    │
-      │  viking://session/{id}                             │
-      │  viking://user/memories                            │
-      │  viking://agent/memories                           │
-      │  viking://resources                                │
+      │  wfs://session/{id}                             │
+      │  wfs://user/memories                            │
+      │  wfs://agent/memories                           │
+      │  wfs://resources                                │
       └────────────────────────────────────────────────────┘
 ```
 
@@ -101,8 +101,8 @@ assemble(sessionId, messages, tokenBudget, runtimeContext)
     │   ├── 已含 AUTO_RECALL_SOURCE_MARKER → 跳过（防重复注入）
     │   ├── prepareRecallQuery(userMessage) → query（最大 4000 chars）
     │   ├── buildAutoRecallContext
-    │   │   ├── 并行检索 viking://user/memories
-    │   │   ├── 并行检索 viking://agent/memories
+    │   │   ├── 并行检索 wfs://user/memories
+    │   │   ├── 并行检索 wfs://agent/memories
     │   │   └── 过滤：level=2、score≥threshold、总chars≤recallMaxInjectedChars
     │   └── prependRecallToLatestUserMessage → 前插 <relevant-memories> 块
     │
@@ -221,8 +221,8 @@ runtimeContext.agentId
 | `memory_recall` | 主动检索 user/agent memories（可选 resources） |
 | `memory_store` | 用户明确要求记住某内容，立即写入并同步 commit |
 | `memory_forget` | 按 URI 删除，或 query 搜索后高置信度自动删除 |
-| `add_resource` | 导入文档 / URL / Git 仓库到 viking://resources |
-| `add_skill` | 导入 SKILL.md 到 viking://agent/skills |
+| `add_resource` | 导入文档 / URL / Git 仓库到 wfs://resources |
+| `add_skill` | 导入 SKILL.md 到 wfs://agent/skills |
 | `ov_search` | 搜索 resources + agent/skills |
 | `ov_archive_search` | 关键词 grep 当前 session 所有归档原始消息 |
 | `ov_archive_expand` | 按 archive_id 展开归档原始消息列表 |
@@ -231,9 +231,9 @@ runtimeContext.agentId
 
 ```
 并行检索
-    ├── viking://user/memories
-    ├── viking://agent/memories
-    └── viking://resources（需 recallResources=true）
+    ├── wfs://user/memories
+    ├── wfs://agent/memories
+    └── wfs://resources（需 recallResources=true）
 
 后处理：去重 → 只保留 level=2 叶子节点 → score 过滤 → 按 query 重排
 ```

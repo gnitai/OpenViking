@@ -123,11 +123,11 @@ function pickFirstNonEmpty(values: Array<unknown>): unknown {
 
 export function sameUri(left: string, right: string): boolean {
   const leftNormalized =
-    left.endsWith('/') || left === 'viking://'
+    left.endsWith('/') || left === 'wfs://'
       ? normalizeDirUri(left)
       : normalizeFileUri(left)
   const rightNormalized =
-    right.endsWith('/') || right === 'viking://'
+    right.endsWith('/') || right === 'wfs://'
       ? normalizeDirUri(right)
       : normalizeFileUri(right)
 

@@ -15,7 +15,7 @@ code_search   →  跨目录查找符号位置
 code_expand   →  展开完整实现代码
 ```
 
-**仅支持 `viking://` URI**（不支持直接本地路径），与现有 `read`、`grep`、`list` 等工具保持一致，符合服务端既有安全边界（参见 `local_input_guard.py`：HTTP MCP 端拒绝直接的本地文件系统路径）。需要分析本地代码时，先用 `add_resource` 入库为 `viking://` 资源即可。
+**仅支持 `wfs://` URI**（不支持直接本地路径），与现有 `read`、`grep`、`list` 等工具保持一致，符合服务端既有安全边界（参见 `local_input_guard.py`：HTTP MCP 端拒绝直接的本地文件系统路径）。需要分析本地代码时，先用 `add_resource` 入库为 `wfs://` 资源即可。
 
 ---
 
@@ -135,11 +135,11 @@ def expand_symbol(content: str, file_name: str, symbol: str) -> str:
 @mcp.tool()
 async def code_outline(uri: str) -> str:
     """展示源文件的符号结构——类、函数、方法及其行号范围。
-    uri 必须是 viking:// URI。"""
+    uri 必须是 wfs:// URI。"""
 
 @mcp.tool()
 async def code_search(query: str, uri: str) -> str:
-    """在 viking:// 目录下按名称搜索符号。query 对符号名做大小写不敏感
+    """在 wfs:// 目录下按名称搜索符号。query 对符号名做大小写不敏感
     子串匹配，返回匹配符号及其文件位置和行号。最多扫描 200 个文件。
     uri 必填——不提供默认值以避免误扫整个 VikingFS。"""
 
@@ -153,13 +153,13 @@ async def code_expand(uri: str, symbol: str) -> str:
 
 ## URI 解析
 
-仅处理 `viking://` URI，通过 `service.fs` 调用：
+仅处理 `wfs://` URI，通过 `service.fs` 调用：
 
 ```
-viking://resources/owner/repo/src/auth.py
+wfs://resources/owner/repo/src/auth.py
   → service.fs.read(uri, ctx=ctx)                        # 文件内容
 
-viking://resources/owner/repo/src/
+wfs://resources/owner/repo/src/
   → service.fs.ls(uri, ctx=ctx, recursive=True, output="original")
     返回 dict 列表，字段：name、isDir、uri（camelCase）
 ```
@@ -270,7 +270,7 @@ def authenticate(self, token: str) -> Optional[User]:
 | 符号未找到 | expand | `"在 {file_name} 中未找到符号 '{symbol}'"` |
 | URI 不存在 | 全部 | 透传 `AGFSNotFoundError` 或 `FileNotFoundError` |
 | 目录为空 / 无可解析文件 | search | `"在 {uri} 中未找到支持的源文件"` |
-| 传入非 viking:// URI | 全部 | `"仅支持 viking:// URI；本地路径请先 add_resource"` |
+| 传入非 wfs:// URI | 全部 | `"仅支持 wfs:// URI；本地路径请先 add_resource"` |
 
 ---
 
@@ -290,4 +290,4 @@ def authenticate(self, token: str) -> Optional[User]:
 | `openviking/parse/parsers/code/ast/languages/php.py` | 读取节点行号（2 处） |
 | `openviking/parse/parsers/code/ast/languages/lua.py` | 读取节点行号（2 处） |
 | `openviking/parse/parsers/code/ast/code_tools.py` | **新增文件** |
-| `openviking/server/mcp_endpoint.py` | 新增 3 个工具 + viking:// 校验辅助 |
+| `openviking/server/mcp_endpoint.py` | 新增 3 个工具 + wfs:// 校验辅助 |

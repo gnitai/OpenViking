@@ -38,7 +38,7 @@ class TestExportOvpack:
 
         # Export entire resource directory
         export_path = temp_dir / "dir_export.ovpack"
-        result = await client.export_ovpack("viking://resources/", str(export_path))
+        result = await client.export_ovpack("wfs://resources/", str(export_path))
 
         assert isinstance(result, str)
 
@@ -55,7 +55,7 @@ class TestImportOvpack:
         await client.export_ovpack(uri, str(export_path))
 
         # Import to new location
-        import_uri = await client.import_ovpack(str(export_path), "viking://resources/imported/")
+        import_uri = await client.import_ovpack(str(export_path), "wfs://resources/imported/")
 
         assert isinstance(import_uri, str)
         assert "imported" in import_uri
@@ -69,12 +69,12 @@ class TestImportOvpack:
         await client.export_ovpack(uri, str(export_path))
 
         # First import
-        await client.import_ovpack(str(export_path), "viking://resources/overwrite_test/")
+        await client.import_ovpack(str(export_path), "wfs://resources/overwrite_test/")
 
         # Second import overwrites the existing root.
         import_uri = await client.import_ovpack(
             str(export_path),
-            "viking://resources/overwrite_test/",
+            "wfs://resources/overwrite_test/",
             on_conflict="overwrite",
         )
 
@@ -104,7 +104,7 @@ class TestImportOvpack:
         await client.rm(original_uri, recursive=True)
 
         # Import
-        import_uri = await client.import_ovpack(str(export_path), "viking://resources/roundtrip/")
+        import_uri = await client.import_ovpack(str(export_path), "wfs://resources/roundtrip/")
 
         # Read imported content
         imported_content = ""
@@ -124,7 +124,7 @@ class TestImportOvpack:
             "format_version": 2,
             "root": {
                 "name": "pkg",
-                "uri": "viking://resources/pkg",
+                "uri": "wfs://resources/pkg",
                 "scope": "resources",
             },
             "entries": [{"path": "", "kind": "directory"}],
@@ -190,4 +190,4 @@ class TestImportOvpack:
         self._build_ovpack(ovpack_path, entries)
 
         with pytest.raises(ValueError, match=error_pattern):
-            await client.import_ovpack(str(ovpack_path), "viking://resources/security/")
+            await client.import_ovpack(str(ovpack_path), "wfs://resources/security/")

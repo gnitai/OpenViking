@@ -251,13 +251,13 @@ Content-Type: application/json
 curl -X POST http://localhost:1933/api/v1/system/consistency \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
-  -d '{"uri":"viking://resources/my-project"}'
+  -d '{"uri":"wfs://resources/my-project"}'
 ```
 
 **Python SDK**
 
 ```python
-report = client.check_consistency("viking://resources/my-project")
+report = client.check_consistency("wfs://resources/my-project")
 print(report["ok"])
 print(report["missing_records"])
 ```
@@ -265,7 +265,7 @@ print(report["missing_records"])
 **CLI**
 
 ```bash
-ov system consistency viking://resources/my-project
+ov system consistency wfs://resources/my-project
 ```
 
 **Response Example**
@@ -280,7 +280,7 @@ ov system consistency viking://resources/my-project
 	    "missing_records_truncated": false,
 	    "missing_records": [
       {
-        "uri": "viking://resources/my-project/README.md",
+        "uri": "wfs://resources/my-project/README.md",
         "path": "README.md",
         "level": 2,
         "key": "README.md#level=2"
@@ -374,7 +374,7 @@ ov system wait --timeout 60
 
 Reindex semantic and/or vector artifacts for existing content already stored in OpenViking. This is an operational maintenance API intended for scenarios such as embedding model changes, VLM changes, vector store rebuild, or post-upgrade repair of existing indexes.
 
-This API operates on existing `viking://...` content. It does not import new files. For normal ingestion, use [Resources](02-resources.md).
+This API operates on existing `wfs://...` content. It does not import new files. For normal ingestion, use [Resources](02-resources.md).
 
 **Authentication**
 
@@ -394,19 +394,19 @@ The HTTP request body rejects unknown fields. `uri` may use OpenViking path vari
 
 **Supported URI scopes**
 
-- `viking://`
-- `viking://user`
-- `viking://user/<user_id>`
-- `viking://agent`
-- `viking://agent/<agent_id>`
-- `viking://resources`
-- `viking://resources/...`
-- `viking://user/<user_id>/memories/...`
-- `viking://agent/<agent_id>/memories/...`
-- `viking://agent/<agent_id>/skills`
-- `viking://agent/<agent_id>/skills/<skill_name>`
+- `wfs://`
+- `wfs://user`
+- `wfs://user/<user_id>`
+- `wfs://agent`
+- `wfs://agent/<agent_id>`
+- `wfs://resources`
+- `wfs://resources/...`
+- `wfs://user/<user_id>/memories/...`
+- `wfs://agent/<agent_id>/memories/...`
+- `wfs://agent/<agent_id>/skills`
+- `wfs://agent/<agent_id>/skills/<skill_name>`
 
-`viking://session/...` is not supported by `reindex()`.
+`wfs://session/...` is not supported by `reindex()`.
 
 **Modes**
 
@@ -421,7 +421,7 @@ For `semantic_and_vectors`, semantic generation and vector rebuilding are sequen
 
 ```python
 result = client.reindex(
-    uri="viking://resources",
+    uri="wfs://resources",
     mode="vectors_only",
     wait=True,
 )
@@ -430,7 +430,7 @@ print(result)
 
 ```python
 result = client.reindex(
-    uri="viking://agent/default/skills",
+    uri="wfs://agent/default/skills",
     mode="semantic_and_vectors",
     wait=False,
 )
@@ -451,7 +451,7 @@ curl -X POST http://localhost:1933/api/v1/content/reindex \
   -H "X-API-Key: your-key" \
   -H "X-OpenViking-Account: default" \
   -d '{
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "wait": true
   }'
@@ -460,11 +460,11 @@ curl -X POST http://localhost:1933/api/v1/content/reindex \
 **CLI**
 
 ```bash
-openviking reindex viking://resources --mode vectors_only
+openviking reindex wfs://resources --mode vectors_only
 ```
 
 ```bash
-openviking reindex viking://agent/default/skills --mode semantic_and_vectors --wait false
+openviking reindex wfs://agent/default/skills --mode semantic_and_vectors --wait false
 ```
 
 **Synchronous response (`wait=true`)**
@@ -473,7 +473,7 @@ openviking reindex viking://agent/default/skills --mode semantic_and_vectors --w
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "status": "completed",
     "object_type": "resource",
@@ -494,7 +494,7 @@ openviking reindex viking://agent/default/skills --mode semantic_and_vectors --w
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources",
+    "uri": "wfs://resources",
     "mode": "vectors_only",
     "object_type": "resource",
     "status": "accepted",
@@ -515,7 +515,7 @@ curl -X GET http://localhost:1933/api/v1/tasks/task_xxx \
 Reindex background tasks use `task_type="admin_reindex"` and `resource_id` equal to the requested `uri`, so they can also be listed with:
 
 ```text
-GET /api/v1/tasks?task_type=admin_reindex&resource_id=viking://resources
+GET /api/v1/tasks?task_type=admin_reindex&resource_id=wfs://resources
 ```
 
 Task records are kept in memory and can expire or be lost on server restart.
@@ -539,8 +539,8 @@ Task records are kept in memory and can expire or be lost on server restart.
 **Behavior notes**
 
 - Reindex is non-destructive. It uses rebuild/upsert behavior and does not require dropping the vector collection first.
-- `viking://` reindex fans out to supported top-level namespaces and excludes `session`.
-- Namespace reindex operations such as `viking://user` or `viking://agent/default` propagate to their supported child content types.
+- `wfs://` reindex fans out to supported top-level namespaces and excludes `session`.
+- Namespace reindex operations such as `wfs://user` or `wfs://agent/default` propagate to their supported child content types.
 - `vectors_only` is the right mode when only the embedding model or vector index needs to be refreshed.
 - `semantic_and_vectors` is the right mode when semantic artifacts themselves must be regenerated before re-vectorization.
 - Only one reindex task can run for the same URI and owner at a time. A concurrent request for the same target returns a conflict.

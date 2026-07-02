@@ -75,7 +75,7 @@ class CodeRepositoryParser(BaseParser):
         ↓
     [TreeBuilder.finalize_from_temp()]
         - 从 source_path 解析出 "markwhen/gogetxueqiu"
-        - root_uri = "viking://resources/markwhen/gogetxueqiu"
+        - root_uri = "wfs://resources/markwhen/gogetxueqiu"
     """
 
     # Class constants imported from constants.py
@@ -161,7 +161,7 @@ class CodeRepositoryParser(BaseParser):
             # 3. Create VikingFS temp URI
             viking_fs = self._get_viking_fs()
             temp_viking_uri = self._create_temp_uri()
-            # The structure in temp should be: viking://temp/{uuid}/repository/...
+            # The structure in temp should be: wfs://temp/{uuid}/repository/...
             # Use simple name 'repository' for temp, TreeBuilder will rename it to org/repo later
             target_root_uri = f"{temp_viking_uri}/repository"
 

@@ -105,9 +105,9 @@ describe("formatMessageFaithful", () => {
   it("formats context parts", () => {
     const result = formatMessageFaithful({
       role: "assistant",
-      parts: [{ type: "context", uri: "viking://mem/1", abstract: "User prefers Python" }],
+      parts: [{ type: "context", uri: "wfs://mem/1", abstract: "User prefers Python" }],
     });
-    expect(result).toContain("[Context: viking://mem/1]");
+    expect(result).toContain("[Context: wfs://mem/1]");
     expect(result).toContain("User prefers Python");
   });
 

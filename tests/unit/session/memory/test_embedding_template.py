@@ -72,7 +72,7 @@ class TestEmbeddingTextConstruction:
         registry._types["entities"] = registry._parse_memory_type(
             {
                 "memory_type": "entities",
-                "directory": "viking://user/{{ user_space }}/memories/entities",
+                "directory": "wfs://user/{{ user_space }}/memories/entities",
                 "filename_template": "{{ name }}.md",
                 "embedding_template": "{{ category }} -> {{ name }} -> {{ content }}",
                 "fields": [
@@ -88,7 +88,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/entities/person/alice.md",
+                    uri="wfs://user/alice/memories/entities/person/alice.md",
                     memory_type="entities",
                     content="Plain body",
                     extra_fields={"category": "person", "name": "alice"},
@@ -98,7 +98,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/entities/person/alice.md")
+        result.add_written("wfs://user/alice/memories/entities/person/alice.md")
         ctx = SimpleNamespace(user=None, account_id="default")
 
         with (
@@ -113,7 +113,7 @@ class TestEmbeddingTextConstruction:
                 ctx,
                 extract_context=None,
                 uri_memory_type_map={
-                    "viking://user/alice/memories/entities/person/alice.md": "entities"
+                    "wfs://user/alice/memories/entities/person/alice.md": "entities"
                 },
             )
 
@@ -125,7 +125,7 @@ class TestEmbeddingTextConstruction:
         registry._types["entities"] = registry._parse_memory_type(
             {
                 "memory_type": "entities",
-                "directory": "viking://user/{{ user_space }}/memories/entities",
+                "directory": "wfs://user/{{ user_space }}/memories/entities",
                 "filename_template": "{{ name }}.md",
                 "embedding_template": "{{ category }} -> {{ name }} -> {{ content }}",
                 "fields": [
@@ -141,7 +141,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/entities/person/alice.md",
+                    uri="wfs://user/alice/memories/entities/person/alice.md",
                     memory_type="entities",
                     content="Plain body",
                     extra_fields={"category": "person", "name": "alice"},
@@ -151,7 +151,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/entities/person/alice.md")
+        result.add_written("wfs://user/alice/memories/entities/person/alice.md")
         ctx = SimpleNamespace(user=None, account_id="default")
 
         with patch.object(EmbeddingMsgConverter, "from_context") as mock_from_context:
@@ -163,7 +163,7 @@ class TestEmbeddingTextConstruction:
                 ctx,
                 extract_context=None,
                 uri_memory_type_map={
-                    "viking://user/alice/memories/entities/person/alice.md": "entities"
+                    "wfs://user/alice/memories/entities/person/alice.md": "entities"
                 },
             )
 
@@ -176,7 +176,7 @@ class TestEmbeddingTextConstruction:
         registry._types["notes"] = registry._parse_memory_type(
             {
                 "memory_type": "notes",
-                "directory": "viking://user/{{ user_space }}/memories/notes",
+                "directory": "wfs://user/{{ user_space }}/memories/notes",
                 "filename_template": "{{ slug }}.md",
                 "fields": [
                     {"name": "slug", "type": "string"},
@@ -190,7 +190,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/notes/example.md",
+                    uri="wfs://user/alice/memories/notes/example.md",
                     memory_type="notes",
                     content="Fallback plain body",
                     extra_fields={"slug": "example"},
@@ -200,7 +200,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/notes/example.md")
+        result.add_written("wfs://user/alice/memories/notes/example.md")
         ctx = SimpleNamespace(user=None, account_id="default")
 
         with patch.object(EmbeddingMsgConverter, "from_context") as mock_from_context:
@@ -211,7 +211,7 @@ class TestEmbeddingTextConstruction:
                 result,
                 ctx,
                 extract_context=None,
-                uri_memory_type_map={"viking://user/alice/memories/notes/example.md": "notes"},
+                uri_memory_type_map={"wfs://user/alice/memories/notes/example.md": "notes"},
             )
 
         vector_text = mock_from_context.call_args[0][0].get_vectorization_text()
@@ -223,7 +223,7 @@ class TestEmbeddingTextConstruction:
         registry._types["events"] = registry._parse_memory_type(
             {
                 "memory_type": "events",
-                "directory": "viking://user/{{ user_space }}/memories/events",
+                "directory": "wfs://user/{{ user_space }}/memories/events",
                 "filename_template": "{{ event_name }}.md",
                 "embedding_template": "{{ extract_context.get_year(ranges) }} {{ content }}",
                 "fields": [
@@ -239,7 +239,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/events/trip.md",
+                    uri="wfs://user/alice/memories/events/trip.md",
                     memory_type="events",
                     content="Trip summary",
                     extra_fields={"event_name": "trip", "ranges": "0-1"},
@@ -249,7 +249,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/events/trip.md")
+        result.add_written("wfs://user/alice/memories/events/trip.md")
         ctx = SimpleNamespace(user=None, account_id="default")
         extract_context = SimpleNamespace(get_year=lambda ranges: "2026")
 
@@ -261,7 +261,7 @@ class TestEmbeddingTextConstruction:
                 result,
                 ctx,
                 extract_context=extract_context,
-                uri_memory_type_map={"viking://user/alice/memories/events/trip.md": "events"},
+                uri_memory_type_map={"wfs://user/alice/memories/events/trip.md": "events"},
             )
 
         vector_text = mock_from_context.call_args[0][0].get_vectorization_text()
@@ -273,7 +273,7 @@ class TestEmbeddingTextConstruction:
         registry._types["events"] = registry._parse_memory_type(
             {
                 "memory_type": "events",
-                "directory": "viking://user/{{ user_space }}/memories/events",
+                "directory": "wfs://user/{{ user_space }}/memories/events",
                 "filename_template": "{{ event_name }}.md",
                 "embedding_template": "{{ extract_context.get_year(ranges) }} {{ content }}",
                 "fields": [
@@ -289,7 +289,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/events/trip.md",
+                    uri="wfs://user/alice/memories/events/trip.md",
                     memory_type="events",
                     content="Trip summary",
                     extra_fields={"event_name": "trip", "ranges": "0-1"},
@@ -299,7 +299,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/events/trip.md")
+        result.add_written("wfs://user/alice/memories/events/trip.md")
         ctx = SimpleNamespace(user=None, account_id="default")
 
         with patch.object(EmbeddingMsgConverter, "from_context") as mock_from_context:
@@ -310,7 +310,7 @@ class TestEmbeddingTextConstruction:
                 result,
                 ctx,
                 extract_context=None,
-                uri_memory_type_map={"viking://user/alice/memories/events/trip.md": "events"},
+                uri_memory_type_map={"wfs://user/alice/memories/events/trip.md": "events"},
             )
 
         vector_text = mock_from_context.call_args[0][0].get_vectorization_text()
@@ -322,7 +322,7 @@ class TestEmbeddingTextConstruction:
         registry._types["events"] = registry._parse_memory_type(
             {
                 "memory_type": "events",
-                "directory": "viking://user/{{ user_space }}/memories/events",
+                "directory": "wfs://user/{{ user_space }}/memories/events",
                 "filename_template": "{{ event_name }}.md",
                 "embedding_template": "{{ missing_field }} {{ content }}",
                 "fields": [
@@ -337,7 +337,7 @@ class TestEmbeddingTextConstruction:
         updater._viking_fs.read_file = AsyncMock(
             return_value=MemoryFileUtils.write(
                 MemoryFile(
-                    uri="viking://user/alice/memories/events/trip.md",
+                    uri="wfs://user/alice/memories/events/trip.md",
                     memory_type="events",
                     content="Trip summary",
                     extra_fields={"event_name": "trip"},
@@ -347,7 +347,7 @@ class TestEmbeddingTextConstruction:
         updater._vikingdb.enqueue_embedding_msg = AsyncMock(return_value=True)
 
         result = MemoryUpdateResult()
-        result.add_written("viking://user/alice/memories/events/trip.md")
+        result.add_written("wfs://user/alice/memories/events/trip.md")
         ctx = SimpleNamespace(user=None, account_id="default")
 
         with patch.object(EmbeddingMsgConverter, "from_context") as mock_from_context:
@@ -358,7 +358,7 @@ class TestEmbeddingTextConstruction:
                 result,
                 ctx,
                 extract_context=None,
-                uri_memory_type_map={"viking://user/alice/memories/events/trip.md": "events"},
+                uri_memory_type_map={"wfs://user/alice/memories/events/trip.md": "events"},
             )
 
         vector_text = mock_from_context.call_args[0][0].get_vectorization_text()

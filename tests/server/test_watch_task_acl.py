@@ -79,10 +79,10 @@ async def test_hidden_listing_filters_watch_task_control_files_for_non_root(
         },
         {"name": "public.txt", "isDir": False, "size": 5, "modTime": "2026-01-01T00:00:00+00:00"},
     ]
-    bare_viking_fs._path_to_uri = lambda path, ctx=None: f"viking://resources/{path.split('/')[-1]}"
+    bare_viking_fs._path_to_uri = lambda path, ctx=None: f"wfs://resources/{path.split('/')[-1]}"
 
     root_entries = await bare_viking_fs._ls_original(
-        "viking://resources",
+        "wfs://resources",
         show_all_hidden=True,
         ctx=root_ctx,
     )
@@ -91,16 +91,16 @@ async def test_hidden_listing_filters_watch_task_control_files_for_non_root(
         WATCH_TASK_STORAGE_URI,
         WATCH_TASK_STORAGE_BAK_URI,
         WATCH_TASK_STORAGE_TMP_URI,
-        "viking://resources/public.txt",
+        "wfs://resources/public.txt",
     }
 
     user_entries = await bare_viking_fs._ls_original(
-        "viking://resources",
+        "wfs://resources",
         show_all_hidden=True,
         ctx=user_ctx,
     )
     user_uris = {entry["uri"] for entry in user_entries}
-    assert "viking://resources/public.txt" in user_uris
+    assert "wfs://resources/public.txt" in user_uris
     assert WATCH_TASK_STORAGE_URI not in user_uris
     assert WATCH_TASK_STORAGE_BAK_URI not in user_uris
     assert WATCH_TASK_STORAGE_TMP_URI not in user_uris

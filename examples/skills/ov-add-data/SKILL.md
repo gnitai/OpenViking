@@ -6,7 +6,7 @@ compatibility: OpenViking CLI configured at `~/.openviking/ovcli.conf`
 
 # OpenViking (OV) `add-resource`
 
-The `ov add-resource` command imports external resources into OpenViking's context database — supporting local files, directories, URLs, and remote repositories. Resources are automatically processed with semantic analysis and organized under the `viking://resources/` namespace.
+The `ov add-resource` command imports external resources into OpenViking's context database — supporting local files, directories, URLs, and remote repositories. Resources are automatically processed with semantic analysis and organized under the `wfs://resources/` namespace.
 
 ## When to Use
 
@@ -66,18 +66,18 @@ ov add-resource https://example.com/docs --wait --timeout 60
 ov add-resource ./docs
 ```
 
-If you fire and forget, the command will return after the resource is completely downloaded/uploaded on server, and then the CLI will return the root URI of the imported resource. To check the status of the resource, you can use `ov ls` or `ov tree` to list the resources under root URI or `viking://resources/`.
+If you fire and forget, the command will return after the resource is completely downloaded/uploaded on server, and then the CLI will return the root URI of the imported resource. To check the status of the resource, you can use `ov ls` or `ov tree` to list the resources under root URI or `wfs://resources/`.
 
 ### Specify the target path
 
-By default, resources are imported under `viking://resources/`. Use `--to` or `--parent` to specify a target uri.
+By default, resources are imported under `wfs://resources/`. Use `--to` or `--parent` to specify a target uri.
 
 ```bash
-# The data will be imported as viking://resources/2026/2026-01-01/, which should not exist before
-ov add-resource /User/volcengine/Photo/Travels/2026/2026-01-01/ --to "viking://resources/2026/2026-01-01/"
+# The data will be imported as wfs://resources/2026/2026-01-01/, which should not exist before
+ov add-resource /User/volcengine/Photo/Travels/2026/2026-01-01/ --to "wfs://resources/2026/2026-01-01/"
 
-# The data will be imported under viking://resources/2026, which should exist and be a directory
-ov add-resource /User/volcengine/Photo/Travels/2026/2026-01-02/ --parent "viking://resources/2026/"
+# The data will be imported under wfs://resources/2026, which should exist and be a directory
+ov add-resource /User/volcengine/Photo/Travels/2026/2026-01-02/ --parent "wfs://resources/2026/"
 ```
 
 ## CLI Output
@@ -85,7 +85,7 @@ ov add-resource /User/volcengine/Photo/Travels/2026/2026-01-02/ --parent "viking
 Returns the root URI of the imported resource, like:
 
 ```
-root_uri  viking://resources/2026/2026-01-01
+root_uri  wfs://resources/2026/2026-01-01
 ```
 
 ## CLI Prerequisites
@@ -162,7 +162,7 @@ ov add-memory '[
 
 # OpenViking (OV) `add-skill`
 
-The `ov add-skill` command adds agent capabilities to OpenViking — supporting SKILL.md files, MCP tool definitions, and raw skill content. Skills are automatically processed and organized under the `viking://agent/skills/` namespace, making them discoverable and usable by agents.
+The `ov add-skill` command adds agent capabilities to OpenViking — supporting SKILL.md files, MCP tool definitions, and raw skill content. Skills are automatically processed and organized under the `wfs://agent/skills/` namespace, making them discoverable and usable by agents.
 
 ## When to Use
 
@@ -208,7 +208,7 @@ ov add-skill ./skills/my-skill/
 Returns the URI of the added skill, like:
 
 ```
-uri  viking://agent/skills/my-skill/
+uri  wfs://agent/skills/my-skill/
 ```
 
 ## SKILL.md Format

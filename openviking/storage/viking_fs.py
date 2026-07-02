@@ -5,7 +5,7 @@ VikingFS: OpenViking file system abstraction layer
 
 Encapsulates AGFSClient, providing file operation interface based on Viking URI.
 Responsibilities:
-- URI conversion (viking:// <-> /local/)
+- URI conversion (wfs:// <-> /local/)
 - L0/L1 reading (.abstract.md, .overview.md)
 - Relation management (.relations.json)
 - Semantic search (vector retrieval + rerank)
@@ -297,8 +297,8 @@ class VikingFS:
 
     @staticmethod
     def _normalize_uri(uri: str) -> str:
-        """Normalize short-format URIs to the canonical viking:// form."""
-        if uri.startswith("viking://"):
+        """Normalize short-format URIs to the canonical wfs:// form."""
+        if uri.startswith("wfs://"):
             return uri
         return VikingURI.normalize(uri)
 
@@ -306,7 +306,7 @@ class VikingFS:
     def _normalized_uri_parts(cls, uri: str) -> tuple[str, List[str]]:
         """Normalize a URI and reject ambiguous or platform-specific path traversal forms."""
         normalized = cls._normalize_uri(uri)
-        parts = [p for p in normalized[len("viking://") :].strip("/").split("/") if p]
+        parts = [p for p in normalized[len("wfs://") :].strip("/").split("/") if p]
 
         for part in parts:
             if part in {".", ".."}:
@@ -337,7 +337,7 @@ class VikingFS:
         self._ensure_access(uri, ctx)
         real_ctx = self._ctx_or_default(ctx)
         normalized_uri, _ = self._normalized_uri_parts(uri)
-        if real_ctx.role != Role.ROOT and normalized_uri.rstrip("/") == "viking://temp":
+        if real_ctx.role != Role.ROOT and normalized_uri.rstrip("/") == "wfs://temp":
             raise PermissionDeniedError(
                 "Temp root is read-only for non-root users",
                 resource=normalized_uri,
@@ -637,7 +637,7 @@ class VikingFS:
             _collect_ms = (time.monotonic() - _t) * 1000
 
             # Check if it's temp directory (files already encrypted)
-            is_temp = old_uri.startswith("viking://temp/")
+            is_temp = old_uri.startswith("wfs://temp/")
 
             # Copy source to destination (source still intact), or — on S3
             # Express — move it natively via RenameObject (no data copy).
@@ -1144,7 +1144,7 @@ class VikingFS:
     async def glob(
         self,
         pattern: str,
-        uri: str = "viking://",
+        uri: str = "wfs://",
         node_limit: Optional[int] = None,
         ctx: Optional[RequestContext] = None,
     ) -> Dict:
@@ -1194,7 +1194,7 @@ class VikingFS:
 
     async def tree(
         self,
-        uri: str = "viking://",
+        uri: str = "wfs://",
         output: str = "original",
         abs_limit: int = 256,
         show_all_hidden: bool = False,
@@ -1214,10 +1214,10 @@ class VikingFS:
             level_limit: int | None = 3 (maximum depth level to traverse, None means unlimited)
 
         output="original"
-        [{'name': '.abstract.md', 'size': 100, 'mode': 420, 'modTime': '2026-02-11T16:52:16.256334192+08:00', 'isDir': False, 'meta': {...}, 'rel_path': '.abstract.md', 'uri': 'viking://resources...'}]
+        [{'name': '.abstract.md', 'size': 100, 'mode': 420, 'modTime': '2026-02-11T16:52:16.256334192+08:00', 'isDir': False, 'meta': {...}, 'rel_path': '.abstract.md', 'uri': 'wfs://resources...'}]
 
         output="agent"
-        [{'name': '.abstract.md', 'size': 100, 'modTime': '2026-02-11 16:52:16', 'isDir': False, 'rel_path': '.abstract.md', 'uri': 'viking://resources...', 'abstract': "..."}]
+        [{'name': '.abstract.md', 'size': 100, 'modTime': '2026-02-11 16:52:16', 'isDir': False, 'rel_path': '.abstract.md', 'uri': 'wfs://resources...', 'abstract': "..."}]
         """
         self._ensure_access(uri, ctx)
         if output == "original":
@@ -1453,7 +1453,7 @@ class VikingFS:
         real_ctx = self._ctx_or_default(ctx)
         canonical_target_uri_list: List[str] = []
         for item in target_uri_list:
-            if not item or item in {"/", "viking://"}:
+            if not item or item in {"/", "wfs://"}:
                 continue
             try:
                 canonical_target_uri_list.append(canonicalize_uri(item, real_ctx))
@@ -1463,7 +1463,7 @@ class VikingFS:
         # Use first URI for context inference and access check
         primary_target_uri = target_uri_list[0] if target_uri_list else ""
 
-        if primary_target_uri and primary_target_uri not in {"/", "viking://"}:
+        if primary_target_uri and primary_target_uri not in {"/", "wfs://"}:
             self._ensure_access(primary_target_uri, ctx)
 
         storage = self._get_vector_store()
@@ -1561,7 +1561,7 @@ class VikingFS:
         real_ctx = self._ctx_or_default(ctx)
         canonical_target_uri_list: List[str] = []
         for item in target_uri_list:
-            if not item or item in {"/", "viking://"}:
+            if not item or item in {"/", "wfs://"}:
                 continue
             try:
                 canonical_target_uri_list.append(canonicalize_uri(item, real_ctx))
@@ -1577,7 +1577,7 @@ class VikingFS:
         current_messages = session_info.get("current_messages") if session_info else None
 
         query_plan: Optional[QueryPlan] = None
-        if primary_target_uri and primary_target_uri not in {"/", "viking://"}:
+        if primary_target_uri and primary_target_uri not in {"/", "wfs://"}:
             self._ensure_access(primary_target_uri, ctx)
 
         # When target_uri exists: read abstract, infer context_type
@@ -1776,7 +1776,7 @@ class VikingFS:
     def _uri_to_path(self, uri: str, ctx: Optional[RequestContext] = None) -> str:
         """Map virtual URI to account-isolated AGFS path.
 
-        Pure prefix replacement: viking://{remainder} -> /local/{account_id}/{remainder}.
+        Pure prefix replacement: wfs://{remainder} -> /local/{account_id}/{remainder}.
         No implicit space injection — URIs must include space segments explicitly.
         """
         real_ctx = self._ctx_or_default(ctx)
@@ -1805,28 +1805,28 @@ class VikingFS:
         return [e for e in entries if e.get("name") not in self._INTERNAL_NAMES]
 
     def _path_to_uri(self, path: str, ctx: Optional[RequestContext] = None) -> str:
-        """/local/{account}/... -> viking://...
+        """/local/{account}/... -> wfs://...
 
-        Pure prefix replacement: strips /local/{account_id}/ and prepends viking://.
+        Pure prefix replacement: strips /local/{account_id}/ and prepends wfs://.
         No implicit space stripping.
         """
-        if path.startswith("viking://"):
+        if path.startswith("wfs://"):
             return path
         elif path.startswith("/local/"):
             inner = path[7:].strip("/")
             if not inner:
-                return "viking://"
+                return "wfs://"
             real_ctx = self._ctx_or_default(ctx)
             parts = [p for p in inner.split("/") if p]
             if parts and parts[0] == real_ctx.account_id:
                 parts = parts[1:]
             if not parts:
-                return "viking://"
-            return f"viking://{'/'.join(parts)}"
+                return "wfs://"
+            return f"wfs://{'/'.join(parts)}"
         elif path.startswith("/"):
-            return f"viking:/{path}"
+            return f"wfs:/{path}"
         else:
-            return f"viking://{path}"
+            return f"wfs://{path}"
 
     def _looks_like_legacy_temp_leaf(self, value: str) -> bool:
         return bool(re.match(r"^\d{8}_[0-9a-f]{6}$", value or ""))
@@ -1841,10 +1841,10 @@ class VikingFS:
     def _extract_space_from_uri(self, uri: str) -> Optional[str]:
         """Extract space segment from URI if present.
 
-        URIs are WYSIWYG: viking://{scope}/{space}/...
+        URIs are WYSIWYG: wfs://{scope}/{space}/...
         For user/agent, the second segment is space unless it's a known structure dir.
         For session, the second segment is always space (when 3+ parts).
-        Legacy temp URIs keep the historical shape viking://temp/<temp-id> and therefore
+        Legacy temp URIs keep the historical shape wfs://temp/<temp-id> and therefore
         intentionally have no space segment.
         """
         _, parts = self._normalized_uri_parts(uri)
@@ -2350,10 +2350,10 @@ class VikingFS:
             node_limit: int = 1000 (maximum number of nodes to list)
 
         output="original"
-        [{'name': '.abstract.md', 'size': 100, 'mode': 420, 'modTime': '2026-02-11T16:52:16.256334192+08:00', 'isDir': False, 'meta': {'Name': 'localfs', 'Type': 'local', 'Content': None}, 'uri': 'viking://resources/.abstract.md'}]
+        [{'name': '.abstract.md', 'size': 100, 'mode': 420, 'modTime': '2026-02-11T16:52:16.256334192+08:00', 'isDir': False, 'meta': {'Name': 'localfs', 'Type': 'local', 'Content': None}, 'uri': 'wfs://resources/.abstract.md'}]
 
         output="agent"
-        [{'name': '.abstract.md', 'size': 100, 'modTime': '2026-02-11(or 16:52:16 for today)', 'isDir': False, 'uri': 'viking://resources/.abstract.md', 'abstract': "..."}]
+        [{'name': '.abstract.md', 'size': 100, 'modTime': '2026-02-11(or 16:52:16 for today)', 'isDir': False, 'uri': 'wfs://resources/.abstract.md', 'abstract': "..."}]
         """
         self._ensure_access(uri, ctx)
         if output == "original":

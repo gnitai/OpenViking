@@ -97,7 +97,7 @@ echo "Description: Test basic filesystem operations"
 echo ""
 
 echo "3.1. List resources directory..."
-if $OV_BIN ls "viking://resources"; then
+if $OV_BIN ls "wfs://resources"; then
     print_success "Resources directory listed"
 else
     print_error "Resources directory listing failed"
@@ -105,7 +105,7 @@ fi
 echo ""
 
 echo "3.2. Create test directory..."
-TEST_URI="viking://resources/test_cli_$$"
+TEST_URI="wfs://resources/test_cli_$$"
 if $OV_BIN mkdir "$TEST_URI"; then
     print_success "Directory created: $TEST_URI"
 else
@@ -122,7 +122,7 @@ fi
 echo ""
 
 echo "3.4. Get tree of resources..."
-if $OV_BIN tree "viking://resources"; then
+if $OV_BIN tree "wfs://resources"; then
     print_success "Tree retrieved"
 else
     print_error "Tree retrieval failed"
@@ -130,7 +130,7 @@ fi
 echo ""
 
 echo "3.5. Get stat of resources..."
-if $OV_BIN stat "viking://resources"; then
+if $OV_BIN stat "wfs://resources"; then
     print_success "Stat retrieved"
 else
     print_error "Stat retrieval failed"
@@ -138,7 +138,7 @@ fi
 echo ""
 
 echo "3.6. Rename directory..."
-if ($OV_BIN mv "$TEST_URI" "viking://resources/test_cli_renamed_$$"); then
+if ($OV_BIN mv "$TEST_URI" "wfs://resources/test_cli_renamed_$$"); then
     print_success "Directory renamed"
 else
     print_error "Directory rename failed"
@@ -155,12 +155,12 @@ echo "Description: Add a resource from URL (without --wait to avoid hangs)"
 echo ""
 
 echo "4.1. Add README from GitHub to resources scope..."
-ADD_OUTPUT=$($OV_BIN add-resource "https://raw.githubusercontent.com/volcengine/OpenViking/main/README.md" --to "viking://resources/test_cli_$$" 2>&1)
+ADD_OUTPUT=$($OV_BIN add-resource "https://raw.githubusercontent.com/volcengine/OpenViking/main/README.md" --to "wfs://resources/test_cli_$$" 2>&1)
 if echo "$ADD_OUTPUT" | grep -q "root_uri\|success"; then
     print_success "Resource added successfully"
     README_URI=$(echo "$ADD_OUTPUT" | grep -o '"root_uri":"[^"]*"' | cut -d'"' -f4)
     if [ -z "$README_URI" ]; then
-        README_URI=$(echo "$ADD_OUTPUT" | grep -o 'viking://[^[:space:]]*' | head -1)
+        README_URI=$(echo "$ADD_OUTPUT" | grep -o 'wfs://[^[:space:]]*' | head -1)
     fi
     echo "Resource URI: $README_URI"
 else
@@ -179,7 +179,7 @@ echo "Description: Test various search methods"
 echo ""
 
 echo "5.1. Semantic search (find)..."
-if $OV_BIN find "what is OpenViking" --uri "viking://resources" --limit 5; then
+if $OV_BIN find "what is OpenViking" --uri "wfs://resources" --limit 5; then
     print_success "Find search completed"
 else
     print_error "Find search failed"
@@ -187,7 +187,7 @@ fi
 echo ""
 
 echo "5.2. Context-aware search..."
-if $OV_BIN search "context database" --uri "viking://resources" --limit 5; then
+if $OV_BIN search "context database" --uri "wfs://resources" --limit 5; then
     print_success "Context-aware search completed"
 else
     print_error "Context-aware search failed"
@@ -195,7 +195,7 @@ fi
 echo ""
 
 echo "5.3. Grep pattern search..."
-if $OV_BIN grep "viking://resources" "OpenViking"; then
+if $OV_BIN grep "wfs://resources" "OpenViking"; then
     print_success "Grep search completed"
 else
     print_error "Grep search failed"
@@ -203,7 +203,7 @@ fi
 echo ""
 
 echo "5.4. Glob pattern search..."
-if $OV_BIN glob "*.md" --uri "viking://resources"; then
+if $OV_BIN glob "*.md" --uri "wfs://resources"; then
     print_success "Glob search completed"
 else
     print_error "Glob search failed"
@@ -289,7 +289,7 @@ echo ""
 
 if [ -n "$README_URI" ]; then
     echo "7.1. Create relation link..."
-    if $OV_BIN link "$README_URI" "viking://resources/test" --reason "test relation"; then
+    if $OV_BIN link "$README_URI" "wfs://resources/test" --reason "test relation"; then
         print_success "Relation link created"
     else
         print_error "Relation link creation failed"
@@ -305,7 +305,7 @@ if [ -n "$README_URI" ]; then
     echo ""
 
     echo "7.3. Unlink relation..."
-    if $OV_BIN unlink "$README_URI" "viking://resources/test"; then
+    if $OV_BIN unlink "$README_URI" "wfs://resources/test"; then
         print_success "Relation unlinked"
     else
         print_error "Relation unlink failed"
@@ -339,7 +339,7 @@ if [ -n "$README_URI" ]; then
 
     if [ -f "$PACK_FILE" ]; then
         echo "8.2. Import from .ovpack..."
-        IMPORT_URI="viking://resources/test_import_$$"
+        IMPORT_URI="wfs://resources/test_import_$$"
         if $OV_BIN import "$PACK_FILE" "$IMPORT_URI" --force; then
             print_success "Import completed"
         else

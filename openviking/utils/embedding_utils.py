@@ -437,7 +437,7 @@ async def index_resource(
     (``/memories/``) are indexed as ``"memory"`` rather than the default
     ``"resource"``.
     """
-    if uri.startswith("viking://session/") or uri == "viking://session":
+    if uri.startswith("wfs://session/") or uri == "wfs://session":
         logger.info("Skipping indexing for session namespace: %s", uri)
         return
 

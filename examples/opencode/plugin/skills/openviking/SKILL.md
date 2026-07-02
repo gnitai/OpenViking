@@ -11,7 +11,7 @@ compatibility: opencode
 
 ## How OpenViking Organizes Data
 
-OpenViking stores content in a virtual filesystem under the `viking://` namespace. Each URI maps to a file or directory, e.g. `viking://resources/fastapi/routing.py`. Each directory has AI-generated summaries (`abstract` / `overview`). **The key principle: narrow the URI scope to improve retrieval efficiency.** Instead of searching all repos, lock to a specific repo or subdirectory — this reduces noise and speeds up results significantly.
+OpenViking stores content in a virtual filesystem under the `wfs://` namespace. Each URI maps to a file or directory, e.g. `wfs://resources/fastapi/routing.py`. Each directory has AI-generated summaries (`abstract` / `overview`). **The key principle: narrow the URI scope to improve retrieval efficiency.** Instead of searching all repos, lock to a specific repo or subdirectory — this reduces noise and speeds up results significantly.
 
 ## Search Commands
 
@@ -25,19 +25,19 @@ Choose the right command based on what you're looking for:
 
 ```bash
 # Semantic search
-ov search "dependency injection" --uri viking://resources/fastapi --limit 10
-ov search "how tokens are refreshed" --uri viking://resources/fastapi/fastapi/security
+ov search "dependency injection" --uri wfs://resources/fastapi --limit 10
+ov search "how tokens are refreshed" --uri wfs://resources/fastapi/fastapi/security
 ov search "JWT authentication" --limit 10          # across all repos
 ov search "error handling" --limit 5 --threshold 0.7  # filter low-relevance results
 
 # Keyword search — exact match or regex
-ov grep "verify_token" --uri viking://resources/fastapi
-ov grep "class.*Session" --uri viking://resources/requests/requests
+ov grep "verify_token" --uri wfs://resources/fastapi
+ov grep "class.*Session" --uri wfs://resources/requests/requests
 
 # File enumeration — by name pattern (always specify --uri to scope the search)
-ov glob "**/*.py" --uri viking://resources/fastapi
-ov glob "**/test_*.py" --uri viking://resources/fastapi/tests
-ov glob "**/*.py" --uri viking://resources/   # across all repos
+ov glob "**/*.py" --uri wfs://resources/fastapi
+ov glob "**/test_*.py" --uri wfs://resources/fastapi/tests
+ov glob "**/*.py" --uri wfs://resources/   # across all repos
 ```
 
 **Narrowing scope:** once you identify a relevant directory, pass it as `--uri` to restrict subsequent searches to that subtree — this is faster and more precise than searching the whole repo.
@@ -46,19 +46,19 @@ ov glob "**/*.py" --uri viking://resources/   # across all repos
 ```bash
 ov search "API"                                                       # too vague
 ov search "REST API authentication with JWT tokens"                   # better
-ov search "JWT token refresh flow" --uri viking://resources/backend   # best
+ov search "JWT token refresh flow" --uri wfs://resources/backend   # best
 ```
 
 ## Read Content
 
 ```bash
 # Directories: AI-generated summaries
-ov abstract viking://resources/fastapi/fastapi/dependencies/   # one-line summary
-ov overview viking://resources/fastapi/fastapi/dependencies/   # detailed breakdown
+ov abstract wfs://resources/fastapi/fastapi/dependencies/   # one-line summary
+ov overview wfs://resources/fastapi/fastapi/dependencies/   # detailed breakdown
 
 # Files: raw content
-ov read viking://resources/fastapi/fastapi/dependencies/utils.py
-ov read viking://resources/fastapi/fastapi/dependencies/utils.py --offset 100 --limit 50
+ov read wfs://resources/fastapi/fastapi/dependencies/utils.py
+ov read wfs://resources/fastapi/fastapi/dependencies/utils.py --offset 100 --limit 50
 ```
 
 `abstract` / `overview` only work on directories. `read` only works on files.
@@ -66,14 +66,14 @@ ov read viking://resources/fastapi/fastapi/dependencies/utils.py --offset 100 --
 ## Browse
 
 ```bash
-ov ls viking://resources/                        # list all indexed repos
-ov ls viking://resources/fastapi                 # list repo top-level contents
-ov ls viking://resources/fastapi --simple        # paths only, no metadata
-ov ls viking://resources/fastapi --recursive     # list all files recursively
-ov tree viking://resources/fastapi               # full directory tree (default: 3 levels deep)
-ov tree viking://resources/fastapi -L 2          # limit depth to 2 levels
-ov tree viking://resources/fastapi -l 200        # truncate abstract column to 200 chars
-ov tree viking://resources/fastapi -L 2 -l 200   # combined: 2 levels deep, 200-char summaries
+ov ls wfs://resources/                        # list all indexed repos
+ov ls wfs://resources/fastapi                 # list repo top-level contents
+ov ls wfs://resources/fastapi --simple        # paths only, no metadata
+ov ls wfs://resources/fastapi --recursive     # list all files recursively
+ov tree wfs://resources/fastapi               # full directory tree (default: 3 levels deep)
+ov tree wfs://resources/fastapi -L 2          # limit depth to 2 levels
+ov tree wfs://resources/fastapi -l 200        # truncate abstract column to 200 chars
+ov tree wfs://resources/fastapi -L 2 -l 200   # combined: 2 levels deep, 200-char summaries
 ```
 
 `-L` controls how many levels deep the tree expands. `-l` controls the length of the AI-generated summary per directory. Use `ov tree -L 2 -l 200` as a good starting point to understand a repo's structure before diving in.
@@ -81,7 +81,7 @@ ov tree viking://resources/fastapi -L 2 -l 200   # combined: 2 levels deep, 200-
 ## Add a Repository
 
 ```bash
-ov add-resource https://github.com/owner/repo --to viking://resources/repo --timeout 300
+ov add-resource https://github.com/owner/repo --to wfs://resources/repo --timeout 300
 ```
 
 `--timeout` is required (seconds). Use 300 (5 min) for small repos, increase for larger ones.
@@ -97,7 +97,7 @@ After submitting, run `ov observer queue` once and report status to user. Indexi
 ## Remove a Repository
 
 ```bash
-ov rm viking://resources/fastapi --recursive
+ov rm wfs://resources/fastapi --recursive
 ```
 
 This permanently deletes the repo and all its indexed content. Confirm with the user before running.

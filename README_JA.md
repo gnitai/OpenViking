@@ -414,11 +414,11 @@ nohup openviking-server > /data/log/openviking.log 2>&1 &
 ```bash
 ov status
 ov add-resource https://github.com/volcengine/OpenViking # --wait
-ov ls viking://resources/
-ov tree viking://resources/volcengine -L 2
+ov ls wfs://resources/
+ov tree wfs://resources/volcengine -L 2
 # --waitを指定しない場合、セマンティック処理の完了を待つ
 ov find "what is openviking"
-ov grep "openviking" --uri viking://resources/volcengine/OpenViking/docs/zh
+ov grep "openviking" --uri wfs://resources/volcengine/OpenViking/docs/zh
 ```
 
 おめでとうございます！OpenVikingの実行に成功しました 🎉
@@ -459,12 +459,12 @@ ov chat
 
 ### 1. ファイルシステム管理パラダイム → 断片化の解決
 
-コンテキストをフラットなテキストスライスとして見るのではなく、抽象的な仮想ファイルシステムに統一します。メモリ、リソース、機能のいずれも、`viking://`プロトコル下の仮想ディレクトリにマッピングされ、それぞれにユニークなURIが付与されます。
+コンテキストをフラットなテキストスライスとして見るのではなく、抽象的な仮想ファイルシステムに統一します。メモリ、リソース、機能のいずれも、`wfs://`プロトコル下の仮想ディレクトリにマッピングされ、それぞれにユニークなURIが付与されます。
 
 このパラダイムにより、エージェントはこれまでにないコンテキスト操作能力を獲得し、開発者のように`ls`や`find`などの標準コマンドを通じて、情報を正確かつ決定論的に位置特定、閲覧、操作できます。これにより、コンテキスト管理は曖昧なセマンティックマッチングから、直感的でトレース可能な「ファイル操作」に変わります。詳細: [Viking URI](./docs/en/concepts/04-viking-uri.md) | [コンテキストタイプ](./docs/en/concepts/02-context-types.md)
 
 ```
-viking://
+wfs://
 ├── resources/              # リソース: プロジェクトドキュメント、リポジトリ、Webページなど
 │   ├── my_project/
 │   │   ├── docs/
@@ -497,7 +497,7 @@ viking://
 詳細: [コンテキストレイヤー](./docs/en/concepts/03-context-layers.md)
 
 ```
-viking://resources/my_project/
+wfs://resources/my_project/
 ├── .abstract               # L0レイヤー: 要約（〜100トークン）- 迅速な関連性チェック
 ├── .overview               # L1レイヤー: 概要（〜2kトークン）- 構造とキーポイントの理解
 ├── docs/
@@ -527,7 +527,7 @@ viking://resources/my_project/
 
 ### 4. 可視化された検索軌跡 → 観察可能なコンテキスト
 
-OpenVikingの組織は階層的な仮想ファイルシステム構造を使用しています。すべてのコンテキストは統一されたフォーマットで統合され、各エントリはユニークなURI（`viking://`パスのようなもの）に対応し、従来のフラットなブラックボックス管理モードを、理解しやすい明確な階層で打ち破ります。
+OpenVikingの組織は階層的な仮想ファイルシステム構造を使用しています。すべてのコンテキストは統一されたフォーマットで統合され、各エントリはユニークなURI（`wfs://`パスのようなもの）に対応し、従来のフラットなブラックボックス管理モードを、理解しやすい明確な階層で打ち破ります。
 
 検索プロセスはディレクトリ再帰戦略を採用しています。各検索のディレクトリブラウジングとファイル位置特定の軌跡が完全に保存され、ユーザーが問題の根本原因を明確に観察し、検索ロジックの最適化を導くことを可能にします。詳細: [検索メカニズム](./docs/en/concepts/07-retrieval.md)
 

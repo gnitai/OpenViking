@@ -31,7 +31,7 @@ class _PeakFS:
         self.inflight -= 1
 
     def _uri_to_path(self, uri, ctx=None):
-        return uri.replace("viking://", "/local/acc1/")
+        return uri.replace("wfs://", "/local/acc1/")
 
 
 class _FakeProcessor:
@@ -80,7 +80,7 @@ def _patch(monkeypatch, fake_fs):
 
 @pytest.mark.asyncio
 async def test_write_concurrency_caps_simultaneous_sidecar_writes(monkeypatch):
-    root_uri = "viking://resources/root"
+    root_uri = "wfs://resources/root"
     # 4 sibling directories whose overview tasks would otherwise flush together.
     tree = {root_uri: [{"name": f"child{i}", "isDir": True} for i in range(4)]}
     for i in range(4):

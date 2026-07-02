@@ -214,7 +214,7 @@ openviking add-resource ./documents/guide.md --reason "User guide documentation"
   "status": "ok",
   "result": {
     "status": "success",
-    "root_uri": "viking://resources/documents/guide.md",
+    "root_uri": "wfs://resources/documents/guide.md",
     "source_path": "./documents/guide.md",
     "errors": []
   },

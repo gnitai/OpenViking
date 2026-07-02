@@ -55,7 +55,7 @@ async def test_sdk_add_resource(http_client):
     assert "usage" not in result
     assert "telemetry" not in result
     assert "root_uri" in result
-    assert result["root_uri"].startswith("viking://")
+    assert result["root_uri"].startswith("wfs://")
 
 
 async def test_sdk_add_resource_raises_processing_error_for_business_error(
@@ -84,7 +84,7 @@ def test_sdk_maps_conflict_error_envelope():
             "status": "error",
             "error": {
                 "code": "CONFLICT",
-                "message": "URI viking://resources/demo already has a reindex in progress",
+                "message": "URI wfs://resources/demo already has a reindex in progress",
             },
         },
     )
@@ -113,7 +113,7 @@ description: SDK localhost upload test
     assert "root_uri" in result
     assert "uri" in result
     assert result["root_uri"] == result["uri"]
-    assert result["uri"].startswith("viking://agent/default/skills/")
+    assert result["uri"].startswith("wfs://agent/default/skills/")
 
 
 async def test_sdk_import_ovpack_from_local_file(http_client):
@@ -124,10 +124,10 @@ async def test_sdk_import_ovpack_from_local_file(http_client):
 
     uri = await client.import_ovpack(
         str(f),
-        parent="viking://resources/imported/",
+        parent="wfs://resources/imported/",
         on_conflict="overwrite",
     )
-    assert uri.startswith("viking://resources/imported/")
+    assert uri.startswith("wfs://resources/imported/")
 
 
 async def test_sdk_wait_processed(http_client):
@@ -143,20 +143,20 @@ async def test_sdk_wait_processed(http_client):
 
 async def test_sdk_ls(http_client):
     client, _ = http_client
-    result = await client.ls("viking://")
+    result = await client.ls("wfs://")
     assert isinstance(result, list)
 
 
 async def test_sdk_mkdir_and_ls(http_client):
     client, _ = http_client
-    await client.mkdir("viking://resources/sdk_dir/")
-    result = await client.ls("viking://resources/")
+    await client.mkdir("wfs://resources/sdk_dir/")
+    result = await client.ls("wfs://resources/")
     assert isinstance(result, list)
 
 
 async def test_sdk_mkdir_with_description_sets_abstract(http_client):
     client, _ = http_client
-    uri = "viking://resources/sdk_dir_desc/"
+    uri = "wfs://resources/sdk_dir_desc/"
     description = "SDK directory description"
 
     await client.mkdir(uri, description=description)
@@ -167,7 +167,7 @@ async def test_sdk_mkdir_with_description_sets_abstract(http_client):
 
 async def test_sdk_tree(http_client):
     client, _ = http_client
-    result = await client.tree("viking://")
+    result = await client.tree("wfs://")
     assert isinstance(result, list)
 
 

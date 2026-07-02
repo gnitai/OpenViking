@@ -164,7 +164,7 @@ class DirectoryInitializer:
             "session": PRESET_DIRECTORIES["session"],
         }
         for scope, defn in scope_roots.items():
-            root_uri = f"viking://{scope}"
+            root_uri = f"wfs://{scope}"
             created = await self._ensure_directory(
                 uri=root_uri,
                 parent_uri=None,
@@ -182,9 +182,9 @@ class DirectoryInitializer:
             return 0
         user_space_root = canonical_user_root(ctx)
         user_tree = PRESET_DIRECTORIES["user"]
-        parent_uri = "viking://user"
+        parent_uri = "wfs://user"
         if ctx.namespace_policy.isolate_user_scope_by_agent:
-            container_uri = f"viking://user/{ctx.user.user_id}"
+            container_uri = f"wfs://user/{ctx.user.user_id}"
             await self._ensure_container_directory(container_uri, parent_uri=parent_uri, ctx=ctx)
             parent_uri = container_uri
         created = await self._ensure_directory(
@@ -206,9 +206,9 @@ class DirectoryInitializer:
             return 0
         agent_space_root = canonical_agent_root(ctx)
         agent_tree = PRESET_DIRECTORIES["agent"]
-        parent_uri = "viking://agent"
+        parent_uri = "wfs://agent"
         if ctx.namespace_policy.isolate_agent_scope_by_user:
-            container_uri = f"viking://agent/{ctx.user.agent_id}"
+            container_uri = f"wfs://agent/{ctx.user.agent_id}"
             await self._ensure_container_directory(container_uri, parent_uri=parent_uri, ctx=ctx)
             parent_uri = container_uri
         created = await self._ensure_directory(

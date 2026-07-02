@@ -38,10 +38,10 @@ This design allows Agents to browse abstracts for quick positioning, then load d
 
 ### What is Viking URI? What's its purpose?
 
-Viking URI is OpenViking's unified resource identifier, formatted as `viking://{scope}/{path}`. It enables precise location of any context:
+Viking URI is OpenViking's unified resource identifier, formatted as `wfs://{scope}/{path}`. It enables precise location of any context:
 
 ```
-viking://
+wfs://
 ├── resources/              # Knowledge base: documents, code, web pages, etc.
 │   └── my_project/
 ├── user/                   # User context
@@ -166,7 +166,7 @@ The SDK constructor only accepts `url`, `api_key`, and `path` parameters. Other 
 await client.add_resource(
     "./document.pdf",
     reason="Project technical documentation",  # Describe resource purpose to improve retrieval quality
-    to="viking://resources/docs/"  # Specify storage location
+    to="wfs://resources/docs/"  # Specify storage location
 )
 
 # Add web page
@@ -192,7 +192,7 @@ await client.wait_processed()
 # find(): Simple direct semantic search
 results = await client.find(
     "OAuth authentication flow",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # search(): Complex tasks requiring intent analysis
@@ -219,7 +219,7 @@ await session.add_message("user", [{"type": "text", "text": "Help me analyze per
 await session.add_message("assistant", [{"type": "text", "text": "Let me analyze..."}])
 
 # Mark used context (for tracking)
-await session.used(["viking://resources/code/main.py"])
+await session.used(["wfs://resources/code/main.py"])
 
 # Commit session to trigger memory extraction
 await session.commit()
@@ -242,16 +242,16 @@ OpenViking has 6 built-in memory categories, automatically extracted during sess
 
 ```python
 # List directory contents
-items = await client.ls("viking://resources/")
+items = await client.ls("wfs://resources/")
 
 # Read full content (L2)
-content = await client.read("viking://resources/doc.md")
+content = await client.read("wfs://resources/doc.md")
 
 # Get abstract (L0)
-abstract = await client.abstract("viking://resources")
+abstract = await client.abstract("wfs://resources")
 
 # Get overview (L1)
-overview = await client.overview("viking://resources")
+overview = await client.overview("wfs://resources")
 ```
 
 ## Retrieval Optimization
@@ -319,7 +319,7 @@ This strategy finds semantically matching fragments while understanding the comp
 1. **Confirm resources have been processed**
    ```python
    # Check if resources exist
-   items = await client.ls("viking://resources/")
+   items = await client.ls("wfs://resources/")
    ```
 
 2. **Check `target_uri` filter condition**
@@ -332,7 +332,7 @@ This strategy finds semantically matching fragments while understanding the comp
 
 4. **Check L0 abstract quality**
    ```python
-   abstract = await client.abstract("viking://resources/your-doc")
+   abstract = await client.abstract("wfs://resources/your-doc")
    print(abstract)  # Confirm abstract accurately reflects content
    ```
 
@@ -355,7 +355,7 @@ This strategy finds semantically matching fragments while understanding the comp
 
 4. **View extracted memories**
    ```python
-   memories = await client.find("", target_uri="viking://user/memories/")
+   memories = await client.find("", target_uri="wfs://user/memories/")
    ```
 
 ### Performance issues

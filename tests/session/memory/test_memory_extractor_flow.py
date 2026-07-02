@@ -47,7 +47,7 @@ class MockVikingFS:
 
     def _get_parent_uri(self, uri: str) -> str:
         """Get parent directory URI."""
-        # Handle URIs like "viking://agent/default/memories/cards/file.md"
+        # Handle URIs like "wfs://agent/default/memories/cards/file.md"
         parts = uri.split("/")
         if len(parts) <= 3:
             return uri  # Root or protocol level
@@ -360,8 +360,8 @@ def create_test_conversation() -> List[Message]:
         role="user",
         parts=[
             TextPart(
-                "Cards are stored in viking://agent/{agent_space}/memories/cards, each card has name and content fields. "
-                "Events are stored in viking://user/{user_space}/memories/events, each event has event_name, event_time, and content fields. "
+                "Cards are stored in wfs://agent/{agent_space}/memories/cards, each card has name and content fields. "
+                "Events are stored in wfs://user/{user_space}/memories/events, each event has event_name, event_time, and content fields. "
                 "Just now, we also decided to add diff-match-patch to print memory modification differences."
             )
         ],
@@ -374,7 +374,7 @@ def create_test_conversation() -> List[Message]:
 def create_existing_memories_content() -> Dict[str, str]:
     """Create existing memory content for update test with cards and events."""
     return {
-        "viking://agent/default/memories/cards/openviking_project.md": """# OpenViking Project
+        "wfs://agent/default/memories/cards/openviking_project.md": """# OpenViking Project
 
 ## Overview
 OpenViking is an Agent-native context database.
@@ -389,7 +389,7 @@ OpenViking is an Agent-native context database.
   "name": "openviking_project"
 }
 -->""",
-        "viking://agent/default/memories/cards/extract_loop.md": """# ExtractLoop Pattern
+        "wfs://agent/default/memories/cards/extract_loop.md": """# ExtractLoop Pattern
 
 ## Overview
 ExtractLoop is an orchestrator pattern for memory extraction.
@@ -404,7 +404,7 @@ ExtractLoop is an orchestrator pattern for memory extraction.
   "name": "extract_loop"
 }
 -->""",
-        "viking://user/default/memories/events/2026-03-20_Started_memory_extraction_feature_development.md": """# Event: Started memory extraction feature development
+        "wfs://user/default/memories/events/2026-03-20_Started_memory_extraction_feature_development.md": """# Event: Started memory extraction feature development
 
 ## Event Name
 Started memory extraction feature development
@@ -679,14 +679,14 @@ class TestExtractLoopFlow:
         # Also check if new cards/events were created
         print("\n--- cards 目录内容 ---")
         try:
-            card_files = await viking_fs.ls("viking://agent/default/memories/cards")
+            card_files = await viking_fs.ls("wfs://agent/default/memories/cards")
             for f in card_files:
                 print(f"  - {f.get('name', 'unknown')}")
         except Exception as e:
             print(f"  无法列出目录: {e}")
         print("\n--- events 目录内容 ---")
         try:
-            event_files = await viking_fs.ls("viking://user/default/memories/events")
+            event_files = await viking_fs.ls("wfs://user/default/memories/events")
             for f in event_files:
                 print(f"  - {f.get('name', 'unknown')}")
         except Exception as e:

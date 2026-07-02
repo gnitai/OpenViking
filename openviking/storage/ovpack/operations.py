@@ -134,7 +134,7 @@ async def _existing_scope_roots(
 ) -> list[str]:
     existing: list[str] = []
     for scope in scopes:
-        scope_uri = f"viking://{scope}"
+        scope_uri = f"wfs://{scope}"
         if await _root_exists(viking_fs, scope_uri, ctx):
             existing.append(scope_uri)
     return existing
@@ -271,7 +271,7 @@ async def import_ovpack(
     Args:
         viking_fs: VikingFS instance
         file_path: Local .ovpack file path
-        parent: Target parent URI (e.g., viking://resources/...)
+        parent: Target parent URI (e.g., wfs://resources/...)
         on_conflict: One of "fail", "overwrite", or "skip"
         vector_mode: One of "auto", "recompute", or "require"
 
@@ -326,7 +326,7 @@ async def import_ovpack(
                 vector_store=vector_store,
                 vector_mode=vector_action_mode,
             )
-        if parent != "viking://":
+        if parent != "wfs://":
             await _ensure_parent_exists(viking_fs, parent, ctx)
 
         for existing_root in existing_roots:
@@ -367,7 +367,7 @@ async def import_ovpack(
 async def _backup_entries(viking_fs, ctx: RequestContext) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for scope in PUBLIC_SCOPES:
-        scope_uri = f"viking://{scope}"
+        scope_uri = f"wfs://{scope}"
         entries.append(
             {
                 "rel_path": scope,
@@ -564,13 +564,13 @@ async def backup_ovpack(
         to = ensure_ovpack_extension(to)
 
     entries = await _backup_entries(viking_fs, ctx)
-    entries = await _filter_existing_optional_sidecars(viking_fs, "viking://", entries, ctx)
+    entries = await _filter_existing_optional_sidecars(viking_fs, "wfs://", entries, ctx)
     if include_vectors:
         ensure_dense_snapshot_supported(vector_store)
         report = await check_index_consistency(
             viking_fs,
             vector_store,
-            "viking://",
+            "wfs://",
             entries,
             ctx,
         )
@@ -582,7 +582,7 @@ async def backup_ovpack(
     manifest, index_records, dense_values = await build_manifest(
         viking_fs,
         vector_store,
-        "viking://",
+        "wfs://",
         base_name,
         entries,
         ctx,
@@ -592,7 +592,7 @@ async def backup_ovpack(
     )
     await _write_ovpack_archive(
         viking_fs,
-        "viking://",
+        "wfs://",
         to,
         base_name,
         entries,
@@ -620,7 +620,7 @@ async def restore_ovpack(
 
     conflict_action = normalize_on_conflict(on_conflict)
     vector_action_mode = normalize_vector_mode(vector_mode)
-    root_uri = "viking://"
+    root_uri = "wfs://"
     index_records: list[dict[str, Any]] = []
     dense_vectors: dict[str, list[float]] = {}
     vector_action = "recompute"
@@ -691,7 +691,7 @@ async def restore_ovpack(
         if scope in NON_VECTOR_SCOPES:
             logger.info(f"[ovpack] Skipped vectorization for non-vector scope: {scope}")
             continue
-        scope_uri = f"viking://{scope}"
+        scope_uri = f"wfs://{scope}"
         await _enqueue_direct_vectorization(
             viking_fs,
             scope_uri,

@@ -372,7 +372,7 @@ class SyncOpenViking:
             self._async_client.grep(uri, pattern, case_insensitive, node_limit, exclude_uri)
         )
 
-    def glob(self, pattern: str, uri: str = "viking://") -> Dict:
+    def glob(self, pattern: str, uri: str = "wfs://") -> Dict:
         """File pattern matching"""
         return run_async(self._async_client.glob(pattern, uri))
 

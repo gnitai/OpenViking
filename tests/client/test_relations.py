@@ -10,7 +10,7 @@ class TestLink:
     async def test_link_single_uri(self, client_with_resource):
         """Test creating single relation"""
         client, uri = client_with_resource
-        target_uri = "viking://resources/target/"
+        target_uri = "wfs://resources/target/"
 
         await client.link(from_uri=uri, uris=target_uri, reason="Test link")
 
@@ -20,7 +20,7 @@ class TestLink:
     async def test_link_multiple_uris(self, client_with_resource):
         """Test creating multiple relations"""
         client, uri = client_with_resource
-        target_uris = ["viking://resources/target1/", "viking://resources/target2/"]
+        target_uris = ["wfs://resources/target1/", "wfs://resources/target2/"]
 
         await client.link(from_uri=uri, uris=target_uris, reason="Test multiple links")
 
@@ -31,7 +31,7 @@ class TestLink:
     async def test_link_with_reason(self, client_with_resource):
         """Test creating relation with reason"""
         client, uri = client_with_resource
-        target_uri = "viking://resources/reason_test/"
+        target_uri = "wfs://resources/reason_test/"
         reason = "This is a test reason for the link"
 
         await client.link(from_uri=uri, uris=target_uri, reason=reason)
@@ -48,7 +48,7 @@ class TestUnlink:
     async def test_unlink_success(self, client_with_resource):
         """Test successful relation deletion"""
         client, uri = client_with_resource
-        target_uri = "viking://resources/unlink_test/"
+        target_uri = "wfs://resources/unlink_test/"
 
         # Create relation first
         await client.link(from_uri=uri, uris=target_uri, reason="Test")
@@ -69,7 +69,7 @@ class TestUnlink:
         client, uri = client_with_resource
 
         # Should not raise exception
-        await client.unlink(from_uri=uri, uri="viking://nonexistent/")
+        await client.unlink(from_uri=uri, uri="wfs://nonexistent/")
 
 
 class TestRelations:
@@ -86,7 +86,7 @@ class TestRelations:
     async def test_relations_with_data(self, client_with_resource):
         """Test getting relation list with data"""
         client, uri = client_with_resource
-        target_uri = "viking://resources/relations_test/"
+        target_uri = "wfs://resources/relations_test/"
 
         await client.link(from_uri=uri, uris=target_uri, reason="Test reason")
 

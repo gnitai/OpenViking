@@ -26,7 +26,7 @@ Query → Intent Analysis → Hierarchical Retrieval → Rerank → Results
 # find(): Simple query
 results = await client.find(
     "OAuth authentication",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # search(): Complex task (needs session context)
@@ -92,9 +92,9 @@ Step 5: Convert to MatchedContext
 
 | context_type | Root Directories |
 |--------------|------------------|
-| MEMORY | `viking://user/memories`, `viking://agent/memories` |
-| RESOURCE | `viking://resources` |
-| SKILL | `viking://agent/skills` |
+| MEMORY | `wfs://user/memories`, `wfs://agent/memories` |
+| RESOURCE | `wfs://resources` |
+| SKILL | `wfs://agent/skills` |
 
 ### Recursive Search Algorithm
 

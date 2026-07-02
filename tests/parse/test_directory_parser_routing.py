@@ -13,9 +13,9 @@ This script verifies **two independent concerns** without invoking the full
 2. **Path mapping** – the ``_process_directory_file`` helper in
    ``ResourceService`` converts each file's relative path into the correct
    Viking target URI so that the imported directory structure is preserved.
-   For example, ``a/b/c.md`` with base target ``viking://resources/mydir``
-   produces target ``viking://resources/mydir/a/b`` and the parser names
-   the document ``c``, yielding final URI ``viking://resources/mydir/a/b/c``.
+   For example, ``a/b/c.md`` with base target ``wfs://resources/mydir``
+   produces target ``wfs://resources/mydir/a/b`` and the parser names
+   the document ``c``, yielding final URI ``wfs://resources/mydir/a/b/c``.
 """
 
 from pathlib import Path, PurePosixPath
@@ -309,40 +309,40 @@ def _expected_final_uri(rel_path: str, base_target: str) -> str:
 class TestPathMapping:
     """Verify that relative file paths map to the correct Viking URIs."""
 
-    BASE = "viking://resources/mydir"
+    BASE = "wfs://resources/mydir"
 
     # (relative_path, expected_target_for_process_resource, expected_final_uri)
     CASES: List[Tuple[str, str, str]] = [
         # Root-level file
-        ("top.md", "viking://resources/mydir", "viking://resources/mydir/top"),
-        ("README.txt", "viking://resources/mydir", "viking://resources/mydir/README"),
+        ("top.md", "wfs://resources/mydir", "wfs://resources/mydir/top"),
+        ("README.txt", "wfs://resources/mydir", "wfs://resources/mydir/README"),
         # One level deep
         (
             "docs/guide.md",
-            "viking://resources/mydir/docs",
-            "viking://resources/mydir/docs/guide",
+            "wfs://resources/mydir/docs",
+            "wfs://resources/mydir/docs/guide",
         ),
         (
             "src/app.py",
-            "viking://resources/mydir/src",
-            "viking://resources/mydir/src/app",
+            "wfs://resources/mydir/src",
+            "wfs://resources/mydir/src/app",
         ),
         # Two levels deep
         (
             "a/b/c.md",
-            "viking://resources/mydir/a/b",
-            "viking://resources/mydir/a/b/c",
+            "wfs://resources/mydir/a/b",
+            "wfs://resources/mydir/a/b/c",
         ),
         (
             "a/b/d.txt",
-            "viking://resources/mydir/a/b",
-            "viking://resources/mydir/a/b/d",
+            "wfs://resources/mydir/a/b",
+            "wfs://resources/mydir/a/b/d",
         ),
         # Three levels deep
         (
             "x/y/z/deep.md",
-            "viking://resources/mydir/x/y/z",
-            "viking://resources/mydir/x/y/z/deep",
+            "wfs://resources/mydir/x/y/z",
+            "wfs://resources/mydir/x/y/z/deep",
         ),
     ]
 
@@ -391,15 +391,15 @@ class TestPathMappingFromScan:
         """For every processable file, the computed final URI should embed
         the same directory hierarchy as the original relative path."""
         result = scan_directory(tmp_deep, strict=False)
-        base = f"viking://resources/{tmp_deep.name}"
+        base = f"wfs://resources/{tmp_deep.name}"
 
         for cf in result.processable:
             rel = cf.rel_path.replace("\\", "/")  # normalize for Windows
             final_uri = _expected_final_uri(rel, base)
 
-            # The URI path (after viking://resources/) should equal
+            # The URI path (after wfs://resources/) should equal
             # <dir_name>/<rel_path_without_extension>
-            uri_path = final_uri[len("viking://resources/") :]
+            uri_path = final_uri[len("wfs://resources/") :]
             expected_path = f"{tmp_deep.name}/{str(PurePosixPath(rel).with_suffix(''))}"
             assert uri_path == expected_path, (
                 f"Mapping mismatch for {rel}: got URI path '{uri_path}', expected '{expected_path}'"

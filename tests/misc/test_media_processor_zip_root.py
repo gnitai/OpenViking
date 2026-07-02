@@ -95,7 +95,7 @@ class _FakeVikingFS:
 
     def create_temp_uri(self) -> str:
         self._temp_counter += 1
-        uri = f"viking://temp/ov_zip_root_test_{self._temp_counter}"
+        uri = f"wfs://temp/ov_zip_root_test_{self._temp_counter}"
         return uri
 
 
@@ -215,7 +215,7 @@ async def test_zip_dotted_source_name_matches_dotted_root_collapses(tmp_path: Pa
 
     Regression: ``Path("v1.2").stem`` is "v1", so a stem-only comparison
     would treat the names as different and wrap ``v1.2/`` inside another
-    ``v1.2/`` layer, producing ``viking://resources/v1.2/v1.2/...``.
+    ``v1.2/`` layer, producing ``wfs://resources/v1.2/v1.2/...``.
     """
     zip_path = tmp_path / "v1.2.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
@@ -242,7 +242,7 @@ async def test_zip_distinct_source_name_final_root_uri_keeps_wrapper(tmp_path: P
 
     Drives the real DirectoryParser against a fake VikingFS, then runs
     ``TreeBuilder.finalize_from_temp`` on its temp output and asserts the
-    final URI is ``viking://resources/access`` with ``access-dns`` still
+    final URI is ``wfs://resources/access`` with ``access-dns`` still
     living underneath it.
     """
     from openviking.parse.tree_builder import TreeBuilder
@@ -273,14 +273,14 @@ async def test_zip_distinct_source_name_final_root_uri_keeps_wrapper(tmp_path: P
             scope="resources",
         )
 
-    assert tree.root.uri == "viking://resources/access"
+    assert tree.root.uri == "wfs://resources/access"
     assert tree.root.temp_uri.endswith("/access")
 
 
 @pytest.mark.asyncio
 async def test_zip_matching_source_name_final_root_uri_collapses(tmp_path: Path):
     """End-to-end: source_name="tt_b.zip" + zip "tt_b/..." collapses to
-    ``viking://resources/tt_b`` (no doubled wrapper)."""
+    ``wfs://resources/tt_b`` (no doubled wrapper)."""
     from openviking.parse.tree_builder import TreeBuilder
     from openviking.server.identity import RequestContext, Role
     from openviking_cli.session.user_id import UserIdentifier
@@ -308,4 +308,4 @@ async def test_zip_matching_source_name_final_root_uri_collapses(tmp_path: Path)
             scope="resources",
         )
 
-    assert tree.root.uri == "viking://resources/tt_b"
+    assert tree.root.uri == "wfs://resources/tt_b"

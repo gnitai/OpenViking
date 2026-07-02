@@ -119,7 +119,7 @@ curl -X POST http://localhost:1933/api/v1/search/find \
     -H "X-API-Key: your-key" \
     -d '{
         "query": "authentication",
-        "target_uri": "viking://resources",
+        "target_uri": "wfs://resources",
         "since": "7d",
         "time_field": "created_at"
     }'
@@ -139,7 +139,7 @@ results = client.find("how to authenticate users")
 # Search with filter and time range
 recent_emails = client.find(
     "invoice",
-    target_uri="viking://resources/email",
+    target_uri="wfs://resources/email",
     since="7d",
     time_field="created_at",
 )
@@ -159,25 +159,25 @@ for ctx in results.resources:
 # Search only in resources
 results = client.find(
     "authentication",
-    target_uri="viking://resources"
+    target_uri="wfs://resources"
 )
 
 # Search only in user memories
 results = client.find(
     "preferences",
-    target_uri="viking://user/memories"
+    target_uri="wfs://user/memories"
 )
 
 # Search only in skills
 results = client.find(
     "web search",
-    target_uri="viking://agent/skills"
+    target_uri="wfs://agent/skills"
 )
 
 # Search in specific project
 results = client.find(
     "API endpoints",
-    target_uri="viking://resources/my-project"
+    target_uri="wfs://resources/my-project"
 )
 ```
 
@@ -188,7 +188,7 @@ results = client.find(
 openviking find "how to authenticate users"
 
 # Specify URI scope
-openviking find "how to authenticate users" --uri "viking://resources"
+openviking find "how to authenticate users" --uri "wfs://resources"
 
 # With time filter
 openviking find "invoice" --after 7d
@@ -213,7 +213,7 @@ openviking find "how to authenticate users" -L 1,2
         "resources": [
             {
                 "context_type": "resource",
-                "uri": "viking://resources/01-overview/API_Overview/Documentation_Reading_P_2c6ae38b.md",
+                "uri": "wfs://resources/01-overview/API_Overview/Documentation_Reading_P_2c6ae38b.md",
                 "level": 2,
                 "score": 0.12808319406977778,
                 "category": "",
@@ -224,7 +224,7 @@ openviking find "how to authenticate users" -L 1,2
             },
             {
                 "context_type": "resource",
-                "uri": "viking://resources/01-overview/API_Overview/API_Endpoints/.abstract.md",
+                "uri": "wfs://resources/01-overview/API_Overview/API_Endpoints/.abstract.md",
                 "level": 0,
                 "score": 0.12054087276495282,
                 "category": "",
@@ -387,7 +387,7 @@ openviking search "how to implement OAuth" -L 1,2
         "resources": [
             {
                 "context_type": "resource",
-                "uri": "viking://resources/docs/oauth-best-practices",
+                "uri": "wfs://resources/docs/oauth-best-practices",
                 "level": 1,
                 "score": 0.95,
                 "category": "",
@@ -467,7 +467,7 @@ curl -X POST http://localhost:1933/api/v1/search/grep \
     -H "Content-Type: application/json" \
     -H "X-API-Key: your-key" \
     -d '{
-        "uri": "viking://resources",
+        "uri": "wfs://resources",
         "pattern": "authentication",
         "case_insensitive": true
     }'
@@ -482,7 +482,7 @@ client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
 client.initialize()
 
 results = client.grep(
-    "viking://resources",
+    "wfs://resources",
     "authentication",
     case_insensitive=True
 )
@@ -497,13 +497,13 @@ for match in results['matches']:
 
 ```bash
 # Basic search
-openviking grep viking://resources "authentication"
+openviking grep wfs://resources "authentication"
 
 # Ignore case
-openviking grep viking://resources "authentication" --ignore-case
+openviking grep wfs://resources "authentication" --ignore-case
 
 # Specify depth limit
-openviking grep viking://resources "TODO" --level-limit 3
+openviking grep wfs://resources "TODO" --level-limit 3
 ```
 
 **Response Example**
@@ -514,7 +514,7 @@ openviking grep viking://resources "TODO" --level-limit 3
     "result": {
         "matches": [
             {
-                "uri": "viking://resources/docs/auth.md",
+                "uri": "wfs://resources/docs/auth.md",
                 "line": 15,
                 "content": "User authentication is handled by..."
             }
@@ -553,7 +553,7 @@ The `glob()` method uses file wildcard pattern matching URIs, similar to Unix sh
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | pattern | str | Yes | - | Glob pattern (e.g., `**/*.md`) |
-| uri | str | No | "viking://" | Starting URI |
+| uri | str | No | "wfs://" | Starting URI |
 | node_limit | int | No | None | Maximum number of matches to return |
 
 #### 3. Usage Examples
@@ -570,7 +570,7 @@ curl -X POST http://localhost:1933/api/v1/search/glob \
     -H "X-API-Key: your-key" \
     -d '{
         "pattern": "**/*.md",
-        "uri": "viking://resources"
+        "uri": "wfs://resources"
     }'
 ```
 
@@ -583,13 +583,13 @@ client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
 client.initialize()
 
 # Find all markdown files
-results = client.glob("**/*.md", "viking://resources")
+results = client.glob("**/*.md", "wfs://resources")
 print(f"Found {results['count']} markdown files:")
 for uri in results['matches']:
     print(f"  {uri}")
 
 # Find all Python files
-results = client.glob("**/*.py", "viking://resources")
+results = client.glob("**/*.py", "wfs://resources")
 print(f"Found {results['count']} Python files")
 ```
 
@@ -597,7 +597,7 @@ print(f"Found {results['count']} Python files")
 
 ```bash
 # Find all markdown files
-openviking glob "**/*.md" --uri viking://resources
+openviking glob "**/*.md" --uri wfs://resources
 
 # Find all Python files
 openviking glob "**/*.py"
@@ -610,8 +610,8 @@ openviking glob "**/*.py"
     "status": "ok",
     "result": {
         "matches": [
-            "viking://resources/docs/api.md",
-            "viking://resources/docs/guide.md"
+            "wfs://resources/docs/api.md",
+            "wfs://resources/docs/guide.md"
         ],
         "count": 2
     },
@@ -661,11 +661,11 @@ curl -X POST http://localhost:1933/api/v1/search/find \
     -d '{"query": "authentication"}'
 
 # Step 2: Read overview for directory result
-curl -X GET "http://localhost:1933/api/v1/content/overview?uri=viking://resources/docs/auth" \
+curl -X GET "http://localhost:1933/api/v1/content/overview?uri=wfs://resources/docs/auth" \
     -H "X-API-Key: your-key"
 
 # Step 3: Read full content for file result
-curl -X GET "http://localhost:1933/api/v1/content/read?uri=viking://resources/docs/auth.md" \
+curl -X GET "http://localhost:1933/api/v1/content/read?uri=wfs://resources/docs/auth.md" \
     -H "X-API-Key: your-key"
 ```
 
@@ -694,7 +694,7 @@ for ctx in results.resources:
 
 ```bash
 # Get relations for resource
-curl -X GET "http://localhost:1933/api/v1/relations?uri=viking://resources/docs/auth" \
+curl -X GET "http://localhost:1933/api/v1/relations?uri=wfs://resources/docs/auth" \
     -H "X-API-Key: your-key"
 ```
 
@@ -726,7 +726,7 @@ client.initialize()
 # Search in relevant scope for better results
 results = client.find(
     "error handling",
-    target_uri="viking://resources/my-project"
+    target_uri="wfs://resources/my-project"
 )
 ```
 

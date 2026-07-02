@@ -5,7 +5,7 @@ import uuid
 
 class TestReindexDownloadDeep:
     def test_download_nonexistent_uri(self, api_client):
-        dl_resp = api_client.content_download("viking://resources/nonexistent_dl_test_99999.md")
+        dl_resp = api_client.content_download("wfs://resources/nonexistent_dl_test_99999.md")
         assert dl_resp.status_code == 404, (
             f"download nonexistent should return error, got {dl_resp.status_code}"
         )

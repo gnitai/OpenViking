@@ -197,7 +197,7 @@ async def build_manifest(
     index_records: list[dict[str, Any]] = []
     dense_values: list[float] = []
 
-    if root_uri != "viking://":
+    if root_uri != "wfs://":
         root_records = await index_records_for_uri(
             viking_fs,
             vector_store,
@@ -237,7 +237,7 @@ async def build_manifest(
     root = {
         "name": base_name,
         "uri": root_uri,
-        "scope": "root" if root_uri == "viking://" else VikingURI(root_uri).scope,
+        "scope": "root" if root_uri == "wfs://" else VikingURI(root_uri).scope,
     }
     manifest: dict[str, Any] = {
         "kind": OVPACK_KIND,

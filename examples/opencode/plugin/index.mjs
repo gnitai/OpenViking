@@ -66,13 +66,13 @@ async function loadRepos() {
 
   try {
     const { stdout } = await run(
-      "ov --output json ls viking://resources/ --abs-limit 2000"
+      "ov --output json ls wfs://resources/ --abs-limit 2000"
     )
     const items = JSON.parse(stdout)?.result ?? []
     const repos = items
-      .filter((item) => item.uri?.startsWith("viking://resources/"))
+      .filter((item) => item.uri?.startsWith("wfs://resources/"))
       .map((item) => {
-        const name = item.uri.replace("viking://resources/", "").replace(/\/$/, "")
+        const name = item.uri.replace("wfs://resources/", "").replace(/\/$/, "")
         return item.abstract
           ? `- **${name}** (${item.uri})\n  ${item.abstract}`
           : `- **${name}** (${item.uri})`

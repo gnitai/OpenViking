@@ -51,7 +51,7 @@ class TestSessionMessages:
                         {"type": "text", "text": "Here is the answer"},
                         {
                             "type": "context",
-                            "uri": "viking://resources/test",
+                            "uri": "wfs://resources/test",
                             "context_type": "resource",
                             "abstract": "A test resource",
                         },

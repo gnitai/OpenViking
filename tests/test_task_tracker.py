@@ -270,13 +270,13 @@ async def test_has_running_false_after_fail(tracker: TaskTracker):
 async def test_create_if_no_running_isolated_by_owner(tracker: TaskTracker):
     alice_task = await tracker.create_if_no_running(
         "reindex",
-        "viking://resources/demo",
+        "wfs://resources/demo",
         account_id="acme",
         user_id="alice",
     )
     bob_task = await tracker.create_if_no_running(
         "reindex",
-        "viking://resources/demo",
+        "wfs://resources/demo",
         account_id="acme",
         user_id="bob",
     )
@@ -411,7 +411,7 @@ async def test_persistent_store_writes_task_record_json():
 
     task = await tracker.create(
         "add_resource",
-        resource_id="viking://resources/demo",
+        resource_id="wfs://resources/demo",
         **_owner_kwargs(),
     )
 
@@ -463,7 +463,7 @@ async def test_create_requires_owner(tracker: TaskTracker):
 
 async def test_create_if_no_running_requires_owner(tracker: TaskTracker):
     with pytest.raises(TypeError):
-        await tracker.create_if_no_running("reindex", "viking://resources/demo")
+        await tracker.create_if_no_running("reindex", "wfs://resources/demo")
 
 
 async def test_create_rejects_blank_owner_values(tracker: TaskTracker):

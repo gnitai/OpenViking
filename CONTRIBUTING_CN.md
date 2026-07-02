@@ -282,7 +282,7 @@ class TestAsyncOpenViking:
             reason="test document"
         )
         assert "root_uri" in result
-        assert result["root_uri"].startswith("viking://")
+        assert result["root_uri"].startswith("wfs://")
 ```
 
 常用 fixture 定义在 `tests/conftest.py` 中，包括 `client`（已初始化的 `AsyncOpenViking`）、`uninitialized_client`、`temp_dir`、`sample_markdown_file` 等。

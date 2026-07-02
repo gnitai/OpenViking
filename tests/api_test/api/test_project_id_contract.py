@@ -86,7 +86,7 @@ class TestPerProjectFilesystemIsolation:
     def test_write_project_3493_not_visible_under_project_999(self):
         """File written as project '3493' must not be readable as project '999'."""
         unique_suffix = uuid.uuid4().hex[:8]
-        test_uri = f"viking://resources/project_id_isolation_test_{unique_suffix}.txt"
+        test_uri = f"wfs://resources/project_id_isolation_test_{unique_suffix}.txt"
         test_content = f"project_id contract test {unique_suffix}"
 
         client_3493 = OpenVikingAPIClient(
@@ -104,7 +104,7 @@ class TestPerProjectFilesystemIsolation:
 
         try:
             # Ensure resources dir exists in project 3493
-            client_3493.fs_mkdir("viking://resources")
+            client_3493.fs_mkdir("wfs://resources")
 
             # Write the file as project 3493 (mode="create" for new files)
             write_resp = client_3493.fs_write(test_uri, test_content, mode="create", wait=True)

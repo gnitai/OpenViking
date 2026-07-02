@@ -41,9 +41,9 @@ VikingFS is the unified URI abstraction layer that hides underlying storage deta
 ### URI Mapping
 
 ```
-viking://resources/docs/auth  →  /local/{account_id}/resources/docs/auth
-viking://user/memories        →  /local/{account_id}/user/{user_id}/memories
-viking://agent/skills         →  /local/{account_id}/agent/{agent_id}/skills
+wfs://resources/docs/auth  →  /local/{account_id}/resources/docs/auth
+wfs://user/memories        →  /local/{account_id}/user/{user_id}/memories
+wfs://agent/skills         →  /local/{account_id}/agent/{agent_id}/skills
 ```
 
 ### Core API
@@ -67,13 +67,13 @@ VikingFS manages resource relations through `.relations.json`:
 ```python
 # Create relation
 viking_fs.link(
-    from_uri="viking://resources/docs/auth",
-    uris=["viking://resources/docs/security"],
+    from_uri="wfs://resources/docs/auth",
+    uris=["wfs://resources/docs/security"],
     reason="Related security docs"
 )
 
 # Get relations
-relations = viking_fs.relations("viking://resources/docs/auth")
+relations = viking_fs.relations("wfs://resources/docs/auth")
 ```
 
 ## AGFS Backend Storage
@@ -93,7 +93,7 @@ AGFS provides POSIX-style file operations with multiple backend support.
 Each context directory follows a unified structure:
 
 ```
-viking://resources/docs/auth/
+wfs://resources/docs/auth/
 ├── .abstract.md          # L0 abstract
 ├── .overview.md          # L1 overview
 ├── .relations.json       # Relations table
@@ -146,7 +146,7 @@ VikingFS automatically maintains consistency between vector index and AGFS.
 ### Delete Sync
 
 ```python
-viking_fs.rm("viking://resources/docs/auth", recursive=True)
+viking_fs.rm("wfs://resources/docs/auth", recursive=True)
 # Automatically deletes all records with this URI prefix from vector index
 ```
 
@@ -154,8 +154,8 @@ viking_fs.rm("viking://resources/docs/auth", recursive=True)
 
 ```python
 viking_fs.mv(
-    "viking://resources/docs/auth",
-    "viking://resources/docs/authentication"
+    "wfs://resources/docs/auth",
+    "wfs://resources/docs/authentication"
 )
 # Automatically updates uri and parent_uri fields in vector index
 ```

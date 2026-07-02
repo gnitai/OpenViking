@@ -117,14 +117,14 @@ class OpenVikingMount:
         将OpenViking URI转换为本地文件路径
 
         Args:
-            uri: OpenViking URI (e.g., viking://resources/path/to/file)
+            uri: OpenViking URI (e.g., wfs://resources/path/to/file)
 
         Returns:
             本地文件路径
         """
         # 解析URI
-        if uri.startswith("viking://"):
-            uri = uri[len("viking://") :]
+        if uri.startswith("wfs://"):
+            uri = uri[len("wfs://") :]
 
         # 处理作用域
         parts = uri.split("/", 1)
@@ -162,13 +162,13 @@ class OpenVikingMount:
             rel_path = path
 
         # 构建URI
-        return f"viking://{rel_path}"
+        return f"wfs://{rel_path}"
 
     def _get_scope_root_uri(self) -> str:
         """获取当前作用域的根URI"""
         if self.config.scope == MountScope.ALL:
-            return "viking://"
-        return f"viking://{self.config.scope.value}"
+            return "wfs://"
+        return f"wfs://{self.config.scope.value}"
 
     def list_dir(self, path: Union[str, Path]) -> List[FileInfo]:
         """

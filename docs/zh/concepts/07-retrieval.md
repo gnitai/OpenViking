@@ -26,7 +26,7 @@ OpenViking 采用两阶段检索：意图分析 + 层级检索 + Rerank。
 # find(): 简单查询
 results = await client.find(
     "OAuth 认证",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # search(): 复杂任务（需要会话上下文）
@@ -92,9 +92,9 @@ Step 5: 转换为 MatchedContext
 
 | context_type | 根目录 |
 |--------------|--------|
-| MEMORY | `viking://user/memories`, `viking://agent/memories` |
-| RESOURCE | `viking://resources` |
-| SKILL | `viking://agent/skills` |
+| MEMORY | `wfs://user/memories`, `wfs://agent/memories` |
+| RESOURCE | `wfs://resources` |
+| SKILL | `wfs://agent/skills` |
 
 ### 递归搜索算法
 

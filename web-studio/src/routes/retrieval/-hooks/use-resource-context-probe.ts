@@ -37,7 +37,7 @@ export function useResourceContextProbe() {
             output: 'agent',
             recursive: true,
             show_all_hidden: false,
-            uri: 'viking://resources/',
+            uri: 'wfs://resources/',
           },
         }),
       )

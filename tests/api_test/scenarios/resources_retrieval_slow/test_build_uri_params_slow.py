@@ -13,7 +13,7 @@ class TestBuildUriParamsSlow:
         """TC-E17 指定to参数构建：验证 root_uri == to"""
         random_id = str(uuid.uuid4())[:8]
         unique_keyword = f"to_keyword_{random_id}"
-        target_uri = f"viking://resources/to_test_{random_id}"
+        target_uri = f"wfs://resources/to_test_{random_id}"
 
         content = f"to参数测试 {random_id}\n包含唯一关键词：{unique_keyword}"
         test_file_path, temp_dir = create_test_file(content=content, suffix=".txt")

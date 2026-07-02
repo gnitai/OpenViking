@@ -69,12 +69,12 @@ def _patch_fs(monkeypatch, service, *, read=None, ls=None):
 
 class TestRequireVikingUri:
     def test_accepts_viking_uri(self):
-        assert _require_viking_uri("viking://resources/foo.py") is None
+        assert _require_viking_uri("wfs://resources/foo.py") is None
 
     def test_rejects_local_path(self):
         msg = _require_viking_uri("/tmp/foo.py")
         assert msg is not None
-        assert "viking://" in msg
+        assert "wfs://" in msg
 
     def test_rejects_http_url(self):
         msg = _require_viking_uri("https://example.com/foo.py")
@@ -92,41 +92,41 @@ class TestRequireVikingUri:
 class TestFilterCodeUris:
     def test_keeps_supported_extensions(self):
         entries = [
-            {"uri": "viking://r/a.py", "isDir": False},
-            {"uri": "viking://r/b.md", "isDir": False},
-            {"uri": "viking://r/c.ts", "isDir": False},
-            {"uri": "viking://r/d.txt", "isDir": False},
+            {"uri": "wfs://r/a.py", "isDir": False},
+            {"uri": "wfs://r/b.md", "isDir": False},
+            {"uri": "wfs://r/c.ts", "isDir": False},
+            {"uri": "wfs://r/d.txt", "isDir": False},
         ]
         uris, capped = _filter_code_uris(entries)
-        assert uris == ["viking://r/a.py", "viking://r/c.ts"]
+        assert uris == ["wfs://r/a.py", "wfs://r/c.ts"]
         assert capped is False
 
     def test_skips_directories(self):
         entries = [
-            {"uri": "viking://r/sub", "isDir": True},
-            {"uri": "viking://r/a.py", "isDir": False},
+            {"uri": "wfs://r/sub", "isDir": True},
+            {"uri": "wfs://r/a.py", "isDir": False},
         ]
         uris, capped = _filter_code_uris(entries)
-        assert uris == ["viking://r/a.py"]
+        assert uris == ["wfs://r/a.py"]
         assert capped is False
 
     def test_supports_object_entries(self):
         entries = [
-            SimpleNamespace(uri="viking://r/a.py", is_dir=False),
-            SimpleNamespace(uri="viking://r/sub", is_dir=True),
+            SimpleNamespace(uri="wfs://r/a.py", is_dir=False),
+            SimpleNamespace(uri="wfs://r/sub", is_dir=True),
         ]
         uris, capped = _filter_code_uris(entries)
-        assert uris == ["viking://r/a.py"]
+        assert uris == ["wfs://r/a.py"]
         assert capped is False
 
     def test_caps_at_200(self):
-        entries = [{"uri": f"viking://r/f{i}.py", "isDir": False} for i in range(250)]
+        entries = [{"uri": f"wfs://r/f{i}.py", "isDir": False} for i in range(250)]
         uris, capped = _filter_code_uris(entries)
         assert len(uris) == 200
         assert capped is True
 
     def test_exactly_200_not_capped(self):
-        entries = [{"uri": f"viking://r/f{i}.py", "isDir": False} for i in range(200)]
+        entries = [{"uri": f"wfs://r/f{i}.py", "isDir": False} for i in range(200)]
         uris, capped = _filter_code_uris(entries)
         assert len(uris) == 200
         assert capped is False
@@ -140,7 +140,7 @@ class TestFilterCodeUris:
 class TestCodeOutline:
     async def test_rejects_non_viking_uri(self, service):
         out = await code_outline("/tmp/foo.py")
-        assert "viking://" in out
+        assert "wfs://" in out
 
     async def test_outline_via_fs_read(self, service, monkeypatch):
         captured = {}
@@ -152,8 +152,8 @@ class TestCodeOutline:
 
         _patch_fs(monkeypatch, service, read=fake_read)
 
-        out = await code_outline("viking://resources/greeter.py")
-        assert captured["uri"] == "viking://resources/greeter.py"
+        out = await code_outline("wfs://resources/greeter.py")
+        assert captured["uri"] == "wfs://resources/greeter.py"
         assert captured["ctx"] == DEFAULT_CTX
         assert "class Greeter" in out
         assert "def make_greeter" in out
@@ -164,7 +164,7 @@ class TestCodeOutline:
             return "# heading"
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_outline("viking://resources/notes.md")
+        out = await code_outline("wfs://resources/notes.md")
         assert out.startswith("Error: unsupported language")
 
     async def test_read_failure(self, service, monkeypatch):
@@ -172,7 +172,7 @@ class TestCodeOutline:
             raise RuntimeError("boom")
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_outline("viking://resources/x.py")
+        out = await code_outline("wfs://resources/x.py")
         assert out.startswith("Error: failed to read")
         assert "boom" in out
 
@@ -181,7 +181,7 @@ class TestCodeOutline:
             return b"\x00\x01binary"
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_outline("viking://resources/x.py")
+        out = await code_outline("wfs://resources/x.py")
         assert out.endswith("is not text")
 
 
@@ -193,10 +193,10 @@ class TestCodeOutline:
 class TestCodeSearch:
     async def test_rejects_non_viking_uri(self, service):
         out = await code_search("foo", "/tmp/dir")
-        assert "viking://" in out
+        assert "wfs://" in out
 
     async def test_empty_query(self, service):
-        out = await code_search("", "viking://resources")
+        out = await code_search("", "wfs://resources")
         assert out == "Error: empty query"
 
     async def test_lists_and_searches(self, service, monkeypatch):
@@ -209,10 +209,10 @@ class TestCodeSearch:
             ls_calls["recursive"] = recursive
             ls_calls["output"] = output
             return [
-                {"uri": "viking://r/a.py", "isDir": False},
-                {"uri": "viking://r/sub", "isDir": True},
-                {"uri": "viking://r/b.md", "isDir": False},
-                {"uri": "viking://r/c.py", "isDir": False},
+                {"uri": "wfs://r/a.py", "isDir": False},
+                {"uri": "wfs://r/sub", "isDir": True},
+                {"uri": "wfs://r/b.md", "isDir": False},
+                {"uri": "wfs://r/c.py", "isDir": False},
             ]
 
         async def fake_read(uri, ctx=None, **_):
@@ -225,15 +225,15 @@ class TestCodeSearch:
 
         _patch_fs(monkeypatch, service, ls=fake_ls, read=fake_read)
 
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         assert ls_calls["recursive"] is True
         assert ls_calls["output"] == "original"
         assert ls_calls["ctx"] == DEFAULT_CTX
         # b.md must be filtered out before any read happens
-        assert "viking://r/b.md" not in read_uris
-        assert set(read_uris) == {"viking://r/a.py", "viking://r/c.py"}
+        assert "wfs://r/b.md" not in read_uris
+        assert set(read_uris) == {"wfs://r/a.py", "wfs://r/c.py"}
         # search hits Greeter + Greeter.greet in a.py
-        assert "viking://r/a.py" in out
+        assert "wfs://r/a.py" in out
         assert "Greeter" in out
 
     async def test_empty_directory(self, service, monkeypatch):
@@ -241,15 +241,15 @@ class TestCodeSearch:
             return []
 
         _patch_fs(monkeypatch, service, ls=fake_ls)
-        out = await code_search("greet", "viking://empty")
+        out = await code_search("greet", "wfs://empty")
         assert "No supported source files" in out
 
     async def test_no_code_files(self, service, monkeypatch):
         async def fake_ls(uri, ctx=None, recursive=False, output=None, **_):
-            return [{"uri": "viking://r/notes.md", "isDir": False}]
+            return [{"uri": "wfs://r/notes.md", "isDir": False}]
 
         _patch_fs(monkeypatch, service, ls=fake_ls)
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         assert "No supported source files" in out
 
     async def test_ls_failure(self, service, monkeypatch):
@@ -257,15 +257,15 @@ class TestCodeSearch:
             raise RuntimeError("ls denied")
 
         _patch_fs(monkeypatch, service, ls=fake_ls)
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         assert out.startswith("Error: failed to list")
         assert "ls denied" in out
 
     async def test_read_failures_are_skipped(self, service, monkeypatch):
         async def fake_ls(uri, ctx=None, recursive=False, output=None, **_):
             return [
-                {"uri": "viking://r/a.py", "isDir": False},
-                {"uri": "viking://r/b.py", "isDir": False},
+                {"uri": "wfs://r/a.py", "isDir": False},
+                {"uri": "wfs://r/b.py", "isDir": False},
             ]
 
         async def fake_read(uri, ctx=None, **_):
@@ -274,31 +274,31 @@ class TestCodeSearch:
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, ls=fake_ls, read=fake_read)
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         # Search should still report the matches from a.py despite b.py failing.
-        assert "viking://r/a.py" in out
+        assert "wfs://r/a.py" in out
         assert "Greeter" in out
 
     async def test_file_cap_warning(self, service, monkeypatch):
         async def fake_ls(uri, ctx=None, recursive=False, output=None, **_):
-            return [{"uri": f"viking://r/f{i}.py", "isDir": False} for i in range(250)]
+            return [{"uri": f"wfs://r/f{i}.py", "isDir": False} for i in range(250)]
 
         async def fake_read(uri, ctx=None, **_):
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, ls=fake_ls, read=fake_read)
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         assert "200-file cap" in out
 
     async def test_no_cap_warning_below_threshold(self, service, monkeypatch):
         async def fake_ls(uri, ctx=None, recursive=False, output=None, **_):
-            return [{"uri": "viking://r/a.py", "isDir": False}]
+            return [{"uri": "wfs://r/a.py", "isDir": False}]
 
         async def fake_read(uri, ctx=None, **_):
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, ls=fake_ls, read=fake_read)
-        out = await code_search("greet", "viking://r")
+        out = await code_search("greet", "wfs://r")
         assert "200-file cap" not in out
 
 
@@ -310,10 +310,10 @@ class TestCodeSearch:
 class TestCodeExpand:
     async def test_rejects_non_viking_uri(self, service):
         out = await code_expand("/tmp/foo.py", "Greeter")
-        assert "viking://" in out
+        assert "wfs://" in out
 
     async def test_empty_symbol(self, service):
-        out = await code_expand("viking://r/a.py", "")
+        out = await code_expand("wfs://r/a.py", "")
         assert out == "Error: empty symbol"
 
     async def test_expand_bare_symbol(self, service, monkeypatch):
@@ -325,8 +325,8 @@ class TestCodeExpand:
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/a.py", "make_greeter")
-        assert captured["uri"] == "viking://r/a.py"
+        out = await code_expand("wfs://r/a.py", "make_greeter")
+        assert captured["uri"] == "wfs://r/a.py"
         assert captured["ctx"] == DEFAULT_CTX
         assert "(make_greeter)" in out
         assert "def make_greeter" in out
@@ -336,7 +336,7 @@ class TestCodeExpand:
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/a.py", "Greeter.greet")
+        out = await code_expand("wfs://r/a.py", "Greeter.greet")
         assert "(Greeter.greet)" in out
         assert "def greet" in out
 
@@ -345,7 +345,7 @@ class TestCodeExpand:
             return PY_SAMPLE
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/a.py", "does_not_exist")
+        out = await code_expand("wfs://r/a.py", "does_not_exist")
         assert "not found" in out
         assert "does_not_exist" in out
 
@@ -354,7 +354,7 @@ class TestCodeExpand:
             raise RuntimeError("boom")
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/a.py", "Greeter")
+        out = await code_expand("wfs://r/a.py", "Greeter")
         assert out.startswith("Error: failed to read")
         assert "boom" in out
 
@@ -363,7 +363,7 @@ class TestCodeExpand:
             return b"\x00binary"
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/a.py", "Greeter")
+        out = await code_expand("wfs://r/a.py", "Greeter")
         assert out.endswith("is not text")
 
     async def test_unsupported_language(self, service, monkeypatch):
@@ -371,5 +371,5 @@ class TestCodeExpand:
             return "# heading"
 
         _patch_fs(monkeypatch, service, read=fake_read)
-        out = await code_expand("viking://r/notes.md", "anything")
+        out = await code_expand("wfs://r/notes.md", "anything")
         assert out.startswith("Error: unsupported language")

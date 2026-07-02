@@ -13,8 +13,8 @@ from urllib.request import Request, urlopen
 
 
 DEFAULT_BASE_URL = "http://127.0.0.1:1933"
-DEFAULT_TARGET_URI = "viking://user/default"
-LEGACY_TARGET_URI = "viking://user/memories"
+DEFAULT_TARGET_URI = "wfs://user/default"
+LEGACY_TARGET_URI = "wfs://user/memories"
 SERVERLESS_BASE_URL = "https://api.vikingdb.cn-beijing.volces.com/openviking"
 
 
@@ -82,10 +82,10 @@ class OpenVikingClient:
             return target_uri
         if normalized == DEFAULT_TARGET_URI:
             user_space = self._headers().get("X-OpenViking-User", "default") or "default"
-            return f"viking://user/{user_space}"
+            return f"wfs://user/{user_space}"
         if normalized == LEGACY_TARGET_URI:
             user_space = self._headers().get("X-OpenViking-User", "default") or "default"
-            return f"viking://user/{user_space}/memories/"
+            return f"wfs://user/{user_space}/memories/"
         return target_uri
 
     def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:

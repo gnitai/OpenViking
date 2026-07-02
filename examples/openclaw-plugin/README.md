@@ -46,7 +46,7 @@ Once installed, the plugin provides these agent tools:
 
 - **What is sent**: User/assistant message text from each turn (after stripping injected memory blocks and metadata noise).
 - **Where it goes**: Your configured OpenViking server (`baseUrl`). The plugin only sends data to that server; downstream model/provider data handling (embedding, VLM) depends on the server's configuration.
-- **Storage**: All data lives on your OpenViking server under `viking://user/*`, `viking://agent/*`, and `viking://session/*`.
+- **Storage**: All data lives on your OpenViking server under `wfs://user/*`, `wfs://agent/*`, and `wfs://session/*`.
 - **API Key**: Sent as `X-OpenViking-Key` header over your configured connection. Never logged or forwarded.
 - **Multi-tenant isolation**: Supports `accountId`, `userId`, and `agent_prefix` for per-tenant scoping.
 
@@ -96,7 +96,7 @@ The diagram above reflects the current implementation boundary:
 - OpenClaw remains the primary runtime on the left. The plugin does not take over agent execution.
 - The middle layer combines hooks, the context engine, tools, and runtime management in one plugin registration.
 - All HTTP traffic goes through `OpenVikingClient`, which centralizes `X-OpenViking-*` headers and routing logs.
-- The OpenViking service owns sessions, memories, archives, and Phase 2 extraction, with storage under `viking://user/*`, `viking://agent/*`, and `viking://session/*`.
+- The OpenViking service owns sessions, memories, archives, and Phase 2 extraction, with storage under `wfs://user/*`, `wfs://agent/*`, and `wfs://session/*`.
 
 That split lets OpenClaw stay focused on reasoning and orchestration while OpenViking becomes the source of truth for long-lived context.
 
@@ -134,12 +134,12 @@ In this setup:
 
 For OpenViking servers that include PR #1356, the plugin no longer treats agent or user scope as a locally computed hash. Instead it expands shorthand aliases into canonical URIs using the configured namespace policy:
 
-- `viking://user/memories`
-  - `viking://user/<user_id>/memories` when `isolateUserScopeByAgent=false`
-  - `viking://user/<user_id>/agent/<agent_id>/memories` when `isolateUserScopeByAgent=true`
-- `viking://agent/memories`
-  - `viking://agent/<agent_id>/memories` when `isolateAgentScopeByUser=false`
-  - `viking://agent/<agent_id>/user/<user_id>/memories` when `isolateAgentScopeByUser=true`
+- `wfs://user/memories`
+  - `wfs://user/<user_id>/memories` when `isolateUserScopeByAgent=false`
+  - `wfs://user/<user_id>/agent/<agent_id>/memories` when `isolateUserScopeByAgent=true`
+- `wfs://agent/memories`
+  - `wfs://agent/<agent_id>/memories` when `isolateAgentScopeByUser=false`
+  - `wfs://agent/<agent_id>/user/<user_id>/memories` when `isolateAgentScopeByUser=true`
 
 The plugin cannot auto-discover this policy today because `/api/v1/system/status` does not expose it. Configure the two booleans explicitly so they stay aligned with the server-side account policy.
 
@@ -157,7 +157,7 @@ During recall, the plugin:
 1. Extracts query text from the latest user message.
 2. Resolves the agent routing for the current `sessionId/sessionKey`.
 3. Runs a quick availability precheck so model requests do not stall when OpenViking is unavailable.
-4. Queries both `viking://user/memories` and `viking://agent/memories` in parallel.
+4. Queries both `wfs://user/memories` and `wfs://agent/memories` in parallel.
 5. Deduplicates, threshold-filters, reranks, and trims the results under a token budget.
 6. Prepends the selected memories as a `<relevant-memories>` block to the current user message; it does not append a standalone synthetic user message.
 
@@ -242,16 +242,16 @@ They serve different roles:
 
 Resource and skill imports are intentionally separate because they land in different OpenViking namespaces and use different server APIs:
 
-- resources go through `/api/v1/resources` and land under `viking://resources/...`
-- skills go through `/api/v1/skills` and land under `viking://agent/skills/...`
+- resources go through `/api/v1/resources` and land under `wfs://resources/...`
+- skills go through `/api/v1/skills` and land under `wfs://agent/skills/...`
 
 The plugin also registers explicit slash commands for manual imports:
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
 /add-skill ./skills/install-openviking-memory --wait
-/ov-search "OpenViking install" --uri viking://resources/openviking-readme
-/ov-search "memory install skill" --uri viking://agent/skills
+/ov-search "OpenViking install" --uri wfs://resources/openviking-readme
+/ov-search "memory install skill" --uri wfs://agent/skills
 ```
 
 Resource import supports remote URLs, Git URLs, local files, local directories, and uploaded zip files. OpenViking's built-in parsers cover common documents and media such as Markdown, text, PDF, HTML, Word, PowerPoint, Excel, EPUB, images, audio, and video. Directory imports also accept common code, documentation, and config file extensions such as `.py`, `.js`, `.ts`, `.go`, `.rs`, `.java`, `.cpp`, `.json`, `.yaml`, `.toml`, `.csv`, `.rst`, `.proto`, `.tf`, and `.vue`.

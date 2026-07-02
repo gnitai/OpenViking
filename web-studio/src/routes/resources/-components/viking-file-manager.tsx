@@ -39,15 +39,15 @@ interface VikingFileManagerProps {
 
 function getAncestorUris(uri: string): Array<string> {
   const normalized = normalizeDirUri(uri)
-  if (normalized === 'viking://') {
-    return ['viking://']
+  if (normalized === 'wfs://') {
+    return ['wfs://']
   }
 
-  const body = normalized.slice('viking://'.length, -1)
+  const body = normalized.slice('wfs://'.length, -1)
   const parts = body.split('/').filter(Boolean)
 
-  const ancestors = ['viking://']
-  let running = 'viking://'
+  const ancestors = ['wfs://']
+  let running = 'wfs://'
   for (const part of parts) {
     running = `${running}${part}/`
     ancestors.push(running)
@@ -94,10 +94,10 @@ export function VikingFileManager({
   const { t } = useTranslation('resources')
   const { tasks, hasActiveTasks } = useResourceUpload()
   const [currentUri, setCurrentUri] = useState(
-    normalizeDirUri(initialUri || 'viking://'),
+    normalizeDirUri(initialUri || 'wfs://'),
   )
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(
-    new Set(['viking://']),
+    new Set(['wfs://']),
   )
   const [selectedFile, setSelectedFile] = useState<VikingFsEntry | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -107,7 +107,7 @@ export function VikingFileManager({
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
 
   useEffect(() => {
-    const normalized = normalizeDirUri(initialUri || 'viking://')
+    const normalized = normalizeDirUri(initialUri || 'wfs://')
     setCurrentUri(normalized)
     setExpandedKeys((prev) => {
       const next = new Set(prev)
@@ -282,12 +282,12 @@ export function VikingFileManager({
   }, [currentUri, onUriChange])
 
   const breadcrumbs = useMemo(() => {
-    const body = currentUri.slice('viking://'.length).replace(/\/$/, '')
+    const body = currentUri.slice('wfs://'.length).replace(/\/$/, '')
     const parts = body ? body.split('/').filter(Boolean) : []
     const crumbs: Array<{ label: string; uri: string }> = [
-      { label: 'viking://', uri: 'viking://' },
+      { label: 'wfs://', uri: 'wfs://' },
     ]
-    let running = 'viking://'
+    let running = 'wfs://'
     for (const part of parts) {
       running = `${running}${part}/`
       crumbs.push({ label: part, uri: running })
@@ -295,7 +295,7 @@ export function VikingFileManager({
     return crumbs
   }, [currentUri])
 
-  const showPreview = selectedFile !== null || currentUri === 'viking://'
+  const showPreview = selectedFile !== null || currentUri === 'wfs://'
 
   const layoutRef = useRef<HTMLDivElement>(null)
   const [treeWidth, setTreeWidth] = useState(() =>

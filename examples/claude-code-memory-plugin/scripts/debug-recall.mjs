@@ -208,7 +208,7 @@ async function resolveScopeSpace(scope) {
 
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
   try {
-    const entries = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`viking://${scope}`)}&output=original`);
+    const entries = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`wfs://${scope}`)}&output=original`);
     if (Array.isArray(entries)) {
       const spaces = entries
         .filter(e => e?.isDir)
@@ -228,7 +228,7 @@ async function resolveScopeSpace(scope) {
 
 async function resolveTargetUri(targetUri) {
   const trimmed = targetUri.trim().replace(/\/+$/, "");
-  const m = trimmed.match(/^viking:\/\/(user|agent)(?:\/(.*))?$/);
+  const m = trimmed.match(/^wfs:\/\/(user|agent)(?:\/(.*))?$/);
   if (!m) return trimmed;
   const scope = m[1];
   const rawRest = (m[2] ?? "").trim();
@@ -238,7 +238,7 @@ async function resolveTargetUri(targetUri) {
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
   if (!reservedDirs.has(parts[0])) return trimmed;
   const space = await resolveScopeSpace(scope);
-  return `viking://${scope}/${space}/${parts.join("/")}`;
+  return `wfs://${scope}/${space}/${parts.join("/")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -257,9 +257,9 @@ async function searchScope(queryText, targetUri, limit) {
 
 async function searchBothScopes(queryText, limit) {
   console.log(`${C.dim}Searching user scope...${C.reset}`);
-  const userMems = await searchScope(queryText, "viking://user/memories", limit);
+  const userMems = await searchScope(queryText, "wfs://user/memories", limit);
   console.log(`${C.dim}Searching agent scope...${C.reset}`);
-  const agentMems = await searchScope(queryText, "viking://agent/memories", limit);
+  const agentMems = await searchScope(queryText, "wfs://agent/memories", limit);
 
   const all = [...userMems, ...agentMems];
   const uriSet = new Set();
@@ -343,9 +343,9 @@ async function main() {
   const { userMems, agentMems, combined } = await searchBothScopes(query, candidateLimit);
 
   console.log();
-  printSearchResults("User scope (viking://user/memories)", userMems);
+  printSearchResults("User scope (wfs://user/memories)", userMems);
   console.log();
-  printSearchResults("Agent scope (viking://agent/memories)", agentMems);
+  printSearchResults("Agent scope (wfs://agent/memories)", agentMems);
   console.log();
   dim(`  Combined (deduplicated): ${combined.length} result${combined.length === 1 ? "" : "s"}`);
 

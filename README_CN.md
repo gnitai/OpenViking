@@ -495,11 +495,11 @@ nohup openviking-server > /data/log/openviking.log 2>&1 &
 ```bash
 ov status
 ov add-resource https://github.com/volcengine/OpenViking # --wait
-ov ls viking://resources/
-ov tree viking://resources/volcengine -L 2
+ov ls wfs://resources/
+ov tree wfs://resources/volcengine -L 2
 # 如果没有使用 --wait，等待一段时间以进行语义处理
 ov find "what is openviking"
-ov grep "openviking" --uri viking://resources/volcengine/OpenViking/docs/zh
+ov grep "openviking" --uri wfs://resources/volcengine/OpenViking/docs/zh
 ```
 
 恭喜！您已成功运行 OpenViking 🎉
@@ -646,12 +646,12 @@ OpenViking 有一个类似 nanobot 的机器人用于交互工作，现已可用
 
 ### 1. 文件系统管理范式 → 解决碎片化
 
-我们不再将上下文视为扁平的文本切片，而是将它们统一到一个抽象的虚拟文件系统中。无论是记忆、资源还是能力，都映射到 `viking://` 协议下的虚拟目录中，每个都有唯一的 URI。
+我们不再将上下文视为扁平的文本切片，而是将它们统一到一个抽象的虚拟文件系统中。无论是记忆、资源还是能力，都映射到 `wfs://` 协议下的虚拟目录中，每个都有唯一的 URI。
 
 这种范式赋予智能体前所未有的上下文操作能力，使它们能够像开发者一样，通过 `ls` 和 `find` 等标准命令精确、确定地定位、浏览和操作信息。这将上下文管理从模糊的语义匹配转变为直观、可追踪的"文件操作"。了解更多：[Viking URI](./docs/zh/concepts/04-viking-uri.md) | [上下文类型](./docs/zh/concepts/02-context-types.md)
 
 ```
-viking://
+wfs://
 ├── resources/              # 资源：项目文档、代码库、网页等
 │   ├── my_project/
 │   │   ├── docs/
@@ -684,7 +684,7 @@ viking://
 了解更多：[上下文分层](./docs/zh/concepts/03-context-layers.md)
 
 ```
-viking://resources/my_project/
+wfs://resources/my_project/
 ├── .abstract               # L0 层：摘要（~100 tokens）- 快速相关性检查
 ├── .overview               # L1 层：概览（~2k tokens）- 理解结构和关键点
 ├── docs/
@@ -714,7 +714,7 @@ viking://resources/my_project/
 
 ### 4. 可视化检索轨迹 → 可观察上下文
 
-OpenViking 的组织采用分层虚拟文件系统结构。所有上下文以统一格式集成，每个条目对应一个唯一的 URI（如 `viking://` 路径），打破了传统的扁平黑盒管理模式，具有清晰易懂的层次结构。
+OpenViking 的组织采用分层虚拟文件系统结构。所有上下文以统一格式集成，每个条目对应一个唯一的 URI（如 `wfs://` 路径），打破了传统的扁平黑盒管理模式，具有清晰易懂的层次结构。
 
 检索过程采用目录递归策略。每次检索的目录浏览和文件定位轨迹被完整保留，让用户能够清晰观察问题的根源，指导检索逻辑的优化。了解更多：[检索机制](./docs/zh/concepts/07-retrieval.md)
 

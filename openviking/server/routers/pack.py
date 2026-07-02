@@ -152,7 +152,7 @@ async def backup_ovpack(
     except Exception as exc:
         if os.path.exists(temp_file):
             os.unlink(temp_file)
-        mapped = map_exception(exc, resource="viking://", resource_type="resource")
+        mapped = map_exception(exc, resource="wfs://", resource_type="resource")
         if mapped is not None:
             raise mapped from exc
         raise

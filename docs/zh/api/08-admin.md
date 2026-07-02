@@ -516,12 +516,12 @@ ov --sudo admin list-users acme
 
 #### 1. API 实现介绍
 
-列出工作区中已经存在的 agent namespace。这是管理侧发现接口，不改变普通 `viking://agent/...` 文件系统语义。
+列出工作区中已经存在的 agent namespace。这是管理侧发现接口，不改变普通 `wfs://agent/...` 文件系统语义。
 
 **处理流程：**
 1. 验证请求者具有 ROOT 权限，或为本账户的 ADMIN
 2. 验证 account 存在
-3. 扫描该 account 的 `viking://agent` namespace 根目录
+3. 扫描该 account 的 `wfs://agent` namespace 根目录
 4. 返回按 agent_id 排序的 agent namespace 列表
 
 **代码入口：**
@@ -572,8 +572,8 @@ ov --sudo admin list-agents acme
 {
   "status": "ok",
   "result": [
-    {"agent_id": "default", "uri": "viking://agent/default"},
-    {"agent_id": "openclaw", "uri": "viking://agent/openclaw"}
+    {"agent_id": "default", "uri": "wfs://agent/default"},
+    {"agent_id": "openclaw", "uri": "wfs://agent/openclaw"}
   ],
   "time": 0.1
 }

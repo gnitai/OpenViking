@@ -194,8 +194,8 @@ Example: concurrent writes to `docs/a.md`, `docs/b.md`, and `docs/c.md` hold sep
 Memory directory summaries use the same rule. Concurrent writes to:
 
 ```text
-viking://user/default/memories/preferences/theme.md
-viking://user/default/memories/preferences/editor.md
+wfs://user/default/memories/preferences/theme.md
+wfs://user/default/memories/preferences/editor.md
 ```
 
 hold separate ExactPathLocks for the two source files. Refreshing `preferences/.overview.md` and `preferences/.abstract.md` no longer needs a long TreeLock; stale background tasks are filtered by `coalesce_version`, and final sidecar writes briefly acquire ExactPathLock.

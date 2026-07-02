@@ -38,7 +38,7 @@ client.add_resource(
 # 搜索资源
 results = client.find(
     "认证方法",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 ```
 
@@ -77,7 +77,7 @@ task = await client.get_task(commit["task_id"])  # 轮询直到 task["status"] =
 # 搜索记忆
 results = await client.find(
     "用户界面偏好",
-    target_uri="viking://user/memories/"
+    target_uri="wfs://user/memories/"
 )
 ```
 
@@ -94,7 +94,7 @@ results = await client.find(
 ### 存储位置
 
 ```
-viking://agent/skills/{skill-name}/
+wfs://agent/skills/{skill-name}/
 ├── .abstract.md          # L0: 简短描述
 ├── SKILL.md   						# L1: 详细概览
 └── scripts           		# L2: 完整定义
@@ -114,7 +114,7 @@ await client.add_skill({
 # 搜索技能
 results = await client.find(
     "网络搜索",
-    target_uri="viking://agent/skills/"
+    target_uri="wfs://agent/skills/"
 )
 ```
 

@@ -7,7 +7,7 @@ import requests
 class TestFsTree:
     def test_fs_tree(self, api_client):
         try:
-            response = api_client.fs_tree("viking://")
+            response = api_client.fs_tree("wfs://")
         except requests.exceptions.ConnectionError:
             pytest.fail("Could not connect to server service - service is not running")
 

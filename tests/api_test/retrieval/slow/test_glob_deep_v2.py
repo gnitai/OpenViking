@@ -106,7 +106,7 @@ class TestSearchGlobDeep:
             if items:
                 first = items[0]
                 if isinstance(first, str):
-                    assert "viking:" in first, "glob result string should contain viking URI"
+                    assert "wfs:" in first, "glob result string should contain wfs URI"
                 elif isinstance(first, dict):
                     assert "uri" in first, (
                         f"glob result dict should contain uri, got keys: {list(first.keys())}"

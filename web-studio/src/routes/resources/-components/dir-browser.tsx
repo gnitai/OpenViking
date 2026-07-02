@@ -16,7 +16,7 @@ import { useVikingFsList } from '../-hooks/viking-fm'
 import type { VikingFsEntry } from '../-types/viking-fm'
 import { FilePreview } from './file-preview'
 
-const VIKING_ROOT_URI = 'viking://'
+const VIKING_ROOT_URI = 'wfs://'
 
 interface DirBrowserProps {
   startUri: string

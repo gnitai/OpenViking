@@ -850,7 +850,7 @@ class OpenVikingInspector:
             self.base_url,
             "/api/v1/search/find",
             method="POST",
-            body={"query": query, "target_uri": "viking://user/memories", "limit": limit},
+            body={"query": query, "target_uri": "wfs://user/memories", "limit": limit},
             headers=self.headers(),
             timeout=20.0,
             insecure=self.insecure,
@@ -967,7 +967,7 @@ def resolve_user_memory_root(inspector: OpenVikingInspector) -> str | None:
     runtime_user_id = inspector.get_runtime_user_id()
     preferred_space = runtime_user_id or "default"
     try:
-        entries = inspector.list_uri("viking://user", recursive=False)
+        entries = inspector.list_uri("wfs://user", recursive=False)
     except Exception:
         return None
 
@@ -976,7 +976,7 @@ def resolve_user_memory_root(inspector: OpenVikingInspector) -> str | None:
         if entry.get("isDir") is not True:
             continue
         uri = str(entry.get("uri", "")).strip().rstrip("/")
-        prefix = "viking://user/"
+        prefix = "wfs://user/"
         if not uri.startswith(prefix):
             continue
         space = uri[len(prefix) :]
@@ -986,11 +986,11 @@ def resolve_user_memory_root(inspector: OpenVikingInspector) -> str | None:
     if not spaces:
         return None
     if preferred_space in spaces:
-        return f"viking://user/{preferred_space}/memories"
+        return f"wfs://user/{preferred_space}/memories"
     if "default" in spaces:
-        return "viking://user/default/memories"
+        return "wfs://user/default/memories"
     if len(spaces) == 1:
-        return f"viking://user/{spaces[0]}/memories"
+        return f"wfs://user/{spaces[0]}/memories"
     return None
 
 

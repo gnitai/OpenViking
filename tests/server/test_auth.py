@@ -230,7 +230,7 @@ async def test_root_key_via_bearer(auth_client: httpx.AsyncClient):
 async def test_user_key_access(auth_client: httpx.AsyncClient, user_key: str):
     """User key should grant access to regular endpoints."""
     resp = await auth_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": user_key},
     )
     assert resp.status_code == 200
@@ -275,7 +275,7 @@ async def test_auth_on_multiple_endpoints(auth_client: httpx.AsyncClient):
         ("GET", "/api/v1/system/status"),
         ("GET", "/api/v1/observer/system"),
         ("GET", "/api/v1/debug/health"),
-        ("GET", "/api/v1/fs/ls?uri=viking://"),
+        ("GET", "/api/v1/fs/ls?uri=wfs://"),
     ]
     for method, url in endpoints:
         resp = await auth_client.request(method, url)
@@ -286,14 +286,14 @@ async def test_auth_on_multiple_endpoints(auth_client: httpx.AsyncClient):
         assert resp.status_code == 200, f"{method} {url} should succeed with root key"
 
     tenant_resp = await auth_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={"X-API-Key": ROOT_KEY},
     )
     assert tenant_resp.status_code == 400
     assert tenant_resp.json()["error"]["code"] == "INVALID_ARGUMENT"
 
     tenant_resp = await auth_client.get(
-        "/api/v1/fs/ls?uri=viking://",
+        "/api/v1/fs/ls?uri=wfs://",
         headers={
             "X-API-Key": ROOT_KEY,
             "X-OpenViking-Account": "default",

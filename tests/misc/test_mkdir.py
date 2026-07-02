@@ -22,7 +22,7 @@ def _make_viking_fs():
     fs.agfs.mkdir = MagicMock(return_value=None)
     fs.query_embedder = None
     fs.vector_store = None
-    fs._uri_prefix = "viking://"
+    fs._uri_prefix = "wfs://"
     fs._bound_ctx = contextvars.ContextVar("vikingfs_bound_ctx", default=None)
     return fs
 
@@ -37,7 +37,7 @@ class TestMkdir:
         fs._ensure_parent_dirs = AsyncMock()
         fs.stat = AsyncMock(side_effect=Exception("not found"))
 
-        await fs.mkdir("viking://resources/new_dir")
+        await fs.mkdir("wfs://resources/new_dir")
 
         fs.agfs.mkdir.assert_called_once()
         call_path = fs.agfs.mkdir.call_args[0][0]
@@ -50,7 +50,7 @@ class TestMkdir:
         fs._ensure_parent_dirs = AsyncMock()
         fs.stat = AsyncMock(return_value={"isDir": True})
 
-        await fs.mkdir("viking://resources/existing_dir", exist_ok=True)
+        await fs.mkdir("wfs://resources/existing_dir", exist_ok=True)
 
         # Should NOT call agfs.mkdir because directory already exists
         fs.agfs.mkdir.assert_not_called()
@@ -62,7 +62,7 @@ class TestMkdir:
         fs._ensure_parent_dirs = AsyncMock()
         fs.stat = AsyncMock(side_effect=Exception("not found"))
 
-        await fs.mkdir("viking://resources/new_dir", exist_ok=True)
+        await fs.mkdir("wfs://resources/new_dir", exist_ok=True)
 
         fs.agfs.mkdir.assert_called_once()
         call_path = fs.agfs.mkdir.call_args[0][0]
@@ -74,7 +74,7 @@ class TestMkdir:
         fs = _make_viking_fs()
         fs._ensure_parent_dirs = AsyncMock()
 
-        await fs.mkdir("viking://resources/another_dir")
+        await fs.mkdir("wfs://resources/another_dir")
 
         fs.agfs.mkdir.assert_called_once()
 
@@ -86,6 +86,6 @@ class TestMkdir:
         fs._ensure_parent_dirs = AsyncMock(side_effect=lambda p: call_order.append("parents"))
         fs.agfs.mkdir = MagicMock(side_effect=lambda p: call_order.append("mkdir"))
 
-        await fs.mkdir("viking://a/b/c")
+        await fs.mkdir("wfs://a/b/c")
 
         assert call_order == ["parents", "mkdir"]

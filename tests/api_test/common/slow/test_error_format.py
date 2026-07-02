@@ -6,11 +6,11 @@ class TestErrorFormatConsistency:
         error_scenarios = [
             (
                 "fs_stat_nonexistent",
-                lambda: api_client.fs_stat("viking://resources/nonexistent_error_test"),
+                lambda: api_client.fs_stat("wfs://resources/nonexistent_error_test"),
             ),
             (
                 "fs_read_nonexistent",
-                lambda: api_client.fs_read("viking://resources/nonexistent_error_test"),
+                lambda: api_client.fs_read("wfs://resources/nonexistent_error_test"),
             ),
             (
                 "get_session_nonexistent",
@@ -39,7 +39,7 @@ class TestErrorFormatConsistency:
                     )
 
     def test_error_response_not_ok_status(self, api_client):
-        resp = api_client.fs_stat("viking://resources/nonexistent_error_format")
+        resp = api_client.fs_stat("wfs://resources/nonexistent_error_format")
         if resp.status_code >= 400:
             data = resp.json()
             if "status" in data:
@@ -101,7 +101,7 @@ class TestErrorFormatConsistency:
     def test_grep_without_pattern(self, api_client):
         endpoint = "/api/v1/search/grep"
         url = f"{api_client.server_url}{endpoint}"
-        resp = api_client.session.post(url, json={"uri": "viking://resources/"})
+        resp = api_client.session.post(url, json={"uri": "wfs://resources/"})
         assert resp.status_code == 400, (
             f"grep without pattern should return error, got {resp.status_code}: {resp.text[:200]}"
         )
@@ -109,7 +109,7 @@ class TestErrorFormatConsistency:
     def test_glob_without_pattern(self, api_client):
         endpoint = "/api/v1/search/glob"
         url = f"{api_client.server_url}{endpoint}"
-        resp = api_client.session.post(url, json={"uri": "viking://resources/"})
+        resp = api_client.session.post(url, json={"uri": "wfs://resources/"})
         assert resp.status_code == 400, (
             f"glob without pattern should return error, got {resp.status_code}: {resp.text[:200]}"
         )
@@ -117,7 +117,7 @@ class TestErrorFormatConsistency:
     def test_fs_mv_without_from_uri(self, api_client):
         endpoint = "/api/v1/fs/mv"
         url = f"{api_client.server_url}{endpoint}"
-        resp = api_client.session.post(url, json={"to_uri": "viking://resources/dest"})
+        resp = api_client.session.post(url, json={"to_uri": "wfs://resources/dest"})
         assert resp.status_code == 400, (
             f"mv without from_uri should return error, got {resp.status_code}: {resp.text[:200]}"
         )

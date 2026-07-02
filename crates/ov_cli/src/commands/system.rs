@@ -131,7 +131,7 @@ mod tests {
             "missing_record_count": 1,
             "missing_records_truncated": false,
             "missing_records": [
-                {"key": "viking://a", "value": "missing"}
+                {"key": "wfs://a", "value": "missing"}
             ],
             "profile": [
                 "consistency took 2ms"
@@ -139,7 +139,7 @@ mod tests {
         });
 
         let full = crate::output::append_profile_to_rendered(
-            "ok  true\n\nmissing_records\nkey         value\nviking://a  missing".to_string(),
+            "ok  true\n\nmissing_records\nkey         value\nwfs://a  missing".to_string(),
             &response,
         );
 

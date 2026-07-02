@@ -226,8 +226,8 @@ class TestSessionMessageFormat:
             api_client.add_message(session_id, "user", "Used format test")
 
             test_contexts = [
-                "viking://resources/ctx_a",
-                "viking://resources/ctx_b",
+                "wfs://resources/ctx_a",
+                "wfs://resources/ctx_b",
             ]
             used_resp = api_client.session_used(
                 session_id,
@@ -257,7 +257,7 @@ class TestSessionMessageFormat:
 
             used_resp = api_client.session_used(
                 session_id,
-                skill={"name": "test-skill", "uri": "viking://agent/skills/test"},
+                skill={"name": "test-skill", "uri": "wfs://agent/skills/test"},
             )
             assert used_resp.status_code == 200
             result = used_resp.json().get("result", {})
@@ -293,7 +293,7 @@ class TestSessionMessageFormat:
 
             if "archive_uri" in result:
                 assert isinstance(result["archive_uri"], str), "archive_uri should be str"
-                assert result["archive_uri"].startswith("viking://"), (
+                assert result["archive_uri"].startswith("wfs://"), (
                     f"archive_uri format invalid: {result['archive_uri']}"
                 )
         finally:

@@ -192,7 +192,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 export function useVikingFind(query: string, targetUri?: string) {
   const debouncedQuery = useDebouncedValue(query, 300)
-  const isRoot = !targetUri || targetUri === 'viking://'
+  const isRoot = !targetUri || targetUri === 'wfs://'
   return useQuery<GroupedFindResult>({
     queryKey: ['viking-find', debouncedQuery, targetUri],
     queryFn: () =>

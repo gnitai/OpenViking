@@ -92,7 +92,7 @@ class VikingStoreWrapper:
             "embedding_tokens": total_embedding_tokens
         }
 
-    def retrieve(self, query: str, topk: int, target_uri: str = "viking://resources"):
+    def retrieve(self, query: str, topk: int, target_uri: str = "wfs://resources"):
         """Execute retrieval"""
         return self.client.find(query=query, limit=topk, target_uri=target_uri)
 
@@ -102,4 +102,4 @@ class VikingStoreWrapper:
 
     def clear(self):
         """Clear the store"""
-        self.client.rm("viking://resources", recursive=True)
+        self.client.rm("wfs://resources", recursive=True)

@@ -52,8 +52,8 @@ class TestSkillToolCallExposure:
                     ToolPart(
                         tool_id="tool_1",
                         tool_name="read",
-                        tool_uri="viking://session/test/tools/tool_1",
-                        skill_uri="viking://agent/skills/create_presentation",
+                        tool_uri="wfs://session/test/tools/tool_1",
+                        skill_uri="wfs://agent/skills/create_presentation",
                         tool_input={"file_path": "/skills/ppt/SKILL.md"},
                         tool_output="ok",
                         tool_status="completed",
@@ -79,7 +79,7 @@ class TestSkillToolCallExposure:
                     ToolPart(
                         tool_id="tool_1",
                         tool_name="read",
-                        tool_uri="viking://session/test/tools/tool_1",
+                        tool_uri="wfs://session/test/tools/tool_1",
                         tool_input={"file_path": "README.md"},
                         tool_output="ok",
                         tool_status="completed",
@@ -110,7 +110,7 @@ class TestSkillToolCallExposure:
                     ToolPart(
                         tool_id="tool_1",
                         tool_name="read",
-                        tool_uri="viking://session/test/tools/tool_1",
+                        tool_uri="wfs://session/test/tools/tool_1",
                         tool_input={"file_path": "README.md"},
                         tool_output="这是中文工具输出",
                         tool_status="completed",

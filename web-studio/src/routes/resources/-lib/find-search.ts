@@ -1,7 +1,7 @@
 import type { VikingFsEntry } from '../-types/viking-fm'
 import { normalizeDirUri } from './normalize'
 
-const VIKING_URI_PREFIX = 'viking://'
+const VIKING_URI_PREFIX = 'wfs://'
 
 export type ResourceSearchSpec =
   | {

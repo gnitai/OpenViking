@@ -61,7 +61,7 @@ def build_ovpack_bytes(
         "format_version": 2,
         "root": {
             "name": root_name,
-            "uri": f"viking://resources/{root_name}",
+            "uri": f"wfs://resources/{root_name}",
             "scope": "resources",
         },
         "entries": manifest_entries,

@@ -282,7 +282,7 @@ class TestAsyncOpenViking:
             reason="test document"
         )
         assert "root_uri" in result
-        assert result["root_uri"].startswith("viking://")
+        assert result["root_uri"].startswith("wfs://")
 ```
 
 Common fixtures are defined in `tests/conftest.py`, including `client` (initialized `AsyncOpenViking`), `uninitialized_client`, `temp_dir`, `sample_markdown_file`, and more.

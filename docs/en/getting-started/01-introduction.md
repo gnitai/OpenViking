@@ -20,10 +20,10 @@ OpenViking is designed to solve these pain points.
 
 Moving away from traditional flat database thinking, all context is organized as a virtual file system. Agents no longer rely solely on vector search to find data — they can locate and browse data through deterministic paths and standard file system commands.
 
-**Unified URI Identification**: Each context is assigned a unique `viking://` URI, enabling precise location and access to resources stored in different locations.
+**Unified URI Identification**: Each context is assigned a unique `wfs://` URI, enabling precise location and access to resources stored in different locations.
 
 ```
-viking://
+wfs://
 ├── resources/              # Resources: project docs, code repos, web pages
 │   └── my_project/
 ├── user/                   # User: preferences, habits
@@ -45,10 +45,10 @@ viking://
 
 ```python
 client.find("user authentication")       # Semantic search
-client.ls("viking://resources/")         # List directory
-client.read("viking://resources/doc")    # Read content
-client.abstract("viking://...")          # Get L0 abstract
-client.overview("viking://...")          # Get L1 overview
+client.ls("wfs://resources/")         # List directory
+client.read("wfs://resources/doc")    # Read content
+client.abstract("wfs://...")          # Get L0 abstract
+client.overview("wfs://...")          # Get L1 overview
 ```
 
 ### 2. Hierarchical Context On-Demand Loading
@@ -62,7 +62,7 @@ Stuffing massive context into prompts all at once is not only expensive but also
 | **L2** | Detail | Unlimited | Full content, on-demand loading |
 
 ```
-viking://resources/my_project/
+wfs://resources/my_project/
 ├── .abstract.md               # L0 layer: abstract
 ├── .overview.md               # L1 layer: overview
 ├── docs/

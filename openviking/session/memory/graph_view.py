@@ -6,8 +6,8 @@ from all links stored in MEMORY_FIELDS across one or more memory spaces.
 
 Usage:
     graph = MemoryGraph(viking_fs)
-    path = await graph.gen_graph("viking://user/{space}/memories", ctx=ctx)
-    path = await graph.build_graph(["viking://user/a/memories", "viking://user/b/memories"], "viking://user/default/memories/.graph.html", ctx=ctx)
+    path = await graph.gen_graph("wfs://user/{space}/memories", ctx=ctx)
+    path = await graph.build_graph(["wfs://user/a/memories", "wfs://user/b/memories"], "wfs://user/default/memories/.graph.html", ctx=ctx)
 """
 
 import hashlib
@@ -404,10 +404,10 @@ function resolveRelativeUri(baseUri, relativeUri) {{
   if (!relativeUri) {{
     return '';
   }}
-  if (relativeUri.startsWith('viking://')) {{
+  if (relativeUri.startsWith('wfs://')) {{
     return relativeUri;
   }}
-  if (!baseUri.startsWith('viking://')) {{
+  if (!baseUri.startsWith('wfs://')) {{
     return relativeUri;
   }}
 
@@ -462,7 +462,7 @@ function renderMarkdown(text, baseUri = '') {{
   html = html.replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>');
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {{
     const resolvedUri = resolveRelativeUri(baseUri, href);
-    if (resolvedUri.startsWith('viking://')) {{
+    if (resolvedUri.startsWith('wfs://')) {{
       return `<a href="${{href}}" data-target-uri="${{resolvedUri}}">${{label}}</a>`;
     }}
     return `<a href="${{href}}">${{label}}</a>`;

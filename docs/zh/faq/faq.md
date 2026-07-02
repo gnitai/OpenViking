@@ -38,10 +38,10 @@ L0/L1/L2 是 OpenViking 的渐进式内容加载机制，解决了"海量上下�
 
 ### Viking URI 是什么？有什么作用？
 
-Viking URI 是 OpenViking 的统一资源标识符，格式为 `viking://{scope}/{path}`。它让系统能精准定位任何上下文：
+Viking URI 是 OpenViking 的统一资源标识符，格式为 `wfs://{scope}/{path}`。它让系统能精准定位任何上下文：
 
 ```
-viking://
+wfs://
 ├── resources/              # 知识库：文档、代码、网页等
 │   └── my_project/
 ├── user/                   # 用户上下文
@@ -165,7 +165,7 @@ SDK 构造函数仅接受 `url`、`api_key`、`path` 参数。其他配置（emb
 await client.add_resource(
     "./document.pdf",
     reason="项目技术文档",  # 描述资源用途，提升检索质量
-    to="viking://resources/docs/"  # 指定存储位置
+    to="wfs://resources/docs/"  # 指定存储位置
 )
 
 # 添加网页
@@ -191,7 +191,7 @@ await client.wait_processed()
 # find(): 简单直接的语义搜索
 results = await client.find(
     "OAuth 认证流程",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # search(): 复杂任务，需要意图分析
@@ -218,7 +218,7 @@ await session.add_message("user", [{"type": "text", "text": "帮我分析这段�
 await session.add_message("assistant", [{"type": "text", "text": "我来分析一下..."}])
 
 # 标记使用的上下文（用于追踪）
-await session.used(["viking://resources/code/main.py"])
+await session.used(["wfs://resources/code/main.py"])
 
 # 提交会话，触发记忆提取
 await session.commit()
@@ -241,16 +241,16 @@ OpenViking 内置 6 种记忆分类，在会话提交时自动提取：
 
 ```python
 # 列出目录内容
-items = await client.ls("viking://resources/")
+items = await client.ls("wfs://resources/")
 
 # 读取完整内容（L2）
-content = await client.read("viking://resources/doc.md")
+content = await client.read("wfs://resources/doc.md")
 
 # 获取摘要（L0）
-abstract = await client.abstract("viking://resources")
+abstract = await client.abstract("wfs://resources")
 
 # 获取概览（L1）
-overview = await client.overview("viking://resources")
+overview = await client.overview("wfs://resources")
 ```
 
 ## 检索优化
@@ -318,7 +318,7 @@ OpenViking 使用分数传播机制：
 1. **确认资源已处理完成**
    ```python
    # 检查资源是否存在
-   items = await client.ls("viking://resources/")
+   items = await client.ls("wfs://resources/")
    ```
 
 2. **检查 `target_uri` 过滤条件**
@@ -331,7 +331,7 @@ OpenViking 使用分数传播机制：
 
 4. **检查 L0 摘要质量**
    ```python
-   abstract = await client.abstract("viking://resources/your-doc")
+   abstract = await client.abstract("wfs://resources/your-doc")
    print(abstract)  # 确认摘要是否准确反映内容
    ```
 
@@ -354,7 +354,7 @@ OpenViking 使用分数传播机制：
 
 4. **查看提取的记忆**
    ```python
-   memories = await client.find("", target_uri="viking://user/memories/")
+   memories = await client.find("", target_uri="wfs://user/memories/")
    ```
 
 ### 性能问题

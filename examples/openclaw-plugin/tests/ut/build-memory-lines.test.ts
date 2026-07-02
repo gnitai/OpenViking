@@ -9,7 +9,7 @@ import type { FindResultItem } from "../../client.js";
 
 function makeMemory(overrides?: Partial<FindResultItem>): FindResultItem {
   return {
-    uri: "viking://user/memories/test-1",
+    uri: "wfs://user/memories/test-1",
     level: 2,
     abstract: "Test memory abstract",
     category: "core",
@@ -71,7 +71,7 @@ describe("buildMemoryLines", () => {
       recallPreferAbstract: false,
     });
 
-    expect(readFn).toHaveBeenCalledWith("viking://user/memories/test-1");
+    expect(readFn).toHaveBeenCalledWith("wfs://user/memories/test-1");
     expect(lines[0]).toContain("Full content from readFn");
   });
 
@@ -117,7 +117,7 @@ describe("buildMemoryLines", () => {
       recallPreferAbstract: true,
     });
 
-    expect(lines[0]).toContain("viking://user/memories/test-1");
+    expect(lines[0]).toContain("wfs://user/memories/test-1");
   });
 
   it("defaults category to 'memory'", async () => {

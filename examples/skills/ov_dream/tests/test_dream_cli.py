@@ -45,11 +45,11 @@ def test_recall_expands_default_user_root_to_explicit_user_space(monkeypatch) ->
     monkeypatch.setenv("OPENVIKING_USER", "default")
     client = dream.OpenVikingClient(base_url="http://127.0.0.1:1933")
 
-    assert client._resolve_target_uri("viking://user/default") == "viking://user/default"
-    assert client._resolve_target_uri("viking://user/default/") == "viking://user/default"
-    assert client._resolve_target_uri("viking://user/memories") == "viking://user/default/memories/"
-    assert client._resolve_target_uri("viking://user/memories/") == "viking://user/default/memories/"
-    assert client._resolve_target_uri("viking://user/default/memories/") == "viking://user/default/memories/"
+    assert client._resolve_target_uri("wfs://user/default") == "wfs://user/default"
+    assert client._resolve_target_uri("wfs://user/default/") == "wfs://user/default"
+    assert client._resolve_target_uri("wfs://user/memories") == "wfs://user/default/memories/"
+    assert client._resolve_target_uri("wfs://user/memories/") == "wfs://user/default/memories/"
+    assert client._resolve_target_uri("wfs://user/default/memories/") == "wfs://user/default/memories/"
 
 
 def test_recall_default_target_uri_is_user_root() -> None:
@@ -71,7 +71,7 @@ def test_recall_default_target_uri_is_user_root() -> None:
             {
                 "query": "hello",
                 "limit": 5,
-                "target_uri": "viking://user/default",
+                "target_uri": "wfs://user/default",
             },
         )
     ]

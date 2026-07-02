@@ -189,8 +189,8 @@ VectorDB 删除失败 -> 直接抛异常，锁自动释放，文件和索引都�
 memory 目录摘要使用同一规则。比如并发更新：
 
 ```text
-viking://user/default/memories/preferences/theme.md
-viking://user/default/memories/preferences/editor.md
+wfs://user/default/memories/preferences/theme.md
+wfs://user/default/memories/preferences/editor.md
 ```
 
 两个文件写入各自持有 ExactPathLock；`preferences/.overview.md` 和 `preferences/.abstract.md` 的后台刷新不再持有长时间 TreeLock，而是通过 `coalesce_version` 淘汰旧任务，并在最终写派生文件时短暂获取 ExactPathLock。
@@ -356,10 +356,10 @@ ExactPathLock(文件或未创建路径) -> {parent}/.exact.ovlock.<name>.<hash>
 例子：
 
 ```text
-请求 A 正在删除 viking://resources/books
+请求 A 正在删除 wfs://resources/books
 => A 持有 TreeLock(/resources/books)
 
-请求 B 想添加 viking://resources/books/java-guide
+请求 B 想添加 wfs://resources/books/java-guide
 => B 在创建 java-guide 目录前发现祖先 TreeLock
 => B 不创建目录，返回 busy
 ```

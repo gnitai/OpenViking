@@ -251,8 +251,8 @@ class TestSessionDetailFields:
             assert target is not None, f"newly created session {session_id} should appear in list"
             assert "session_id" in target, "session list item should have session_id"
             assert "uri" in target, "session list item should have uri"
-            assert target["uri"].startswith("viking://session/"), (
-                f"session uri should start with viking://session/, got {target['uri']}"
+            assert target["uri"].startswith("wfs://session/"), (
+                f"session uri should start with wfs://session/, got {target['uri']}"
             )
         finally:
             if session_id:

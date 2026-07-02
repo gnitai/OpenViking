@@ -105,7 +105,7 @@ interface FilePreviewProps {
   showCloseButton?: boolean
 }
 
-const vikingPrefix = 'viking://'
+const vikingPrefix = 'wfs://'
 const contentDownloadUrl: GetContentDownloadData['url'] =
   '/api/v1/content/download'
 

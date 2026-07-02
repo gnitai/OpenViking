@@ -618,12 +618,12 @@ mod tests {
             None,
         );
 
-        let params = client.append_profile_query(&[("to_uri".to_string(), "viking://x".to_string())]);
+        let params = client.append_profile_query(&[("to_uri".to_string(), "wfs://x".to_string())]);
 
         assert_eq!(
             params,
             vec![
-                ("to_uri".to_string(), "viking://x".to_string()),
+                ("to_uri".to_string(), "wfs://x".to_string()),
                 ("profile".to_string(), "1".to_string()),
             ]
         );

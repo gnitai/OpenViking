@@ -146,7 +146,7 @@ class TestSessionListDeep:
             for s in sessions:
                 if isinstance(s, dict) and s.get("session_id") == session_id:
                     if "uri" in s:
-                        assert "viking:" in s["uri"], f"uri should contain viking:, got {s['uri']}"
+                        assert "wfs:" in s["uri"], f"uri should contain wfs:, got {s['uri']}"
                     break
         finally:
             if session_id:

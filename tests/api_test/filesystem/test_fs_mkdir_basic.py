@@ -8,7 +8,7 @@ import requests
 class TestFsMkdir:
     def test_fs_mkdir(self, api_client):
         random_id = str(uuid.uuid4())[:8]
-        test_dir_path = f"viking://user/test-dir-{random_id}/"
+        test_dir_path = f"wfs://user/test-dir-{random_id}/"
 
         try:
             response = api_client.fs_mkdir(test_dir_path)

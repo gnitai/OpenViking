@@ -56,7 +56,7 @@ class _FakeVikingFS:
         self.writes.append((norm_path, content))
 
     def _uri_to_path(self, uri, ctx=None):
-        return uri.replace("viking://", "/local/acc1/")
+        return uri.replace("wfs://", "/local/acc1/")
 
 
 class _FakeProcessor:
@@ -115,7 +115,7 @@ class _FakeProcessor:
 async def test_direct_incremental_update_uses_changes_without_temp_sync(monkeypatch):
     _mock_transaction_layer(monkeypatch)
 
-    root_uri = "viking://resources/root"
+    root_uri = "wfs://resources/root"
     tree = {
         root_uri: [
             {"name": "a.txt", "isDir": False},

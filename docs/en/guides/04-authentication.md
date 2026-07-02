@@ -109,14 +109,14 @@ OpenViking accepts API keys via two headers:
 **X-API-Key header**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <user-key>"
 ```
 
 **Authorization: Bearer header**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "Authorization: Bearer <user-key>"
 ```
 
@@ -149,7 +149,7 @@ When you use a regular user key, `account` and `user` are optional because the s
 **CLI override flags**
 
 ```bash
-openviking --account acme --user alice --agent-id my-agent ls viking://
+openviking --account acme --user alice --agent-id my-agent ls wfs://
 ```
 
 ### Using --sudo with Root API Key
@@ -174,7 +174,7 @@ When you need to perform admin commands (`admin`, `system`, `reindex`), use the 
 ov --sudo admin list-accounts
 
 # Reindex content
-ov --sudo reindex viking://
+ov --sudo reindex wfs://
 
 # System commands
 ov --sudo system status
@@ -193,7 +193,7 @@ When using the root key to access tenant-scoped data APIs (e.g. `ls`, `find`, `s
 **curl**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-secret-root-key" \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice"
@@ -260,7 +260,7 @@ Implications:
 **curl**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice" \
   -H "X-OpenViking-Agent: my-agent"

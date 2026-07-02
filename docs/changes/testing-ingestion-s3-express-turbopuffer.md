@@ -102,7 +102,7 @@ printf 'def add(a, b):\n    return a + b\n' > /tmp/ov-ingest-test/calculator.py
 echo '# Ingest smoke test corpus' > /tmp/ov-ingest-test/README.md
 
 uv run ov add-resource /tmp/ov-ingest-test \
-  --parent-auto-create viking://resources/smoke-tpuf-$(date +%H%M) \
+  --parent-auto-create wfs://resources/smoke-tpuf-$(date +%H%M) \
   --wait --timeout 300 --reason "smoke test"
 ```
 
@@ -136,8 +136,8 @@ If `find` is empty, embeddings did not land (re-check `TURBOPUFFER_API_KEY`).
 **S3 Express native rename** — move a file, then inspect the `[mv]` log line:
 
 ```bash
-uv run ov mv viking://resources/smoke-tpuf-XXXX/ov-ingest-test/calculator.py \
-            viking://resources/smoke-tpuf-XXXX/ov-ingest-test/calc_renamed.py
+uv run ov mv wfs://resources/smoke-tpuf-XXXX/ov-ingest-test/calculator.py \
+            wfs://resources/smoke-tpuf-XXXX/ov-ingest-test/calc_renamed.py
 grep '\[mv\]' /tmp/ov-server.log
 ```
 
@@ -160,7 +160,7 @@ instrumentation and sidecar writes, with no tracebacks.
 ## 6. Clean up
 
 ```bash
-uv run ov rm viking://resources/smoke-tpuf-XXXX   # remove test data from the real bucket + Turbopuffer
+uv run ov rm wfs://resources/smoke-tpuf-XXXX   # remove test data from the real bucket + Turbopuffer
 pkill -f "openviking-server --config ov-express-turbopuffer"
 ```
 

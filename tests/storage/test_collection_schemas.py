@@ -75,7 +75,7 @@ def _build_queue_payload() -> dict:
         message="hello",
         context_data={
             "id": "id-1",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "account_id": "default",
             "abstract": "sample",
         },
@@ -88,7 +88,7 @@ def _build_queue_payload_for_account(account_id: str) -> dict:
         message="hello",
         context_data={
             "id": "id-1",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "account_id": str(account_id),
             "abstract": "sample",
         },
@@ -499,14 +499,14 @@ async def test_embedding_handler_preserves_parent_uri_for_backend_upsert_logic(m
     handler = TextEmbeddingHandler(_CapturingVikingDB())
     payload = _build_queue_payload()
     queue_data = json.loads(payload["data"])
-    queue_data["context_data"]["parent_uri"] = "viking://resources"
+    queue_data["context_data"]["parent_uri"] = "wfs://resources"
     payload["data"] = json.dumps(queue_data)
 
     result = await handler.on_dequeue(payload)
 
     assert result is not None
     assert "data" in captured
-    assert captured["data"]["parent_uri"] == "viking://resources"
+    assert captured["data"]["parent_uri"] == "wfs://resources"
 
 
 @pytest.mark.asyncio
@@ -709,16 +709,16 @@ def test_single_account_backend_filters_parent_uri_against_current_schema():
     filtered = backend._filter_known_fields(
         {
             "id": "rec-1",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "abstract": "sample",
             "account_id": "acc1",
-            "parent_uri": "viking://resources",
+            "parent_uri": "wfs://resources",
         }
     )
 
     assert filtered == {
         "id": "rec-1",
-        "uri": "viking://resources/sample",
+        "uri": "wfs://resources/sample",
         "abstract": "sample",
         "account_id": "acc1",
     }
@@ -759,18 +759,18 @@ async def test_single_account_backend_upsert_drops_legacy_parent_uri_before_writ
     record_id = await backend.upsert(
         {
             "id": "rec-legacy",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "abstract": "sample",
             "active_count": 2,
             "account_id": "acc1",
-            "parent_uri": "viking://resources",
+            "parent_uri": "wfs://resources",
         }
     )
 
     assert record_id == "rec-legacy"
     assert captured["data"] == {
         "id": "rec-legacy",
-        "uri": "viking://resources/sample",
+        "uri": "wfs://resources/sample",
         "abstract": "sample",
         "active_count": 2,
         "account_id": "acc1",
@@ -851,7 +851,7 @@ async def test_single_account_backend_upsert_runs_adapter_in_threadpool(monkeypa
     record_id = await backend.upsert(
         {
             "id": "rec-1",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "abstract": "sample",
             "account_id": "acc1",
             "unknown": "legacy",
@@ -863,7 +863,7 @@ async def test_single_account_backend_upsert_runs_adapter_in_threadpool(monkeypa
     assert calls[-1][1] == (
         {
             "id": "rec-1",
-            "uri": "viking://resources/sample",
+            "uri": "wfs://resources/sample",
             "abstract": "sample",
             "account_id": "acc1",
         },
@@ -949,7 +949,7 @@ async def test_single_account_backend_query_runs_adapter_in_threadpool(monkeypat
 
         def query(self, **kwargs):
             called["query_kwargs"] = kwargs
-            return [{"id": "rec-1", "uri": "viking://resources/sample", "account_id": "acc1"}]
+            return [{"id": "rec-1", "uri": "wfs://resources/sample", "account_id": "acc1"}]
 
     async def _fake_to_thread(func, /, *args, **kwargs):
         called["func"] = func
@@ -973,7 +973,7 @@ async def test_single_account_backend_query_runs_adapter_in_threadpool(monkeypat
         output_fields=["uri"],
     )
 
-    assert result == [{"id": "rec-1", "uri": "viking://resources/sample", "account_id": "acc1"}]
+    assert result == [{"id": "rec-1", "uri": "wfs://resources/sample", "account_id": "acc1"}]
     assert called["func"].__self__ is backend._adapter
     assert called["func"].__name__ == "query"
     assert called["args"] == ()

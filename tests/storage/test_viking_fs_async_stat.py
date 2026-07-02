@@ -30,7 +30,7 @@ async def test_stat_uses_async_lock_lookup(monkeypatch):
     monkeypatch.setattr(transaction_module, "get_lock_manager", lambda: lock_manager)
 
     fs = VikingFS(agfs=_StatAGFS())
-    result = await fs.stat("viking://resources/file.txt")
+    result = await fs.stat("wfs://resources/file.txt")
 
     assert result["isLocked"] is True
     assert lock_manager.paths == [("/local/default/resources/file.txt", True)]

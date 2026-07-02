@@ -14,7 +14,7 @@
  *
  * OV agent identity is overridden per-call via X-OpenViking-Agent header
  * (e.g. "claude-code_general-purpose") so memories segregate by subagent
- * type in viking://agent/<type>/memories/.
+ * type in wfs://agent/<type>/memories/.
  */
 
 import { readFile, unlink } from "node:fs/promises";
@@ -170,7 +170,7 @@ async function pushTurns(ovSessionId, ovAgentId, turns) {
   }
   // Commit once at the end — subagents are short-lived, no point tracking
   // the threshold. This also makes their context available to the parent
-  // via viking://agent/<type> immediately.
+  // via wfs://agent/<type> immediately.
   let committed = false;
   if (ok > 0) {
     const commitRes = await commitSession(fetchJSON, ovSessionId);

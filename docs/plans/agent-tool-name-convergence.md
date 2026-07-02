@@ -2,7 +2,7 @@
 
 这份文档从现有插件真实暴露的工具和 hook 出发，整理 OpenViking 面向不同 Agent 提供通用能力时的命名和下沉边界。
 
-当前结论：OpenViking 自己提供的通用 Agent / MCP 工具名默认不带 `viking_` 前缀，例如 `find`、`search`、`remember`、`forget`、`health`。原因是工具执行入口已经是 OpenViking MCP server 或 OpenViking 插件，`viking://` URI 也已经表达了资源域；继续在工具名里重复 `viking_` 只会增加噪音。Hermes 是例外：它在 Hermes 官方仓里作为 memory provider 接入，宿主内可能同时存在其他 memory provider，因此可以保留 `viking_*` 作为 provider 级显式区分。
+当前结论：OpenViking 自己提供的通用 Agent / MCP 工具名默认不带 `viking_` 前缀，例如 `find`、`search`、`remember`、`forget`、`health`。原因是工具执行入口已经是 OpenViking MCP server 或 OpenViking 插件，`wfs://` URI 也已经表达了资源域；继续在工具名里重复 `viking_` 只会增加噪音。Hermes 是例外：它在 Hermes 官方仓里作为 memory provider 接入，宿主内可能同时存在其他 memory provider，因此可以保留 `viking_*` 作为 provider 级显式区分。
 
 判断标准：只有不改变原功能、默认 scope、参数语义、返回语义和 lifecycle 行为时，才标记为“可以直接收敛”。如果多个插件重复实现同一能力，才考虑把能力下沉为 OpenViking 通用接口；单宿主专用能力继续留在插件内。
 
@@ -19,7 +19,7 @@
 | `find` | 是：REST `/api/v1/search/find`、MCP `find`、CLI `ov find` | 轻量语义检索。调用方决定 `target_uri`、limit、score threshold 和展示格式。 |
 | `search` | 是：REST `/api/v1/search/search`、MCP `search`、CLI `ov search` | session-aware / deep search。可结合 `session_id` 做上下文检索。 |
 | `remember` | 是：REST `/api/v1/sessions/*`、MCP `remember` | 写入消息并 commit，触发 memory extraction。 |
-| `forget` | 是：REST `DELETE /api/v1/fs`、MCP `forget`、CLI `ov rm` | 按明确 `viking://` URI 删除。 |
+| `forget` | 是：REST `DELETE /api/v1/fs`、MCP `forget`、CLI `ov rm` | 按明确 `wfs://` URI 删除。 |
 | `health` | 是：REST `/health`、MCP `health`、CLI `ov health` | 检查 OpenViking server 可达性和基础健康状态。 |
 | `read` | 是：REST `/api/v1/content/read`、MCP `read`、CLI `ov read` | 读取指定 URI 的内容。 |
 | `list` | 是：REST `/api/v1/fs/ls`、MCP `list`、CLI `ov ls` | 列出目录或命名空间下的节点。 |
@@ -35,7 +35,7 @@ Search 是显式搜索：用户或模型主动发起 query，目标是查找 mem
 | 插件 / 接入 | 当前暴露工具名 / 入口 | 当前实际调用的 OV 接口 | 能否直接收敛到通用工具名 | 结论 / 原因 |
 |---|---|---|---|---|
 | OV server `/mcp` | `find` / `search` | 直接调用 `service.search.find()` / `service.search.search()` | 已收敛 | 本 PR 新增 `find`，并让 `search` 保持 deep/session-aware 语义。 |
-| Codex MCP | `find` | REST `/api/v1/search/find`，默认 `target_uri=viking://user/memories` | 已收敛到工具名 | 工具名已统一为 `find`；默认 memory-only scope 是 Codex 插件自己的安全约束。 |
+| Codex MCP | `find` | REST `/api/v1/search/find`，默认 `target_uri=wfs://user/memories` | 已收敛到工具名 | 工具名已统一为 `find`；默认 memory-only scope 是 Codex 插件自己的安全约束。 |
 | OpenClaw | `ov_search` | REST `/api/v1/search/find`；默认查 resources + agent skills | 否 | OpenViking 插件使用 `ov_search`；它不等价于通用 `find`。 |
 | Claude Code hooks / MCP | 无显式 search 工具；MCP 可直接用 OV `/mcp` 的 `find` / `search` | hooks 底层用 REST；MCP 直连 OV `/mcp` | 不改 | Claude Code 的显式搜索由通用 MCP 承担；hook search 行为归入 Recall。 |
 | opencode-memory-plugin | `memsearch` | REST `/api/v1/search/find` 或 `/api/v1/search/search` | 否 | 它有 `auto` / `fast` / `deep` 模式，并会按 OpenCode session 自动选择接口和注入 `session_id`。 |
@@ -71,7 +71,7 @@ Remember 是写入长期记忆：把文本、消息或会话内容写入 OpenVik
 
 ## 4. Forget
 
-接口功能：按明确 `viking://` URI 删除 OpenViking 中的记忆或资源。
+接口功能：按明确 `wfs://` URI 删除 OpenViking 中的记忆或资源。
 
 | 插件 / 接入 | 当前暴露工具名 / 入口 | 当前实际调用的 OV 接口 | 能否直接收敛到通用工具名 | 结论 / 原因 |
 |---|---|---|---|---|
@@ -99,7 +99,7 @@ Remember 是写入长期记忆：把文本、消息或会话内容写入 OpenVik
 
 ## 6. Add Resource / Add Skill / Archive / Read / Browse
 
-Resource 和 skill 导入不再合并成 `import`。二者落点命名空间、底层 API 和参数不同：resource 进入 `viking://resources/...`，skill 进入 `viking://agent/skills/...`。因此 OpenClaw 的 Agent 可见工具应直接拆成 `add_resource` 和 `add_skill`，而不是继续暴露 `ov_import(kind=...)`。
+Resource 和 skill 导入不再合并成 `import`。二者落点命名空间、底层 API 和参数不同：resource 进入 `wfs://resources/...`，skill 进入 `wfs://agent/skills/...`。因此 OpenClaw 的 Agent 可见工具应直接拆成 `add_resource` 和 `add_skill`，而不是继续暴露 `ov_import(kind=...)`。
 
 | 插件 / 接入 | 当前暴露工具名 / 入口 | 当前实际调用的 OV 接口 | 能否直接收敛到通用工具名 | 结论 / 原因 |
 |---|---|---|---|---|

@@ -234,7 +234,7 @@ if FUSE_AVAILABLE:
 
                 dir_name = Path(path).stem.replace(" ", "_")
                 try:
-                    uri = f"viking://resources/{dir_name}"
+                    uri = f"wfs://resources/{dir_name}"
                     self.mount._client.rm(uri, recursive=True)
                     logger.info(f"Removed from OpenViking: {uri}")
                 except Exception as e:

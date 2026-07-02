@@ -101,7 +101,7 @@ class MemoryArchiver:
         that are older than ``min_age_days``.
 
         Args:
-            scope_uri: Root URI to scan (e.g. ``viking://memories/``).
+            scope_uri: Root URI to scan (e.g. ``wfs://memories/``).
             ctx: Request context for tenant isolation.
             now: Override current time (for deterministic tests).
 
@@ -292,8 +292,8 @@ class MemoryArchiver:
 def _build_archive_uri(uri: str) -> str:
     """Insert ``_archive/`` before the filename in a URI.
 
-    ``viking://memories/facts/greeting.md``
-    -> ``viking://memories/facts/_archive/greeting.md``
+    ``wfs://memories/facts/greeting.md``
+    -> ``wfs://memories/facts/_archive/greeting.md``
     """
     last_slash = uri.rfind("/")
     if last_slash == -1:
@@ -306,8 +306,8 @@ def _build_archive_uri(uri: str) -> str:
 def _build_restore_uri(archived_uri: str) -> Optional[str]:
     """Remove the ``_archive/`` segment to recover the original URI.
 
-    ``viking://memories/facts/_archive/greeting.md``
-    -> ``viking://memories/facts/greeting.md``
+    ``wfs://memories/facts/_archive/greeting.md``
+    -> ``wfs://memories/facts/greeting.md``
 
     Returns None if the URI does not contain ``_archive/``.
     """

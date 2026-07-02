@@ -23,7 +23,7 @@ class _FakeVikingFS:
         self.writes.append((path, content))
 
     def _uri_to_path(self, uri, ctx=None):
-        return uri.replace("viking://", "/local/acc1/")
+        return uri.replace("wfs://", "/local/acc1/")
 
 
 class _FakeProcessor:
@@ -76,7 +76,7 @@ class _DummyTracker:
 
 @pytest.mark.asyncio
 async def test_semantic_dag_stats_collects_nodes(monkeypatch):
-    root_uri = "viking://resources/root"
+    root_uri = "wfs://resources/root"
     tree = {
         root_uri: [
             {"name": "a.txt", "isDir": False},
@@ -134,7 +134,7 @@ async def test_semantic_dag_stats_collects_nodes(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_semantic_dag_skip_vectorization_does_not_schedule_tasks(monkeypatch):
-    root_uri = "viking://resources/root"
+    root_uri = "wfs://resources/root"
     tree = {
         root_uri: [
             {"name": "a.txt", "isDir": False},

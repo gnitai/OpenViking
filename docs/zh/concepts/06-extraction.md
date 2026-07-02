@@ -37,7 +37,7 @@ Parser 负责文档格式转换和结构化，在临时目录创建文件结构�
 parse_result = registry.parse("/path/to/doc.md")
 
 # 2. 返回临时目录 URI
-parse_result.temp_dir_path  # viking://temp/abc123
+parse_result.temp_dir_path  # wfs://temp/abc123
 ```
 
 ### 智能分割
@@ -71,7 +71,7 @@ TreeBuilder 负责将临时目录移动到 AGFS，并入队语义处理。
 
 ```python
 building_tree = tree_builder.finalize_from_temp(
-    temp_dir_path="viking://temp/abc123",
+    temp_dir_path="wfs://temp/abc123",
     scope="resources",  # resources/user/agent
 )
 ```
@@ -88,9 +88,9 @@ building_tree = tree_builder.finalize_from_temp(
 
 | scope | 基础 URI |
 |-------|----------|
-| resources | `viking://resources` |
-| user | `viking://user` |
-| agent | `viking://agent` |
+| resources | `wfs://resources` |
+| user | `wfs://user` |
+| agent | `wfs://agent` |
 
 ## SemanticQueue（语义队列）
 
@@ -193,7 +193,7 @@ openviking/parse/parsers/code/ast/
 | 环节 | Resource | Memory | Skill |
 |------|----------|--------|-------|
 | **Parser** | 通用流程 | 通用流程 | 通用流程 |
-| **基础 URI** | `viking://resources` | `viking://user/memories` | `viking://agent/skills` |
+| **基础 URI** | `wfs://resources` | `wfs://user/memories` | `wfs://agent/skills` |
 | **TreeBuilder scope** | resources | user/agent | agent |
 | **SemanticMsg type** | resource | memory | skill |
 
@@ -218,7 +218,7 @@ await client.add_skill({
     "content": "# search-web\\n..."
 })
 
-# 流程: 直接写入 viking://agent/skills/{name}/ → SemanticQueue
+# 流程: 直接写入 wfs://agent/skills/{name}/ → SemanticQueue
 ```
 
 ### 记忆提取

@@ -36,7 +36,7 @@ class TestSessionCreate:
         """Test session URI"""
         uri = session.uri
 
-        assert uri.startswith("viking://")
+        assert uri.startswith("wfs://")
         assert "session" in uri
         assert session.session_id in uri
 

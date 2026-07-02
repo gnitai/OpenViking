@@ -132,11 +132,11 @@ impl App {
         self.pending_image_uri = None;
 
         if is_dir {
-            // For root-level scope URIs (e.g. viking://resources), show a
+            // For root-level scope URIs (e.g. wfs://resources), show a
             // simple placeholder instead of calling abstract/overview which
             // don't work at this level.
             if Self::is_root_scope_uri(&uri) {
-                let scope = uri.trim_start_matches("viking://").trim_end_matches('/');
+                let scope = uri.trim_start_matches("wfs://").trim_end_matches('/');
                 self.content = format!(
                     "Scope: {}\n\nPress '.' to expand/collapse.\nUse j/k to navigate.",
                     scope
@@ -305,9 +305,9 @@ impl App {
         self.content_scroll = self.content_line_count.saturating_sub(1);
     }
 
-    /// Returns true if the URI is a root-level scope (e.g. "viking://resources")
+    /// Returns true if the URI is a root-level scope (e.g. "wfs://resources")
     fn is_root_scope_uri(uri: &str) -> bool {
-        let stripped = uri.trim_start_matches("viking://").trim_end_matches('/');
+        let stripped = uri.trim_start_matches("wfs://").trim_end_matches('/');
         // Root scope = no slashes after the scheme (just the scope name)
         !stripped.is_empty() && !stripped.contains('/')
     }
@@ -491,7 +491,7 @@ impl App {
     /// Ensure parent directories of a URI are expanded
     async fn ensure_parent_directories_expanded(&mut self, client: &HttpClient, uri: &str) {
         let mut current_path = uri.to_string();
-        while current_path != "viking://" && current_path != "/" {
+        while current_path != "wfs://" && current_path != "/" {
             if let Some(last_slash) = current_path.rfind('/') {
                 current_path = current_path[..last_slash].to_string();
                 self.tree.expand_node_by_uri(client, &current_path).await;
@@ -507,7 +507,7 @@ impl App {
             .position(|r| r.uri == uri)
             .unwrap_or_else(|| {
                 let mut parent_path = uri.to_string();
-                while parent_path != "viking://" && parent_path != "/" {
+                while parent_path != "wfs://" && parent_path != "/" {
                     if let Some(last_slash) = parent_path.rfind('/') {
                         parent_path = parent_path[..last_slash].to_string();
                         if let Some(pos) = self.tree.visible.iter().position(|r| r.uri == parent_path) {
@@ -523,7 +523,7 @@ impl App {
 
     /// Reload the entire tree and restore state
     async fn reload_tree_and_restore_state(&mut self, client: &HttpClient, expanded_nodes: &[String], target_uri: &str) {
-        self.tree.load_root(client, "viking://").await;
+        self.tree.load_root(client, "wfs://").await;
         
         // Restore expanded state for previously expanded nodes
         for uri in expanded_nodes {
@@ -545,7 +545,7 @@ impl App {
         let client = self.client.clone();
         let selected_node = self.tree.selected_uri()
             .map(|uri| uri.to_string())
-            .unwrap_or_else(|| "viking://".to_string());
+            .unwrap_or_else(|| "wfs://".to_string());
         
         // Collect expanded nodes before refresh
         let expanded_nodes = self.collect_expanded_nodes();

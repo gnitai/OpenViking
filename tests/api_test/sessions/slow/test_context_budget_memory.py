@@ -285,10 +285,10 @@ class TestContextBudgetMemory:
             assert create_resp.status_code == 200
             session_id = create_resp.json()["result"]["session_id"]
 
-            used1 = api_client.session_used(session_id, contexts=["viking://resources/test1"])
+            used1 = api_client.session_used(session_id, contexts=["wfs://resources/test1"])
             assert used1.status_code == 200
 
-            used2 = api_client.session_used(session_id, contexts=["viking://resources/test2"])
+            used2 = api_client.session_used(session_id, contexts=["wfs://resources/test2"])
             assert used2.status_code == 200
 
             get_resp = api_client.get_session(session_id)

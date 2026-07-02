@@ -79,9 +79,9 @@ async def test_vectorize_file_uses_summary_first(monkeypatch):
     )
 
     await embedding_utils.vectorize_file(
-        file_path="viking://user/default/resources/test.md",
+        file_path="wfs://user/default/resources/test.md",
         summary_dict={"name": "test.md", "summary": "short summary"},
-        parent_uri="viking://user/default/resources",
+        parent_uri="wfs://user/default/resources",
         ctx=DummyReq(),
     )
 
@@ -110,9 +110,9 @@ async def test_vectorize_file_preserves_content_until_embedder_input_guard(monke
     )
 
     await embedding_utils.vectorize_file(
-        file_path="viking://user/default/resources/test.md",
+        file_path="wfs://user/default/resources/test.md",
         summary_dict={"name": "test.md", "summary": "short summary"},
-        parent_uri="viking://user/default/resources",
+        parent_uri="wfs://user/default/resources",
         ctx=DummyReq(),
     )
 
@@ -140,7 +140,7 @@ async def test_index_resource_skips_session_namespace(monkeypatch):
     )
 
     await embedding_utils.index_resource(
-        uri="viking://session/default/sess_001/history/archive_001",
+        uri="wfs://session/default/sess_001/history/archive_001",
         ctx=DummyReq(),
     )
 

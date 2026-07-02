@@ -84,7 +84,7 @@ Phase 4: follow-up through Gateway
 
 Phase 5: cleanup
 [PASS] Deleted synthetic session (...)
-[PASS] Deleted synthetic memory (viking://user/default/memories/...)
+[PASS] Deleted synthetic memory (wfs://user/default/memories/...)
 
 Summary
 PASS=20 WARN=0 FAIL=0 SKIP=0

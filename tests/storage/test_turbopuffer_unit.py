@@ -217,7 +217,7 @@ class TestFilterCompilation(unittest.TestCase):
         # uri values get re-encoded by base helpers, but depth=-1 must still
         # produce a recursive ** glob (regression for direct-children-only bug).
         compiled = self.adapter._compile_filter(
-            PathScope("uri", "viking://foo", depth=-1)
+            PathScope("uri", "wfs://foo", depth=-1)
         )
         self.assertEqual(compiled[0], "uri")
         self.assertEqual(compiled[1], "Glob")

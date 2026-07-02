@@ -5,7 +5,7 @@ import uuid
 
 class TestFsFieldConsistency:
     def test_stat_returns_required_fields(self, api_client):
-        dir_uri = f"viking://resources/stat_fields_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/stat_fields_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             if mkdir_resp.status_code != 200:
@@ -169,19 +169,19 @@ class TestFsFieldConsistency:
             )
 
     def test_stat_nonexistent_returns_404(self, api_client):
-        stat_resp = api_client.fs_stat("viking://resources/nonexistent_stat_test_99999")
+        stat_resp = api_client.fs_stat("wfs://resources/nonexistent_stat_test_99999")
         assert stat_resp.status_code == 404, (
             f"stat nonexistent should return 404/500, got {stat_resp.status_code}"
         )
 
     def test_ls_nonexistent_returns_empty_or_404(self, api_client):
-        ls_resp = api_client.fs_ls("viking://resources/nonexistent_ls_test_99999")
+        ls_resp = api_client.fs_ls("wfs://resources/nonexistent_ls_test_99999")
         assert ls_resp.status_code == 404, (
             f"ls nonexistent should return 404, got {ls_resp.status_code}"
         )
 
     def test_mkdir_with_description(self, api_client):
-        dir_uri = f"viking://resources/mkdir_desc_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/mkdir_desc_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri, description="Test directory with description")
             assert mkdir_resp.status_code == 200, (
@@ -229,7 +229,7 @@ class TestFsFieldConsistency:
                     assert isinstance(ct, str), f"content type should be str, got {type(ct)}"
 
     def test_stat_directory_has_no_size(self, api_client):
-        dir_uri = f"viking://resources/stat_nosize_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/stat_nosize_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(dir_uri)
 

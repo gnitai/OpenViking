@@ -271,8 +271,8 @@ enum Commands {
     /// [Data] List directory contents
     #[command(alias = "list")]
     Ls {
-        /// Viking URI to list (default: viking://)
-        #[arg(default_value = "viking://")]
+        /// Viking URI to list (default: wfs://)
+        #[arg(default_value = "wfs://")]
         uri: String,
         /// Simple path output (just paths, no table)
         #[arg(short, long)]
@@ -454,7 +454,7 @@ enum Commands {
     /// [Data] Run content pattern search
     Grep {
         /// Target URI
-        #[arg(short, long, default_value = "viking://")]
+        #[arg(short, long, default_value = "wfs://")]
         uri: String,
         /// Excluded URI range. Any entry whose URI falls under this URI prefix is skipped
         #[arg(short = 'x', long = "exclude-uri")]
@@ -481,7 +481,7 @@ enum Commands {
         /// Glob pattern
         pattern: String,
         /// Search root URI
-        #[arg(short, long, default_value = "viking://")]
+        #[arg(short, long, default_value = "wfs://")]
         uri: String,
         /// Maximum number of results
         #[arg(
@@ -813,28 +813,28 @@ enum WatchCommands {
     },
     /// Show details of a single watch task
     Show {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
     },
     /// Delete a watch task
     Rm {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
     },
     /// Pause a watch task (preserves cadence, stops scheduling)
     Pause {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
     },
     /// Resume a paused watch task
     Resume {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
     },
     /// Update one or more mutable fields of a watch task.
     /// At least one flag is required.
     Update {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
         /// New refresh interval in minutes (must be > 0)
         #[arg(long)]
@@ -851,7 +851,7 @@ enum WatchCommands {
     },
     /// Trigger an immediate refresh, bypassing the schedule
     Trigger {
-        /// task_id (UUID) or to_uri (viking:// URI)
+        /// task_id (UUID) or to_uri (wfs:// URI)
         key: String,
     },
 }
@@ -1597,10 +1597,10 @@ mod tests {
 
     #[test]
     fn cli_tree_rejects_upload_and_admin_only_flags_after_subcommand() {
-        assert!(Cli::try_parse_from(["ov", "tree", "viking://", "--progress"]).is_err());
-        assert!(Cli::try_parse_from(["ov", "tree", "viking://", "--no-progress"]).is_err());
-        assert!(Cli::try_parse_from(["ov", "tree", "viking://", "--verbose"]).is_err());
-        assert!(Cli::try_parse_from(["ov", "tree", "viking://", "--sudo"]).is_err());
+        assert!(Cli::try_parse_from(["ov", "tree", "wfs://", "--progress"]).is_err());
+        assert!(Cli::try_parse_from(["ov", "tree", "wfs://", "--no-progress"]).is_err());
+        assert!(Cli::try_parse_from(["ov", "tree", "wfs://", "--verbose"]).is_err());
+        assert!(Cli::try_parse_from(["ov", "tree", "wfs://", "--sudo"]).is_err());
     }
 
     #[test]
@@ -1649,7 +1649,7 @@ mod tests {
             verbose: false,
         };
 
-        let tree = Cli::try_parse_from(["ov", "--progress", "tree", "viking://"])
+        let tree = Cli::try_parse_from(["ov", "--progress", "tree", "wfs://"])
             .expect("hidden legacy flag still parses before runtime validation");
         assert!(legacy_upload_option_error(upload_options, &tree.command).is_some());
 
@@ -1761,7 +1761,7 @@ mod tests {
         let result = Cli::try_parse_from([
             "ov",
             "write",
-            "viking://resources/demo.md",
+            "wfs://resources/demo.md",
             "--content",
             "updated",
             "--no-semantics",
@@ -1777,7 +1777,7 @@ mod tests {
             "ov",
             "import",
             "./exports/demo.ovpack",
-            "viking://resources/imported/",
+            "wfs://resources/imported/",
             "--no-vectorize",
         ]);
 
@@ -1793,7 +1793,7 @@ mod tests {
             "ov",
             "import",
             "./exports/demo.ovpack",
-            "viking://resources/imported/",
+            "wfs://resources/imported/",
             "--force",
         ]);
 
@@ -1808,7 +1808,7 @@ mod tests {
         let result = Cli::try_parse_from([
             "ov",
             "reindex",
-            "viking://resources/demo",
+            "wfs://resources/demo",
             "--mode",
             "semantic_and_vectors",
             "--wait=false",

@@ -448,7 +448,7 @@ class TestVikingFSEncryptionWithVault:
 
         # Create test resource file
         test_content = "This is test resource content for Vault encryption"
-        test_uri = f"viking://{account_id}/resources/test_file.txt"
+        test_uri = f"wfs://{account_id}/resources/test_file.txt"
 
         # Write file
         await svc.viking_fs.write_file(test_uri, test_content, ctx=ctx)
@@ -464,7 +464,7 @@ class TestVikingFSEncryptionWithVault:
         assert raw_content.startswith(b"OVE1")
 
         # Test various operations
-        resources_dir_uri = f"viking://{account_id}/resources"
+        resources_dir_uri = f"wfs://{account_id}/resources"
 
         # ls operation
         ls_entries = await svc.viking_fs.ls(resources_dir_uri, ctx=ctx)
@@ -515,7 +515,7 @@ class TestVikingFSEncryptionWithVault:
         ctx = RequestContext(user=user, role=Role.ADMIN)
 
         # Create skill directory and file
-        skill_dir_uri = f"viking://{account_id}/agent/test-skill"
+        skill_dir_uri = f"wfs://{account_id}/agent/test-skill"
         skill_md_uri = f"{skill_dir_uri}/SKILL.md"
 
         # Create directory
@@ -545,7 +545,7 @@ This is a test skill for verifying Vault encryption.
         assert raw_content.startswith(b"OVE1")
 
         # Test various operations
-        agent_dir_uri = f"viking://{account_id}/agent"
+        agent_dir_uri = f"wfs://{account_id}/agent"
 
         # ls operation
         ls_entries = await svc.viking_fs.ls(agent_dir_uri, ctx=ctx)
@@ -578,7 +578,7 @@ This is a test skill for verifying Vault encryption.
         ctx = RequestContext(user=user, role=Role.USER)
 
         # Create memory directory and file
-        memory_dir_uri = f"viking://{account_id}/user/{user_id}/memories"
+        memory_dir_uri = f"wfs://{account_id}/user/{user_id}/memories"
         memory_file_uri = f"{memory_dir_uri}/preferences.md"
 
         # Create directory
@@ -626,7 +626,7 @@ This is a test skill for verifying Vault encryption.
         assert session_id is not None
 
         # Check if session directory files are encrypted
-        session_dir_uri = f"viking://{account_id}/session"
+        session_dir_uri = f"wfs://{account_id}/session"
         await self._check_all_files_encrypted(svc, ctx, session_dir_uri, print_paths=False)
 
     @pytest.mark.asyncio
@@ -662,12 +662,12 @@ This is a test skill for verifying Vault encryption.
 
         # Create resource
         test_content = f"Test content for account {random_account_id} with Vault encryption"
-        test_resource_uri = f"viking://{random_account_id}/resources/test_workflow.txt"
+        test_resource_uri = f"wfs://{random_account_id}/resources/test_workflow.txt"
         await svc.viking_fs.write_file(test_resource_uri, test_content, ctx=ctx)
         print(f"✓ Resource created successfully: {test_resource_uri}")
 
         # Create skill
-        skill_dir_uri = f"viking://{random_account_id}/agent/test-workflow-skill"
+        skill_dir_uri = f"wfs://{random_account_id}/agent/test-workflow-skill"
         skill_md_uri = f"{skill_dir_uri}/SKILL.md"
         await svc.viking_fs.mkdir(skill_dir_uri, ctx=ctx)
         skill_content = """---
@@ -682,7 +682,7 @@ description: Test skill for complete workflow
         print(f"✓ Skill created successfully: {skill_md_uri}")
 
         # Create memory
-        memory_dir_uri = f"viking://{random_account_id}/user/{random_user_id}/memories"
+        memory_dir_uri = f"wfs://{random_account_id}/user/{random_user_id}/memories"
         memory_file_uri = f"{memory_dir_uri}/test_memory.md"
         try:
             await svc.viking_fs.mkdir(memory_dir_uri, ctx=ctx)
@@ -701,7 +701,7 @@ description: Test skill for complete workflow
         print("\n=== Encryption verification ===")
 
         # Check if all files are encrypted
-        account_root_uri = f"viking://{random_account_id}"
+        account_root_uri = f"wfs://{random_account_id}"
         await self._check_all_files_encrypted(svc, ctx, account_root_uri, print_paths=True)
 
         # 4. Postcondition: Delete account

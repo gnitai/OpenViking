@@ -56,13 +56,13 @@ Once connected, OpenViking exposes 14 tools:
 | Tool | Description |
 |------|-------------|
 | `search` | Semantic search across memories, resources, and skills |
-| `read` | Read one or more `viking://` URIs |
-| `list` | List entries under a `viking://` directory |
+| `read` | Read one or more `wfs://` URIs |
+| `list` | List entries under a `wfs://` directory |
 | `store` | Store messages into long-term memory |
 | `add_resource` | Add a local file or URL as a resource |
-| `grep` | Regex content search across `viking://` files |
+| `grep` | Regex content search across `wfs://` files |
 | `glob` | Find files matching a glob pattern |
-| `forget` | Delete a `viking://` URI |
+| `forget` | Delete a `wfs://` URI |
 | `code_outline` | Show a file's symbol structure |
 | `code_search` | Search symbol names across a directory |
 | `code_expand` | Return the full source of a single named symbol |

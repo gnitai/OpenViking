@@ -383,7 +383,7 @@ class LocalClient(BaseClient):
             level_limit=level_limit,
         )
 
-    async def glob(self, pattern: str, uri: str = "viking://") -> Dict[str, Any]:
+    async def glob(self, pattern: str, uri: str = "wfs://") -> Dict[str, Any]:
         """File pattern matching."""
         return await self._service.fs.glob(pattern, ctx=self._ctx, uri=uri)
 

@@ -110,7 +110,7 @@ content_template: |
   ...
 embedding_template: |
   ...
-directory: "viking://user/{{ user_space }}/memories/..."
+directory: "wfs://user/{{ user_space }}/memories/..."
 enabled: true
 operation_mode: "upsert"
 ```

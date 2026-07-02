@@ -145,7 +145,7 @@ class TestSearchDedupSort:
                 api_client.delete_session(session_id)
 
     def test_glob_results_are_unique_uris(self, api_client):
-        glob_resp = api_client.glob("viking://resources/**/*.md")
+        glob_resp = api_client.glob("wfs://resources/**/*.md")
         assert glob_resp.status_code == 200
         matches = glob_resp.json().get("result", {}).get("matches", [])
 

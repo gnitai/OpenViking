@@ -122,7 +122,7 @@ class TestContentWriteModesDeep:
                 api_client.fs_rm(root_uri, recursive=True)
 
     def test_write_on_nonexistent_child_uri(self, api_client):
-        fake_uri = f"viking://resources/nonexist_{uuid.uuid4().hex[:8]}/file.md"
+        fake_uri = f"wfs://resources/nonexist_{uuid.uuid4().hex[:8]}/file.md"
         write_resp = api_client.fs_write(
             fake_uri, "Content for nonexistent", mode="replace", wait=True
         )

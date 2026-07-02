@@ -1099,7 +1099,7 @@ openviking-server --config /path/to/ov.conf
 | `version` | 记忆实现版本。仅支持 `"v2"`（#2264 已移除旧版 `"v1"`；传入 `"v1"` 会在配置加载时抛出 `ValueError`）。 | `"v2"` |
 | `agent_scope_mode` | 已废弃且被忽略。仅为兼容旧版 `ov.conf` 保留。当前 agent/user 命名空间行为由 account 级 namespace policy 控制。 | `"user+agent"` |
 
-`agent_scope_mode` 不再影响命名空间行为。服务端现在根据 account 级 namespace policy 在 `viking://agent/{agent_id}/...` 与 `viking://agent/{agent_id}/user/{user_id}/...` 之间选择。
+`agent_scope_mode` 不再影响命名空间行为。服务端现在根据 account 级 namespace policy 在 `wfs://agent/{agent_id}/...` 与 `wfs://agent/{agent_id}/user/{user_id}/...` 之间选择。
 
 ### ovcli.conf
 
@@ -1142,7 +1142,7 @@ HTTP 客户端（`SyncHTTPClient` / `AsyncHTTPClient`）和 CLI 工具连接远�
 也可以在单次命令里用 CLI 参数覆盖这些身份字段：
 
 ```bash
-openviking --account acme --user alice --agent-id assistant-2 ls viking://
+openviking --account acme --user alice --agent-id assistant-2 ls wfs://
 ```
 
 对于 `add-resource`，上传过滤参数会与 `ovcli.conf` 默认值做合并（追加），不会覆盖：
@@ -1173,7 +1173,7 @@ openviking add-resource ./docs --exclude "*.tmp"
     "temp_upload": {
       "default_mode": "local",
       "shared_max_size_bytes": 536870912,
-      "shared_prefix": "viking://upload"
+      "shared_prefix": "wfs://upload"
     }
   }
 }
@@ -1191,7 +1191,7 @@ openviking add-resource ./docs --exclude "*.tmp"
 | `upload_signed_ttl_seconds` | int | MCP `add_resource` 为本地文件上传 mint 的一次性 token 在签名端点 `POST /api/v1/resources/temp_upload_signed` 上的过期时间（秒）。 | `600`（10 分钟） |
 | `temp_upload.default_mode` | str | `POST /api/v1/resources/temp_upload` 的服务端默认模式（客户端未显式传 `upload_mode` 时使用）：`"local"`（仅当前实例本地磁盘，单机默认行为）或 `"shared"`（分布式共享存储，多副本部署可跨实例消费）。 | `"local"` |
 | `temp_upload.shared_max_size_bytes` | int | `shared` 模式下接受的最大文件大小（字节）。超过此阈值的请求会在写入对象存储之前被拒绝。 | `536870912`（512 MiB） |
-| `temp_upload.shared_prefix` | str | 分配 shared `temp_file_id` 对象时使用的 URI 前缀。 | `"viking://upload"` |
+| `temp_upload.shared_prefix` | str | 分配 shared `temp_file_id` 对象时使用的 URI 前缀。 | `"wfs://upload"` |
 
 `api_key` 模式使用 API Key 认证，也是默认模式；`trusted` 模式信任上游网关或受信调用方注入的 `X-OpenViking-Account` / `X-OpenViking-User` 请求头。
 

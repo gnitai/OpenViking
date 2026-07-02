@@ -180,7 +180,7 @@ class TestImportExportWorkflow:
         await client.rm(original_uri, recursive=True)
 
         # 5. Import
-        import_uri = await client.import_ovpack(str(export_path), "viking://resources/imported/")
+        import_uri = await client.import_ovpack(str(export_path), "wfs://resources/imported/")
 
         # 6. Verify content consistency
         imported_content = ""
@@ -241,7 +241,7 @@ class TestFullEndToEndWorkflow:
 
             # Import to new location
             import_uri = await client.import_ovpack(
-                str(export_path), "viking://resources/e2e_imported/"
+                str(export_path), "wfs://resources/e2e_imported/"
             )
 
             # Verify import success
@@ -249,5 +249,5 @@ class TestFullEndToEndWorkflow:
 
         # ===== Phase 5: Cleanup Verification =====
         # List all resources
-        entries = await client.ls("viking://", recursive=True)
+        entries = await client.ls("wfs://", recursive=True)
         assert isinstance(entries, list)

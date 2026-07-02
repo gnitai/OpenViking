@@ -2,9 +2,9 @@
  * Session-start profile injection helper.
  *
  * Builds a <user-profile> + <available-memories> block from
- *   viking://user/<space>/memories/profile.md
- *   viking://user/<space>/memories/preferences/   (ls with abstracts)
- *   viking://user/<space>/memories/entities/      (ls with abstracts)
+ *   wfs://user/<space>/memories/profile.md
+ *   wfs://user/<space>/memories/preferences/   (ls with abstracts)
+ *   wfs://user/<space>/memories/entities/      (ls with abstracts)
  *
  * Budget enforced via the CJK-aware estimateTokens() below — codepoint >=
  * 0x3000 counts at 1.5 tokens, else chars/4. The estimator is exported so
@@ -34,7 +34,7 @@ async function resolveUserSpace(fetchJSON) {
   }
 
   const lsRes = await fetchJSON(
-    `/api/v1/fs/ls?uri=${encodeURIComponent("viking://user")}&output=original`,
+    `/api/v1/fs/ls?uri=${encodeURIComponent("wfs://user")}&output=original`,
   );
   if (lsRes.ok && Array.isArray(lsRes.result)) {
     const spaces = lsRes.result
@@ -235,9 +235,9 @@ function formatListing(headerUri, entries, budgetTokens) {
  */
 export async function buildProfileBlock(fetchJSON, totalBudgetTokens) {
   const space = await resolveUserSpace(fetchJSON);
-  const profileUri = `viking://user/${space}/memories/profile.md`;
-  const prefUri = `viking://user/${space}/memories/preferences`;
-  const entUri = `viking://user/${space}/memories/entities`;
+  const profileUri = `wfs://user/${space}/memories/profile.md`;
+  const prefUri = `wfs://user/${space}/memories/preferences`;
+  const entUri = `wfs://user/${space}/memories/entities`;
 
   const [profile, prefs, ents] = await Promise.all([
     readProfile(fetchJSON, profileUri),

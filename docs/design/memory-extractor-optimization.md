@@ -50,7 +50,7 @@ description: |
   Extract relatively stable personal attributes that define the user's identity, work style, and preferences.
   Include: profession, experience level, technical background, communication style, work habits, etc.
   Do NOT include transient conversation content or temporary mood states.
-directory: "viking://user/{user_space}/memories"
+directory: "wfs://user/{user_space}/memories"
 filename_template: "profile.md"
 
 fields:
@@ -72,7 +72,7 @@ description: |
   Each preference should be about a specific topic (not generic).
   Topics can be: code style, communication style, tools, workflow, food, commute, etc.
   Store different topics as separate memory files, do NOT mix unrelated preferences.
-directory: "viking://user/{user_space}/memories/preferences"
+directory: "wfs://user/{user_space}/memories/preferences"
 filename_template: "{topic}.md"
 
 fields:
@@ -101,7 +101,7 @@ description: |
   Entity types include: projects, people, organizations, systems, technologies, concepts, products, etc.
   Each entity is a named thing that has attributes worth remembering for future conversations.
   Store each entity as a separate memory file, keyed by entity name.
-directory: "viking://user/{user_space}/memories/entities"
+directory: "wfs://user/{user_space}/memories/entities"
 filename_template: "{entity_name}.md"
 
 fields:
@@ -136,7 +136,7 @@ description: |
   Events should be things worth remembering for future context: decisions made, agreements reached, milestones achieved, problems solved, etc.
   Each event should include: what happened, why it happened, what the outcome was, and any relevant context/timeline.
   Use absolute dates for event_time, not relative time like "today" or "recently".
-directory: "viking://user/{user_space}/memories/events"
+directory: "wfs://user/{user_space}/memories/events"
 filename_template: "{event_time}_{event_name}.md"
 
 fields:
@@ -174,7 +174,7 @@ description: |
   Cases should be about specific problems that have clear solutions.
   Each case should include: what the problem was (symptoms, error messages, context), what the solution was (steps taken, principles used), and why it worked.
   Case names should be in "Problem → Solution" format to make them easily searchable.
-directory: "viking://agent/{agent_space}/memories/cases"
+directory: "wfs://agent/{agent_space}/memories/cases"
 filename_template: "{case_name}.md"
 
 fields:
@@ -219,7 +219,7 @@ description: |
   Patterns should be about: how to approach certain types of tasks, what steps to follow, what considerations to keep in mind.
   Each pattern should include: trigger conditions (when to use this pattern), process steps (what to do), and considerations (what to watch out for).
   Pattern names should be in "Process name: Step description" format.
-directory: "viking://agent/{agent_space}/memories/patterns"
+directory: "wfs://agent/{agent_space}/memories/patterns"
 filename_template: "{pattern_name}.md"
 
 fields:
@@ -280,7 +280,7 @@ description: |
   For each tool, track: how many times it's been called, success rate, average time/tokens, what it's best for, optimal parameters, common failure modes, and actionable recommendations.
   Also accumulate complete guidelines with "Good Cases" and "Bad Cases" examples.
   Tool memories help the agent learn from experience and use tools more effectively over time.
-directory: "viking://agent/{agent_space}/memories/tools"
+directory: "wfs://agent/{agent_space}/memories/tools"
 filename_template: "{tool_name}.md"
 
 content_template: |
@@ -401,7 +401,7 @@ description: |
   For each skill, track: how many times it's been executed, success rate, what it's best for, recommended execution flow, key dependencies, common failure modes, and actionable recommendations.
   Also accumulate complete guidelines with "Good Cases" and "Bad Cases" examples.
   Skill memories help the agent learn from experience and execute skills more effectively over time.
-directory: "viking://agent/{agent_space}/memories/skills"
+directory: "wfs://agent/{agent_space}/memories/skills"
 filename_template: "{skill_name}.md"
 
 content_template: |
@@ -614,7 +614,7 @@ Field properties / 字段属性:
 Type properties / 类型属性:
 - name: Type name, e.g., "preferences", "tools" / 类型名称，如 "preferences", "tools"
 - description
-- directory: Full URI for memory data storage, e.g., "viking://user/{user_space}/memories/preferences" / 记忆数据存放的完整 URI，如 "viking://user/{user_space}/memories/preferences"
+- directory: Full URI for memory data storage, e.g., "wfs://user/{user_space}/memories/preferences" / 记忆数据存放的完整 URI，如 "wfs://user/{user_space}/memories/preferences"
 - fields: MemoryField list / MemoryField 列表
 - filename_template: Filename generation template, e.g., "{name}_{topic}.md" / 文件名生成模板，如 "{name}_{topic}.md"
 - content_template: Content rendering template (supports field placeholders), used to render Markdown content from fields / 内容渲染模板（支持字段占位符），用于从 fields 渲染 Markdown 内容
@@ -682,7 +682,7 @@ ReadAction:
 - Description / 说明: List directory content, includes abstract field when output="agent" / 列出目录内容，output="agent" 时包含 abstract 字段
 
 **tree**
-- Parameters / 参数: `uri: str = "viking://", output: str = "agent", abs_limit: int = 256, show_all_hidden: bool = False, node_limit: int = 1000, level_limit: int = 3`
+- Parameters / 参数: `uri: str = "wfs://", output: str = "agent", abs_limit: int = 256, show_all_hidden: bool = False, node_limit: int = 1000, level_limit: int = 3`
 - Returns / 返回: List[Dict] (recursive directory tree) / List[Dict]（递归目录树）
 - Description / 说明: Recursively list all content, includes abstract field when output="agent", level_limit controls traversal depth / 递归列出所有内容，output="agent" 时包含 abstract 字段，level_limit 控制遍历深度
 
@@ -747,8 +747,8 @@ Features / 功能:
 
 **Phase 0: Pre-fetch (system executes, before LLM reasoning)** / **阶段 0: Pre-fetch（系统执行，LLM 推理前）**:
 1. **ls**: Get all memory directory structures / 获取所有记忆目录结构
-   - `viking://user/{user_space}/memories/` and subdirectories / 及子目录
-   - `viking://agent/{agent_space}/memories/` and subdirectories / 及子目录
+   - `wfs://user/{user_space}/memories/` and subdirectories / 及子目录
+   - `wfs://agent/{agent_space}/memories/` and subdirectories / 及子目录
 2. **read**: Read all `.abstract.md` (L0) and `.overview.md` (L1) / 读取所有 `.abstract.md` (L0) 和 `.overview.md` (L1)
    - These summary files provide memory overview with small size / 这些摘要文件提供记忆的概览信息，体积小
 3. **search**: Perform one semantic search in all directories / 在所有目录执行一次语义搜索
@@ -852,8 +852,8 @@ Based on the implementation from ../memory project, the following tech stack is 
   - L2: content file / 内容文件
 
 - **URI Structure**:
-  - User: `viking://user/{space}/memories/{category}/`
-  - Agent: `viking://agent/{space}/memories/{category}/`
+  - User: `wfs://user/{space}/memories/{category}/`
+  - Agent: `wfs://agent/{space}/memories/{category}/`
 
 - **Vector Index**: stored in context collection of VikingDB / 存储在 VikingDB 的 context 集合中
 
@@ -961,14 +961,14 @@ openviking/session/memory/
 ├── memory_types.py         # Type registry / 类型注册表
 ├── memory_updater.py       # Patch applier (system execution) / Patch 应用器（系统执行）
 └── schemas/                # Config directory / 配置目录
-    ├── profile.yaml       # directory: viking://user/{user_space}/memories
-    ├── preferences.yaml   # directory: viking://user/{user_space}/memories/preferences
-    ├── entities.yaml      # directory: viking://user/{user_space}/memories/entities
-    ├── events.yaml        # directory: viking://user/{user_space}/memories/events
-    ├── cases.yaml         # directory: viking://agent/{agent_space}/memories/cases
-    ├── patterns.yaml      # directory: viking://agent/{agent_space}/memories/patterns
-    ├── tools.yaml         # directory: viking://agent/{agent_space}/memories/tools
-    └── skills.yaml        # directory: viking://agent/{agent_space}/memories/skills
+    ├── profile.yaml       # directory: wfs://user/{user_space}/memories
+    ├── preferences.yaml   # directory: wfs://user/{user_space}/memories/preferences
+    ├── entities.yaml      # directory: wfs://user/{user_space}/memories/entities
+    ├── events.yaml        # directory: wfs://user/{user_space}/memories/events
+    ├── cases.yaml         # directory: wfs://agent/{agent_space}/memories/cases
+    ├── patterns.yaml      # directory: wfs://agent/{agent_space}/memories/patterns
+    ├── tools.yaml         # directory: wfs://agent/{agent_space}/memories/tools
+    └── skills.yaml        # directory: wfs://agent/{agent_space}/memories/skills
 
 tests/session/memory/
 ├── test_memory_data.py
@@ -995,8 +995,8 @@ openviking/session/memory_extractor.py  # Preserve existing version, do not modi
 
 **System automatically executes** / **系统自动执行**:
 1. **ls**: Get all memory directory structures / 获取所有记忆目录结构
-   - `viking://user/{user_space}/memories/` and subdirectories / 及子目录
-   - `viking://agent/{agent_space}/memories/` and subdirectories / 及子目录
+   - `wfs://user/{user_space}/memories/` and subdirectories / 及子目录
+   - `wfs://agent/{agent_space}/memories/` and subdirectories / 及子目录
 2. **read**: Read all `.abstract.md` (L0) and `.overview.md` (L1) / 读取所有 `.abstract.md` (L0) 和 `.overview.md` (L1)
 3. **search**: Perform one semantic search in all directories (using current conversation as query) / 在所有目录执行一次语义搜索（使用当前对话作为查询）
 

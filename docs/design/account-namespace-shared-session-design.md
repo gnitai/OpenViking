@@ -23,7 +23,7 @@
   - `isolate_agent_scope_by_user = false`
 - `user` 与 `agent` 目录都采用显式嵌套 canonical URI，不再依赖 hash space。
 - `session` 升级为 account 级共享作用域，统一落在：
-  - `viking://session/{session_id}`
+  - `wfs://session/{session_id}`
 - `session add-message` 新增 `role_id`：
   - `role=user` 时绑定真实 `user_id`
   - `role=assistant` 时绑定真实 `agent_id`
@@ -190,9 +190,9 @@
 #### `isolate_user_scope_by_agent=false`，`isolate_agent_scope_by_user=false`
 
 ```text
-viking://user/{user_id}/...
-viking://agent/{agent_id}/...
-viking://session/{session_id}/...
+wfs://user/{user_id}/...
+wfs://agent/{agent_id}/...
+wfs://session/{session_id}/...
 ```
 
 底层目录：
@@ -205,10 +205,10 @@ viking://session/{session_id}/...
 
 访问规则：
 
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `viking://user/ua/...` 下的全部 user 数据，不受当前 agent 影响
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `viking://agent/aa/...` 下的全部 agent 数据，不受当前 user 影响
-- 不能访问其他 user 的 `viking://user/{other_user_id}/...`
-- 不能访问其他 agent 的 `viking://agent/{other_agent_id}/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `wfs://user/ua/...` 下的全部 user 数据，不受当前 agent 影响
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `wfs://agent/aa/...` 下的全部 agent 数据，不受当前 user 影响
+- 不能访问其他 user 的 `wfs://user/{other_user_id}/...`
+- 不能访问其他 agent 的 `wfs://agent/{other_agent_id}/...`
 - `session` 按 account 共享，访问规则独立于这两个字段
 
 适用场景：
@@ -220,9 +220,9 @@ viking://session/{session_id}/...
 #### `isolate_user_scope_by_agent=false`，`isolate_agent_scope_by_user=true`
 
 ```text
-viking://user/{user_id}/...
-viking://agent/{agent_id}/user/{user_id}/...
-viking://session/{session_id}/...
+wfs://user/{user_id}/...
+wfs://agent/{agent_id}/user/{user_id}/...
+wfs://session/{session_id}/...
 ```
 
 底层目录：
@@ -235,10 +235,10 @@ viking://session/{session_id}/...
 
 访问规则：
 
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `viking://user/ua/...` 下的全部 user 数据，不受当前 agent 影响
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `viking://agent/aa/user/ua/...`
-- 不能访问 `viking://agent/aa/user/{other_user_id}/...`
-- 不能访问 `viking://agent/{other_agent_id}/user/ua/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `wfs://user/ua/...` 下的全部 user 数据，不受当前 agent 影响
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `wfs://agent/aa/user/ua/...`
+- 不能访问 `wfs://agent/aa/user/{other_user_id}/...`
+- 不能访问 `wfs://agent/{other_agent_id}/user/ua/...`
 - `session` 按 account 共享，访问规则独立于这两个字段
 
 适用场景：
@@ -250,9 +250,9 @@ viking://session/{session_id}/...
 #### `isolate_user_scope_by_agent=true`，`isolate_agent_scope_by_user=false`
 
 ```text
-viking://user/{user_id}/agent/{agent_id}/...
-viking://agent/{agent_id}/...
-viking://session/{session_id}/...
+wfs://user/{user_id}/agent/{agent_id}/...
+wfs://agent/{agent_id}/...
+wfs://session/{session_id}/...
 ```
 
 底层目录：
@@ -265,10 +265,10 @@ viking://session/{session_id}/...
 
 访问规则：
 
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `viking://user/ua/agent/aa/...`
-- 不能访问 `viking://user/ua/agent/{other_agent_id}/...`
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `viking://agent/aa/...` 下的全部 agent 数据，不受当前 user 影响
-- 不能访问其他 agent 的 `viking://agent/{other_agent_id}/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `wfs://user/ua/agent/aa/...`
+- 不能访问 `wfs://user/ua/agent/{other_agent_id}/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，可以访问 `wfs://agent/aa/...` 下的全部 agent 数据，不受当前 user 影响
+- 不能访问其他 agent 的 `wfs://agent/{other_agent_id}/...`
 - `session` 按 account 共享，访问规则独立于这两个字段
 
 适用场景：
@@ -280,9 +280,9 @@ viking://session/{session_id}/...
 #### `isolate_user_scope_by_agent=true`，`isolate_agent_scope_by_user=true`
 
 ```text
-viking://user/{user_id}/agent/{agent_id}/...
-viking://agent/{agent_id}/user/{user_id}/...
-viking://session/{session_id}/...
+wfs://user/{user_id}/agent/{agent_id}/...
+wfs://agent/{agent_id}/user/{user_id}/...
+wfs://session/{session_id}/...
 ```
 
 底层目录：
@@ -295,11 +295,11 @@ viking://session/{session_id}/...
 
 访问规则：
 
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `viking://user/ua/agent/aa/...`
-- 不能访问 `viking://user/ua/agent/{other_agent_id}/...`
-- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `viking://agent/aa/user/ua/...`
-- 不能访问 `viking://agent/aa/user/{other_user_id}/...`
-- 不能访问 `viking://agent/{other_agent_id}/user/ua/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `wfs://user/ua/agent/aa/...`
+- 不能访问 `wfs://user/ua/agent/{other_agent_id}/...`
+- 当前请求身份为 `(user_id=ua, agent_id=aa)` 时，只能访问 `wfs://agent/aa/user/ua/...`
+- 不能访问 `wfs://agent/aa/user/{other_user_id}/...`
+- 不能访问 `wfs://agent/{other_agent_id}/user/ua/...`
 - `session` 按 account 共享，访问规则独立于这两个字段
 
 适用场景：
@@ -343,8 +343,8 @@ tools/
 
 保留如下简写：
 
-- `viking://user/...`
-- `viking://agent/...`
+- `wfs://user/...`
+- `wfs://agent/...`
 
 但内部一律按当前 account policy 和请求身份展开为 canonical URI。
 
@@ -353,29 +353,29 @@ tools/
 当 `isolate_user_scope_by_agent=false` 时：
 
 ```text
-viking://user/memories/preferences/
-=> viking://user/ua/memories/preferences/
+wfs://user/memories/preferences/
+=> wfs://user/ua/memories/preferences/
 ```
 
 当 `isolate_user_scope_by_agent=true` 时：
 
 ```text
-viking://user/memories/preferences/
-=> viking://user/ua/agent/aa/memories/preferences/
+wfs://user/memories/preferences/
+=> wfs://user/ua/agent/aa/memories/preferences/
 ```
 
 当 `isolate_agent_scope_by_user=false` 时：
 
 ```text
-viking://agent/memories/cases/
-=> viking://agent/aa/memories/cases/
+wfs://agent/memories/cases/
+=> wfs://agent/aa/memories/cases/
 ```
 
 当 `isolate_agent_scope_by_user=true` 时：
 
 ```text
-viking://agent/memories/cases/
-=> viking://agent/aa/user/ua/memories/cases/
+wfs://agent/memories/cases/
+=> wfs://agent/aa/user/ua/memories/cases/
 ```
 
 要求：
@@ -393,7 +393,7 @@ viking://agent/memories/cases/
 将 `session` 从 user 目录下移出，统一为 account 级共享：
 
 ```text
-viking://session/{session_id}
+wfs://session/{session_id}
 ```
 
 底层目录：
@@ -562,7 +562,7 @@ viking://session/{session_id}
 `tool_uri` 统一调整为：
 
 ```text
-viking://session/{session_id}/tools/{tool_id}
+wfs://session/{session_id}/tools/{tool_id}
 ```
 
 后续凡是从 message 中派生 tool / skill / memory 归属时，都应优先使用消息上的 `role + role_id`，而不是默认使用当前请求上下文里的 agent / user。
@@ -610,7 +610,7 @@ viking://session/{session_id}/tools/{tool_id}
 #### resource
 
 ```text
-uri = viking://resources/...
+uri = wfs://resources/...
 owner_user_id = null
 owner_agent_id = null
 ```
@@ -618,8 +618,8 @@ owner_agent_id = null
 #### user scope
 
 ```text
-uri = viking://user/{user_id}/...                         if isolate_user_scope_by_agent = false
-uri = viking://user/{user_id}/agent/{agent_id}/...       if isolate_user_scope_by_agent = true
+uri = wfs://user/{user_id}/...                         if isolate_user_scope_by_agent = false
+uri = wfs://user/{user_id}/agent/{agent_id}/...       if isolate_user_scope_by_agent = true
 
 owner_user_id = user_id
 owner_agent_id = null                                    if isolate_user_scope_by_agent = false
@@ -629,8 +629,8 @@ owner_agent_id = agent_id                                if isolate_user_scope_b
 #### agent scope
 
 ```text
-uri = viking://agent/{agent_id}/...                      if isolate_agent_scope_by_user = false
-uri = viking://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_user = true
+uri = wfs://agent/{agent_id}/...                      if isolate_agent_scope_by_user = false
+uri = wfs://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_user = true
 
 owner_agent_id = agent_id
 owner_user_id = null                                     if isolate_agent_scope_by_user = false
@@ -640,7 +640,7 @@ owner_user_id = user_id                                  if isolate_agent_scope_
 #### session
 
 ```text
-uri = viking://session/{session_id}/...
+uri = wfs://session/{session_id}/...
 owner_user_id = null
 owner_agent_id = null
 ```
@@ -658,27 +658,27 @@ account_id == ctx.account_id
 #### resource 根路径
 
 ```text
-viking://resources/
+wfs://resources/
 ```
 
 #### session 根路径
 
 ```text
-viking://session/
+wfs://session/
 ```
 
 #### user 根路径
 
 ```text
-viking://user/{user_id}/...                         if isolate_user_scope_by_agent = false
-viking://user/{user_id}/agent/{agent_id}/...       if isolate_user_scope_by_agent = true
+wfs://user/{user_id}/...                         if isolate_user_scope_by_agent = false
+wfs://user/{user_id}/agent/{agent_id}/...       if isolate_user_scope_by_agent = true
 ```
 
 #### agent 根路径
 
 ```text
-viking://agent/{agent_id}/...                      if isolate_agent_scope_by_user = false
-viking://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_user = true
+wfs://agent/{agent_id}/...                      if isolate_agent_scope_by_user = false
+wfs://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_user = true
 ```
 
 检索过滤由两部分组成：
@@ -695,7 +695,7 @@ viking://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_use
 
 说明：
 
-- session 在本方案中按 account 共享，因此统一落在 `viking://session/`
+- session 在本方案中按 account 共享，因此统一落在 `wfs://session/`
 - `uri` 用来表达真实路径范围
 - `owner_user_id` / `owner_agent_id` 用来表达绑定到哪个 user / agent
 - 文件系统可见性与检索过滤必须复用同一套判断规则
@@ -743,13 +743,13 @@ viking://agent/{agent_id}/user/{user_id}/...       if isolate_agent_scope_by_use
 例如在 `isolate_user_scope_by_agent=true` 且 `isolate_agent_scope_by_user=true` 下：
 
 ```text
-viking://agent/{agent_id}
+wfs://agent/{agent_id}
 ```
 
 只是容器；
 
 ```text
-viking://agent/{agent_id}/user/{user_id}
+wfs://agent/{agent_id}/user/{user_id}
 ```
 
 才是实际的 agent scope 根。
@@ -844,7 +844,7 @@ account 级 namespace policy 持久化在：
 
 ### 8.1 user scope
 
-- `user` 侧默认路径本身就是 `viking://user/{user_id}/...`
+- `user` 侧默认路径本身就是 `wfs://user/{user_id}/...`
 - 如果新拓扑仍然采用 user 共享形态，则 AGFS 路径天然兼容
 - 因此本阶段不对 `user` 侧做目录迁移
 
@@ -854,8 +854,8 @@ account 级 namespace policy 持久化在：
 - 在确认 account 内不存在同名 `session_id` 的前提下，session 迁移按纯目录移动处理：
 
 ```text
-viking://session/{user_id}/{session_id}
--> viking://session/{session_id}
+wfs://session/{user_id}/{session_id}
+-> wfs://session/{session_id}
 ```
 
 - 本阶段不保留旧 session 根路径兼容读
@@ -873,21 +873,21 @@ viking://session/{user_id}/{session_id}
 - 升级前：在旧版本中从 legacy hash namespace 导出，例如：
 
 ```bash
-ov export viking://agent/{legacy_agent_space_hash}/memories ./agent_memory.ovpack
+ov export wfs://agent/{legacy_agent_space_hash}/memories ./agent_memory.ovpack
 ```
 
 - 升级后：在新版本中按目标 account policy 导入到 agent space 的父目录：
 
 ```bash
 # isolate_agent_scope_by_user = false
-ov import ./agent_memory.ovpack viking://agent/{agent_id}/ --force
+ov import ./agent_memory.ovpack wfs://agent/{agent_id}/ --force
 
 # isolate_agent_scope_by_user = true
-ov import ./agent_memory.ovpack viking://agent/{agent_id}/user/{user_id}/ --force
+ov import ./agent_memory.ovpack wfs://agent/{agent_id}/user/{user_id}/ --force
 ```
 
 - 不要把 `.ovpack` 直接导入到 `.../memories/` 本身，否则会得到 `.../memories/memories/...`
-- 当 `isolate_agent_scope_by_user = true` 时，`viking://agent/{agent_id}/user/` 不是合法目标；必须显式提供 `user_id}`
+- 当 `isolate_agent_scope_by_user = true` 时，`wfs://agent/{agent_id}/user/` 不是合法目标；必须显式提供 `user_id}`
 
 - 当前 agent root 是 hash space，而不是显式 `agent_id`
 - hash 值不能从结果稳定反推出原始 `user_id / agent_id`
@@ -953,7 +953,7 @@ ov import ./agent_memory.ovpack viking://agent/{agent_id}/user/{user_id}/ --forc
 
 ### 10.3 session
 
-- session 根路径为 `viking://session/{session_id}`
+- session 根路径为 `wfs://session/{session_id}`
 - session list 为 account 级
 - `role_id` 校验正确
 - `Message.role_id` 持久化正确

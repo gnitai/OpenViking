@@ -56,7 +56,7 @@ class TestMultiSessionIsolation:
             r2 = api_client.create_session()
             sid2 = r2.json()["result"]["session_id"]
 
-            api_client.session_used(sid1, contexts=["viking://resources/ctx_a"])
+            api_client.session_used(sid1, contexts=["wfs://resources/ctx_a"])
 
             get1 = api_client.get_session(sid1)
             get2 = api_client.get_session(sid2)

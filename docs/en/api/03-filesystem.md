@@ -39,7 +39,7 @@ Read L0 abstract (~100 tokens summary).
 **Python SDK (Embedded / HTTP)**
 
 ```python
-abstract = client.abstract("viking://resources/docs/")
+abstract = client.abstract("wfs://resources/docs/")
 print(f"Abstract: {abstract}")
 # Output: "Documentation for the project API, covering authentication, endpoints..."
 ```
@@ -51,14 +51,14 @@ GET /api/v1/content/abstract?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/content/abstract?uri=viking://resources/docs/" \
+curl -X GET "http://localhost:1933/api/v1/content/abstract?uri=wfs://resources/docs/" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking abstract viking://resources/docs/
+openviking abstract wfs://resources/docs/
 ```
 
 **Response**
@@ -86,7 +86,7 @@ Read L1 overview, applies to directories.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-overview = client.overview("viking://resources/docs/")
+overview = client.overview("wfs://resources/docs/")
 print(f"Overview:\n{overview}")
 ```
 
@@ -97,14 +97,14 @@ GET /api/v1/content/overview?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/content/overview?uri=viking://resources/docs/" \
+curl -X GET "http://localhost:1933/api/v1/content/overview?uri=wfs://resources/docs/" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking overview viking://resources/docs/
+openviking overview wfs://resources/docs/
 ```
 
 **Response**
@@ -140,7 +140,7 @@ Read L2 full content.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-content = client.read("viking://resources/docs/api.md")
+content = client.read("wfs://resources/docs/api.md")
 print(f"Content:\n{content}")
 ```
 
@@ -151,14 +151,14 @@ GET /api/v1/content/read?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/content/read?uri=viking://resources/docs/api.md" \
+curl -X GET "http://localhost:1933/api/v1/content/read?uri=wfs://resources/docs/api.md" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking read viking://resources/docs/api.md
+openviking read wfs://resources/docs/api.md
 ```
 
 **Response**
@@ -199,7 +199,7 @@ Update an existing file, or create a new one when `mode="create"`, and automatic
 
 ```python
 result = client.write(
-    "viking://resources/docs/api.md",
+    "wfs://resources/docs/api.md",
     "# Updated API\n\nFresh content.",
     mode="replace",
     wait=True,
@@ -218,7 +218,7 @@ curl -X POST "http://localhost:1933/api/v1/content/write" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "uri": "viking://resources/docs/api.md",
+    "uri": "wfs://resources/docs/api.md",
     "content": "# Updated API\n\nFresh content.",
     "mode": "replace",
     "wait": true
@@ -228,7 +228,7 @@ curl -X POST "http://localhost:1933/api/v1/content/write" \
 **CLI**
 
 ```bash
-openviking write viking://resources/docs/api.md \
+openviking write wfs://resources/docs/api.md \
   --content "# Updated API\n\nFresh content." \
   --wait
 ```
@@ -239,8 +239,8 @@ openviking write viking://resources/docs/api.md \
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources/docs/api.md",
-    "root_uri": "viking://resources/docs",
+    "uri": "wfs://resources/docs/api.md",
+    "root_uri": "wfs://resources/docs",
     "context_type": "resource",
     "mode": "replace",
     "written_bytes": 29,
@@ -290,7 +290,7 @@ List directory contents.
     "mode": 16877,            # File mode
     "modTime": "2024-01-01T00:00:00Z",  # ISO timestamp
     "isDir": True,            # True if directory
-    "uri": "viking://resources/docs/",  # Viking URI
+    "uri": "wfs://resources/docs/",  # Viking URI
     "meta": {}                # Optional metadata
 }
 ```
@@ -298,7 +298,7 @@ List directory contents.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-entries = client.ls("viking://resources/")
+entries = client.ls("wfs://resources/")
 for entry in entries:
     type_str = "dir" if entry['isDir'] else "file"
     print(f"{entry['name']} - {type_str}")
@@ -312,22 +312,22 @@ GET /api/v1/fs/ls?uri={uri}&simple={bool}&recursive={bool}
 
 ```bash
 # Basic listing
-curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=viking://resources/" \
+curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=wfs://resources/" \
   -H "X-API-Key: your-key"
 
 # Simple path list
-curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=viking://resources/&simple=true" \
+curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=wfs://resources/&simple=true" \
   -H "X-API-Key: your-key"
 
 # Recursive listing
-curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=viking://resources/&recursive=true" \
+curl -X GET "http://localhost:1933/api/v1/fs/ls?uri=wfs://resources/&recursive=true" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking ls viking://resources/ [--simple] [--recursive]
+openviking ls wfs://resources/ [--simple] [--recursive]
 ```
 
 **Response**
@@ -342,7 +342,7 @@ openviking ls viking://resources/ [--simple] [--recursive]
       "mode": 16877,
       "modTime": "2024-01-01T00:00:00Z",
       "isDir": true,
-      "uri": "viking://resources/docs/"
+      "uri": "wfs://resources/docs/"
     }
   ],
   "time": 0.1
@@ -369,7 +369,7 @@ Get directory tree structure.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-entries = client.tree("viking://resources/")
+entries = client.tree("wfs://resources/")
 for entry in entries:
     type_str = "dir" if entry['isDir'] else "file"
     print(f"{entry['rel_path']} - {type_str}")
@@ -382,14 +382,14 @@ GET /api/v1/fs/tree?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/fs/tree?uri=viking://resources/" \
+curl -X GET "http://localhost:1933/api/v1/fs/tree?uri=wfs://resources/" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking tree viking://resources/my-project/
+openviking tree wfs://resources/my-project/
 ```
 
 **Response**
@@ -403,14 +403,14 @@ openviking tree viking://resources/my-project/
       "size": 4096,
       "isDir": true,
       "rel_path": "docs/",
-      "uri": "viking://resources/docs/"
+      "uri": "wfs://resources/docs/"
     },
     {
       "name": "api.md",
       "size": 1024,
       "isDir": false,
       "rel_path": "docs/api.md",
-      "uri": "viking://resources/docs/api.md"
+      "uri": "wfs://resources/docs/api.md"
     }
   ],
   "time": 0.1
@@ -432,12 +432,12 @@ Get file or directory status information. For directories, returns the count of 
 **Python SDK (Embedded / HTTP)**
 
 ```python
-info = client.stat("viking://resources/docs/api.md")
+info = client.stat("wfs://resources/docs/api.md")
 print(f"Size: {info['size']}")
 print(f"Is directory: {info['isDir']}")
 
 # For directories, returns item count
-dir_info = client.stat("viking://resources/docs")
+dir_info = client.stat("wfs://resources/docs")
 if dir_info.get('isDir'):
     print(f"Item count: {dir_info.get('count')}")
 ```
@@ -449,15 +449,15 @@ GET /api/v1/fs/stat?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/fs/stat?uri=viking://resources/docs/api.md" \
+curl -X GET "http://localhost:1933/api/v1/fs/stat?uri=wfs://resources/docs/api.md" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking stat viking://resources/my-project/docs/api.md
-openviking stat viking://resources/my-project/docs
+openviking stat wfs://resources/my-project/docs/api.md
+openviking stat wfs://resources/my-project/docs
 ```
 
 **Response (File)**
@@ -472,7 +472,7 @@ openviking stat viking://resources/my-project/docs
     "modTime": "2024-01-01T00:00:00Z",
     "isDir": false,
     "isLocked": false,
-    "uri": "viking://resources/docs/api.md"
+    "uri": "wfs://resources/docs/api.md"
   },
   "time": 0.1
 }
@@ -490,7 +490,7 @@ openviking stat viking://resources/my-project/docs
     "modTime": "2024-01-01T00:00:00Z",
     "isDir": true,
     "isLocked": false,
-    "uri": "viking://resources/docs",
+    "uri": "wfs://resources/docs",
     "count": 42
   },
   "time": 0.1
@@ -517,8 +517,8 @@ Create a directory.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-client.mkdir("viking://resources/new-project/")
-client.mkdir("viking://resources/new-project/", description="API docs directory")
+client.mkdir("wfs://resources/new-project/")
+client.mkdir("wfs://resources/new-project/", description="API docs directory")
 ```
 
 **HTTP API**
@@ -532,7 +532,7 @@ curl -X POST http://localhost:1933/api/v1/fs/mkdir \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "uri": "viking://resources/new-project/",
+    "uri": "wfs://resources/new-project/",
     "description": "API docs directory"
   }'
 ```
@@ -540,8 +540,8 @@ curl -X POST http://localhost:1933/api/v1/fs/mkdir \
 **CLI**
 
 ```bash
-openviking mkdir viking://resources/new-project/
-openviking mkdir viking://resources/new-project/ --description "API docs directory"
+openviking mkdir wfs://resources/new-project/
+openviking mkdir wfs://resources/new-project/ --description "API docs directory"
 ```
 
 **Response**
@@ -550,7 +550,7 @@ openviking mkdir viking://resources/new-project/ --description "API docs directo
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources/new-project/"
+    "uri": "wfs://resources/new-project/"
   },
   "time": 0.1
 }
@@ -576,10 +576,10 @@ Invalid URI formats, unsupported schemes, and non-public scopes return `INVALID_
 
 ```python
 # Remove single file
-client.rm("viking://resources/docs/old.md")
+client.rm("wfs://resources/docs/old.md")
 
 # Remove directory recursively
-result = client.rm("viking://resources/old-project/", recursive=True)
+result = client.rm("wfs://resources/old-project/", recursive=True)
 if 'estimated_deleted_count' in result:
     print(f"Deleted {result['estimated_deleted_count']} items")
 ```
@@ -592,18 +592,18 @@ DELETE /api/v1/fs?uri={uri}&recursive={bool}
 
 ```bash
 # Remove single file
-curl -X DELETE "http://localhost:1933/api/v1/fs?uri=viking://resources/docs/old.md" \
+curl -X DELETE "http://localhost:1933/api/v1/fs?uri=wfs://resources/docs/old.md" \
   -H "X-API-Key: your-key"
 
 # Remove directory recursively
-curl -X DELETE "http://localhost:1933/api/v1/fs?uri=viking://resources/old-project/&recursive=true" \
+curl -X DELETE "http://localhost:1933/api/v1/fs?uri=wfs://resources/old-project/&recursive=true" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking rm viking://resources/old.md [--recursive]
+openviking rm wfs://resources/old.md [--recursive]
 ```
 
 **Response (Single file)**
@@ -612,7 +612,7 @@ openviking rm viking://resources/old.md [--recursive]
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources/docs/old.md"
+    "uri": "wfs://resources/docs/old.md"
   },
   "time": 0.1
 }
@@ -624,7 +624,7 @@ openviking rm viking://resources/old.md [--recursive]
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources/old-project/",
+    "uri": "wfs://resources/old-project/",
     "estimated_deleted_count": 42
   },
   "time": 0.1
@@ -650,8 +650,8 @@ Move file or directory.
 
 ```python
 client.mv(
-    "viking://resources/old-name/",
-    "viking://resources/new-name/"
+    "wfs://resources/old-name/",
+    "wfs://resources/new-name/"
 )
 ```
 
@@ -666,15 +666,15 @@ curl -X POST http://localhost:1933/api/v1/fs/mv \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "from_uri": "viking://resources/old-name/",
-    "to_uri": "viking://resources/new-name/"
+    "from_uri": "wfs://resources/old-name/",
+    "to_uri": "wfs://resources/new-name/"
   }'
 ```
 
 **CLI**
 
 ```bash
-openviking mv viking://resources/old-name/ viking://resources/new-name/
+openviking mv wfs://resources/old-name/ wfs://resources/new-name/
 ```
 
 **Response**
@@ -683,8 +683,8 @@ openviking mv viking://resources/old-name/ viking://resources/new-name/
 {
   "status": "ok",
   "result": {
-    "from": "viking://resources/old-name/",
-    "to": "viking://resources/new-name/"
+    "from": "wfs://resources/old-name/",
+    "to": "wfs://resources/new-name/"
   },
   "time": 0.1
 }
@@ -711,7 +711,7 @@ Search content by pattern.
 
 ```python
 results = client.grep(
-    "viking://resources/",
+    "wfs://resources/",
     "authentication",
     case_insensitive=True
 )
@@ -733,7 +733,7 @@ curl -X POST http://localhost:1933/api/v1/search/grep \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "uri": "viking://resources/",
+    "uri": "wfs://resources/",
     "pattern": "authentication",
     "case_insensitive": true
   }'
@@ -742,7 +742,7 @@ curl -X POST http://localhost:1933/api/v1/search/grep \
 **CLI**
 
 ```bash
-openviking grep viking://resources/ "authentication" [--ignore-case]
+openviking grep wfs://resources/ "authentication" [--ignore-case]
 ```
 
 **Response**
@@ -753,7 +753,7 @@ openviking grep viking://resources/ "authentication" [--ignore-case]
   "result": {
     "matches": [
       {
-        "uri": "viking://resources/docs/auth.md",
+        "uri": "wfs://resources/docs/auth.md",
         "line": 15,
         "content": "User authentication is handled by..."
       }
@@ -775,20 +775,20 @@ Match files by pattern.
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | pattern | str | Yes | - | Glob pattern (e.g., `**/*.md`) |
-| uri | str | No | "viking://" | Starting URI |
+| uri | str | No | "wfs://" | Starting URI |
 | node_limit | int | No | None | Maximum number of results |
 
 **Python SDK (Embedded / HTTP)**
 
 ```python
 # Find all markdown files
-results = client.glob("**/*.md", "viking://resources/")
+results = client.glob("**/*.md", "wfs://resources/")
 print(f"Found {results['count']} markdown files:")
 for uri in results['matches']:
     print(f"  {uri}")
 
 # Find all Python files
-results = client.glob("**/*.py", "viking://resources/")
+results = client.glob("**/*.py", "wfs://resources/")
 print(f"Found {results['count']} Python files")
 ```
 
@@ -804,14 +804,14 @@ curl -X POST http://localhost:1933/api/v1/search/glob \
   -H "X-API-Key: your-key" \
   -d '{
     "pattern": "**/*.md",
-    "uri": "viking://resources/"
+    "uri": "wfs://resources/"
   }'
 ```
 
 **CLI**
 
 ```bash
-openviking glob "**/*.md" [--uri viking://resources/]
+openviking glob "**/*.md" [--uri wfs://resources/]
 ```
 
 **Response**
@@ -821,8 +821,8 @@ openviking glob "**/*.md" [--uri viking://resources/]
   "status": "ok",
   "result": {
     "matches": [
-      "viking://resources/docs/api.md",
-      "viking://resources/docs/guide.md"
+      "wfs://resources/docs/api.md",
+      "wfs://resources/docs/guide.md"
     ],
     "count": 2
   },
@@ -849,17 +849,17 @@ Create relations between resources.
 ```python
 # Single link
 client.link(
-    "viking://resources/docs/auth/",
-    "viking://resources/docs/security/",
+    "wfs://resources/docs/auth/",
+    "wfs://resources/docs/security/",
     reason="Security best practices for authentication"
 )
 
 # Multiple links
 client.link(
-    "viking://resources/docs/api/",
+    "wfs://resources/docs/api/",
     [
-        "viking://resources/docs/auth/",
-        "viking://resources/docs/errors/"
+        "wfs://resources/docs/auth/",
+        "wfs://resources/docs/errors/"
     ],
     reason="Related documentation"
 )
@@ -877,8 +877,8 @@ curl -X POST http://localhost:1933/api/v1/relations/link \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "from_uri": "viking://resources/docs/auth/",
-    "to_uris": "viking://resources/docs/security/",
+    "from_uri": "wfs://resources/docs/auth/",
+    "to_uris": "wfs://resources/docs/security/",
     "reason": "Security best practices for authentication"
   }'
 
@@ -887,8 +887,8 @@ curl -X POST http://localhost:1933/api/v1/relations/link \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "from_uri": "viking://resources/docs/api/",
-    "to_uris": ["viking://resources/docs/auth/", "viking://resources/docs/errors/"],
+    "from_uri": "wfs://resources/docs/api/",
+    "to_uris": ["wfs://resources/docs/auth/", "wfs://resources/docs/errors/"],
     "reason": "Related documentation"
   }'
 ```
@@ -896,7 +896,7 @@ curl -X POST http://localhost:1933/api/v1/relations/link \
 **CLI**
 
 ```bash
-openviking link viking://resources/docs/auth/ viking://resources/docs/security/ --reason "Security best practices"
+openviking link wfs://resources/docs/auth/ wfs://resources/docs/security/ --reason "Security best practices"
 ```
 
 **Response**
@@ -905,8 +905,8 @@ openviking link viking://resources/docs/auth/ viking://resources/docs/security/ 
 {
   "status": "ok",
   "result": {
-    "from": "viking://resources/docs/auth/",
-    "to": "viking://resources/docs/security/"
+    "from": "wfs://resources/docs/auth/",
+    "to": "wfs://resources/docs/security/"
   },
   "time": 0.1
 }
@@ -927,7 +927,7 @@ Get relations for a resource.
 **Python SDK (Embedded / HTTP)**
 
 ```python
-relations = client.relations("viking://resources/docs/auth/")
+relations = client.relations("wfs://resources/docs/auth/")
 for rel in relations:
     print(f"Related: {rel['uri']}")
     print(f"  Reason: {rel['reason']}")
@@ -940,14 +940,14 @@ GET /api/v1/relations?uri={uri}
 ```
 
 ```bash
-curl -X GET "http://localhost:1933/api/v1/relations?uri=viking://resources/docs/auth/" \
+curl -X GET "http://localhost:1933/api/v1/relations?uri=wfs://resources/docs/auth/" \
   -H "X-API-Key: your-key"
 ```
 
 **CLI**
 
 ```bash
-openviking relations viking://resources/docs/auth/
+openviking relations wfs://resources/docs/auth/
 ```
 
 **Response**
@@ -956,8 +956,8 @@ openviking relations viking://resources/docs/auth/
 {
   "status": "ok",
   "result": [
-    {"uri": "viking://resources/docs/security/", "reason": "Security best practices"},
-    {"uri": "viking://resources/docs/errors/", "reason": "Error handling"}
+    {"uri": "wfs://resources/docs/security/", "reason": "Security best practices"},
+    {"uri": "wfs://resources/docs/errors/", "reason": "Error handling"}
   ],
   "time": 0.1
 }
@@ -980,8 +980,8 @@ Remove a relation.
 
 ```python
 client.unlink(
-    "viking://resources/docs/auth/",
-    "viking://resources/docs/security/"
+    "wfs://resources/docs/auth/",
+    "wfs://resources/docs/security/"
 )
 ```
 
@@ -996,15 +996,15 @@ curl -X DELETE http://localhost:1933/api/v1/relations/link \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
   -d '{
-    "from_uri": "viking://resources/docs/auth/",
-    "to_uri": "viking://resources/docs/security/"
+    "from_uri": "wfs://resources/docs/auth/",
+    "to_uri": "wfs://resources/docs/security/"
   }'
 ```
 
 **CLI**
 
 ```bash
-openviking unlink viking://resources/docs/auth/ viking://resources/docs/security/
+openviking unlink wfs://resources/docs/auth/ wfs://resources/docs/security/
 ```
 
 **Response**
@@ -1013,8 +1013,8 @@ openviking unlink viking://resources/docs/auth/ viking://resources/docs/security
 {
   "status": "ok",
   "result": {
-    "from": "viking://resources/docs/auth/",
-    "to": "viking://resources/docs/security/"
+    "from": "wfs://resources/docs/auth/",
+    "to": "wfs://resources/docs/security/"
   },
   "time": 0.1
 }
@@ -1076,7 +1076,7 @@ curl -X POST http://localhost:1933/api/v1/pack/export \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-admin-key" \
   -d '{
-    "uri": "viking://resources/my-project/",
+    "uri": "wfs://resources/my-project/",
     "include_vectors": false
   }' \
   --output my-project.ovpack
@@ -1098,10 +1098,10 @@ client.initialize()
 
 ```bash
 # Export resource
-ov export viking://resources/my-project/ ./exports/my-project.ovpack
+ov export wfs://resources/my-project/ ./exports/my-project.ovpack
 
 # Export with a dense vector snapshot
-ov export viking://resources/my-project/ ./exports/my-project.ovpack --include-vectors
+ov export wfs://resources/my-project/ ./exports/my-project.ovpack --include-vectors
 ```
 
 **Response Example**
@@ -1155,7 +1155,7 @@ Imports a `.ovpack` file to a specified location for restoring or migrating data
 - Packages whose manifest `format_version` is not the current supported version are rejected.
 - `.abstract.md` and `.overview.md` are restored as semantic sidecars. `.relations.json` and OVPack internals are excluded.
 - Manifest `context_type`, when present in index scalar metadata, must match the final import path semantics.
-- Top-level scope packages such as `viking://resources/` must be imported to `viking://`.
+- Top-level scope packages such as `wfs://resources/` must be imported to `wfs://`.
 - OVPack does not add import package-size, file-count, or directory-depth limits; the practical limit comes from ZIP, the storage backend, and the runtime environment.
 
 #### 3. Usage Examples
@@ -1182,7 +1182,7 @@ curl -X POST http://localhost:1933/api/v1/pack/import \
   -H "X-API-Key: your-admin-key" \
   -d "{
     \"temp_file_id\": \"$TEMP_FILE_ID\",
-    \"parent\": \"viking://resources/imported/\",
+    \"parent\": \"wfs://resources/imported/\",
     \"on_conflict\": \"overwrite\",
     \"vector_mode\": \"auto\"
   }"
@@ -1204,13 +1204,13 @@ client.initialize()
 
 ```bash
 # Import .ovpack file
-ov import ./exports/my-project.ovpack viking://resources/imported/
+ov import ./exports/my-project.ovpack wfs://resources/imported/
 
 # Explicit conflict policy
-ov import ./exports/my-project.ovpack viking://resources/imported/ --on-conflict overwrite
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --on-conflict overwrite
 
 # Require restoring a compatible dense vector snapshot
-ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode require
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --vector-mode require
 ```
 
 **Response Example**
@@ -1219,7 +1219,7 @@ ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode
 {
   "status": "ok",
   "result": {
-    "uri": "viking://resources/imported/my-project/"
+    "uri": "wfs://resources/imported/my-project/"
   },
   "telemetry": {
     "operation_id": "550e8400-e29b-41d4-a716-446655440000"
@@ -1234,9 +1234,9 @@ ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode
   "status": "error",
   "error": {
     "code": "CONFLICT",
-    "message": "Resource already exists at viking://resources/imported/my-project. Use on_conflict='overwrite' to replace it.",
+    "message": "Resource already exists at wfs://resources/imported/my-project. Use on_conflict='overwrite' to replace it.",
     "details": {
-      "resource": "viking://resources/imported/my-project"
+      "resource": "wfs://resources/imported/my-project"
     }
   }
 }

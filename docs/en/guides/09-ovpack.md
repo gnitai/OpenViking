@@ -1,7 +1,7 @@
 # OVPack Import and Export
 
 OVPack is OpenViking's recoverable content package format for migrating or
-backing up public content trees under `viking://`. It stores file content,
+backing up public content trees under `wfs://`. It stores file content,
 semantic sidecar files, portable index scalar fields, and optional dense vector
 snapshots.
 
@@ -14,18 +14,18 @@ and manifest, rely on external signatures, secure transport, and access control.
 
 Regular `export/import` handles one package root:
 
-- `viking://resources/...`
-- `viking://user/...`
-- `viking://agent/...`
-- `viking://session/...`
+- `wfs://resources/...`
+- `wfs://user/...`
+- `wfs://agent/...`
+- `wfs://session/...`
 
 Full migration uses the separate `backup/restore` flow. It packages public
 scope roots together:
 
-- `viking://resources`
-- `viking://user`
-- `viking://agent`
-- `viking://session`
+- `wfs://resources`
+- `wfs://user`
+- `wfs://agent`
+- `wfs://session`
 
 Internal or runtime data such as `temp`, `queue`, `upload`, lock files, watch
 control files, and `.relations.json` are outside the OVPack migration scope.
@@ -35,21 +35,21 @@ control files, and `.relations.json` are outside the OVPack migration scope.
 ### Export and Import a Resource Directory
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack
-ov import ./exports/my-project.ovpack viking://resources/imported/
+ov export wfs://resources/my-project ./exports/my-project.ovpack
+ov import ./exports/my-project.ovpack wfs://resources/imported/
 ```
 
 The import target is the parent directory, not the final root. If the package
 root is `my-project`, the imported URI is:
 
 ```text
-viking://resources/imported/my-project
+wfs://resources/imported/my-project
 ```
 
 Overwrite an existing root:
 
 ```bash
-ov import ./exports/my-project.ovpack viking://resources/imported/ --on-conflict overwrite
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --on-conflict overwrite
 ```
 
 ### Export Vector Snapshots
@@ -58,16 +58,16 @@ By default, export does not store dense vectors. Import recomputes vectors in
 the target environment:
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack
-ov import ./exports/my-project.ovpack viking://resources/imported/
+ov export wfs://resources/my-project ./exports/my-project.ovpack
+ov import ./exports/my-project.ovpack wfs://resources/imported/
 ```
 
 If the export and import environments use the same embedding configuration, you
 can explicitly include a dense vector snapshot:
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack --include-vectors
-ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode auto
+ov export wfs://resources/my-project ./exports/my-project.ovpack --include-vectors
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --vector-mode auto
 ```
 
 `--vector-mode` controls how import handles package vectors:
@@ -93,7 +93,7 @@ carry an incomplete index snapshot.
 You can call the consistency check directly when debugging data state:
 
 ```bash
-ov system consistency viking://resources/my-project
+ov system consistency wfs://resources/my-project
 ```
 
 The API returns only a summary and at most 20 missing records. It does not return
@@ -103,7 +103,7 @@ details include only one missing key to keep logs small.
 Python SDK:
 
 ```python
-report = await client.check_consistency("viking://resources/my-project")
+report = await client.check_consistency("wfs://resources/my-project")
 print(report["ok"], report["missing_records"])
 ```
 
@@ -113,12 +113,12 @@ HTTP API:
 curl -X POST http://localhost:1933/api/v1/system/consistency \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-admin-key" \
-  -d '{"uri":"viking://resources/my-project"}'
+  -d '{"uri":"wfs://resources/my-project"}'
 ```
 
 ### Full Backup and Restore
 
-Do not use `export viking://` for full migration. Use a backup package:
+Do not use `export wfs://` for full migration. Use a backup package:
 
 ```bash
 ov backup ./backups/openviking.ovpack
@@ -139,14 +139,14 @@ async def migrate_project():
     await client.initialize()
     try:
         await client.export_ovpack(
-            uri="viking://resources/my-project",
+            uri="wfs://resources/my-project",
             to="./exports/my-project.ovpack",
             include_vectors=False,
         )
 
         imported_uri = await client.import_ovpack(
             file_path="./exports/my-project.ovpack",
-            parent="viking://resources/imported/",
+            parent="wfs://resources/imported/",
             on_conflict="overwrite",
             vector_mode="auto",
         )
@@ -178,7 +178,7 @@ Export:
 curl -X POST http://localhost:1933/api/v1/pack/export \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-admin-key" \
-  -d '{"uri":"viking://resources/my-project","include_vectors":false}' \
+  -d '{"uri":"wfs://resources/my-project","include_vectors":false}' \
   --output my-project.ovpack
 ```
 
@@ -197,7 +197,7 @@ curl -X POST http://localhost:1933/api/v1/pack/import \
   -H "X-API-Key: your-admin-key" \
   -d "{
     \"temp_file_id\": \"$TEMP_FILE_ID\",
-    \"parent\": \"viking://resources/imported/\",
+    \"parent\": \"wfs://resources/imported/\",
     \"on_conflict\": \"overwrite\",
     \"vector_mode\": \"auto\"
   }"
@@ -254,7 +254,7 @@ internal index files. It does not inline per-file index records:
   "format_version": 2,
   "root": {
     "name": "my-project",
-    "uri": "viking://resources/my-project",
+    "uri": "wfs://resources/my-project",
     "scope": "resources"
   },
   "entries": [
@@ -367,34 +367,34 @@ Regular subtree packages import into a parent directory in the same scope and
 keep the package root:
 
 ```bash
-ov export viking://resources/a ./exports/a.ovpack
-ov import ./exports/a.ovpack viking://resources/imported/
+ov export wfs://resources/a ./exports/a.ovpack
+ov import ./exports/a.ovpack wfs://resources/imported/
 ```
 
 Result:
 
 ```text
-viking://resources/imported/a
+wfs://resources/imported/a
 ```
 
-Top-level scope packages can only be imported to `viking://`:
+Top-level scope packages can only be imported to `wfs://`:
 
 ```bash
-ov export viking://resources ./exports/resources.ovpack
-ov import ./exports/resources.ovpack viking:// --on-conflict overwrite
+ov export wfs://resources ./exports/resources.ovpack
+ov import ./exports/resources.ovpack wfs:// --on-conflict overwrite
 ```
 
 These imports are rejected:
 
 ```bash
 # A resources package cannot be imported into session.
-ov import ./exports/a.ovpack viking://session/
+ov import ./exports/a.ovpack wfs://session/
 
 # A session subtree cannot be imported into resources.
-ov import ./exports/sess_123.ovpack viking://resources/
+ov import ./exports/sess_123.ovpack wfs://resources/
 
 # A session subtree cannot use itself as parent, which would create session/sess_123/sess_123.
-ov import ./exports/sess_123.ovpack viking://session/sess_123/
+ov import ./exports/sess_123.ovpack wfs://session/sess_123/
 ```
 
 ## Memories and Sessions
@@ -405,28 +405,28 @@ parent directory to avoid duplicate path segments.
 User memories:
 
 ```bash
-ov export viking://user/default/memories ./exports/user-memories.ovpack
-ov import ./exports/user-memories.ovpack viking://user/default/ --on-conflict overwrite
+ov export wfs://user/default/memories ./exports/user-memories.ovpack
+ov import ./exports/user-memories.ovpack wfs://user/default/ --on-conflict overwrite
 ```
 
 Agent memories:
 
 ```bash
-ov export viking://agent/default/memories ./exports/agent-memories.ovpack
-ov import ./exports/agent-memories.ovpack viking://agent/default/ --on-conflict overwrite
+ov export wfs://agent/default/memories ./exports/agent-memories.ovpack
+ov import ./exports/agent-memories.ovpack wfs://agent/default/ --on-conflict overwrite
 ```
 
 Sessions restore file state only and do not trigger vectorization:
 
 ```bash
-ov export viking://session/sess_123 ./exports/sess_123.ovpack
-ov import ./exports/sess_123.ovpack viking://session/ --on-conflict overwrite
+ov export wfs://session/sess_123 ./exports/sess_123.ovpack
+ov import ./exports/sess_123.ovpack wfs://session/ --on-conflict overwrite
 ```
 
 Result:
 
 ```text
-viking://session/sess_123
+wfs://session/sess_123
 ```
 
 ## Old Packages and Future Versions
@@ -450,7 +450,7 @@ re-export from an environment that can read that version.
 | `ovpack entries do not match manifest` | ZIP content is missing files/directories or includes extra files/directories | Discard the package or re-export. |
 | `source scope does not match target scope` | Cross-scope import, such as session into resources | Import into a parent directory in the same scope. |
 | `source path is incompatible with target path` | Structured scope root depth would change | Import into the correct system parent directory. |
-| `Top-level scope ovpack packages must be imported to viking://` | A top-level scope package was imported to a non-root parent | Import to `viking://`. |
+| `Top-level scope ovpack packages must be imported to wfs://` | A top-level scope package was imported to a non-root parent | Import to `wfs://`. |
 | `Backup ovpack packages must be restored` | A backup package was imported with regular import | Use `ov restore`. |
 | `Resource already exists` | Target root already exists | Use `--on-conflict overwrite` or `--on-conflict skip`. |
 | `incomplete OpenViking vector index snapshot` | `--include-vectors` found missing index records in the export range | Run `ov system consistency <uri>` to locate the issue, then wait for processing or reindex. |

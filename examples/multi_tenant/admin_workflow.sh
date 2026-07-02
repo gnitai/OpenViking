@@ -169,8 +169,8 @@ ok "New key: ${NEW_CHARLIE_KEY:0:16}... (old key invalidated)"
 # Regular CLI commands accept user keys for authentication.
 
 section "9. Bob Accesses Data"
-info "openviking ls viking:// with Bob's key:"
-ovcli "$BOB_KEY" ls viking://
+info "openviking ls wfs:// with Bob's key:"
+ovcli "$BOB_KEY" ls wfs://
 
 # ============================================================================
 # 10. Error Handling & Permission Tests
@@ -183,9 +183,9 @@ section "10. Error Handling & Permission Tests"
 # ── 10a. Invalid / missing key ──
 info "10a. Invalid & missing API key:"
 expect_fail "Random key rejected" \
-  ovcli "this-is-not-a-valid-key-at-all" ls viking://
+  ovcli "this-is-not-a-valid-key-at-all" ls wfs://
 expect_fail "Empty key rejected" \
-  ovcli "" ls viking://
+  ovcli "" ls wfs://
 
 # ── 10b. USER cannot do admin operations ──
 # Charlie is still a USER at this point
@@ -227,7 +227,7 @@ expect_fail "Duplicate user rejected" \
 # ── 10e. Old key after regeneration ──
 info "10e. Old key after regeneration:"
 expect_fail "Charlie's old key rejected" \
-  ovcli "$CHARLIE_KEY" ls viking://
+  ovcli "$CHARLIE_KEY" ls wfs://
 
 # ── 10f. ADMIN cross-account isolation ──
 # Create a second account to test that ADMIN of one account cannot manage another
@@ -278,7 +278,7 @@ ovcli "$ROOT_KEY" admin remove-user acme charlie
 
 # Verify: charlie's key should now fail
 info "Verify charlie's key is invalid:"
-if ovcli "$NEW_CHARLIE_KEY" ls viking:// 2>/dev/null; then
+if ovcli "$NEW_CHARLIE_KEY" ls wfs:// 2>/dev/null; then
   fail "UNEXPECTED SUCCESS: Charlie's key should have been rejected"
 else
   ok "Charlie's key rejected (expected)"
@@ -296,12 +296,12 @@ ovcli "$ROOT_KEY" admin delete-account acme
 
 # Verify: all keys from deleted account should fail
 info "Verify all keys from deleted account are invalid:"
-if ovcli "$ALICE_KEY" ls viking:// 2>/dev/null; then
+if ovcli "$ALICE_KEY" ls wfs:// 2>/dev/null; then
   fail "UNEXPECTED SUCCESS: Alice's key should have been rejected"
 else
   ok "Alice's key rejected (expected)"
 fi
-if ovcli "$BOB_KEY" ls viking:// 2>/dev/null; then
+if ovcli "$BOB_KEY" ls wfs:// 2>/dev/null; then
   fail "UNEXPECTED SUCCESS: Bob's key should have been rejected"
 else
   ok "Bob's key rejected (expected)"

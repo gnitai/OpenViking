@@ -101,7 +101,7 @@ ov health
 
 默认每次运行前会清理：
 
-- Server 侧资源目录：`viking://resources/bench/load_test`
+- Server 侧资源目录：`wfs://resources/bench/load_test`
 - 旧 session：所有 `bench-load-` 前缀的 session
 - 本地生成数据目录：`benchmark/results/openviking_server_load/data`
 
@@ -134,7 +134,7 @@ ov health
 | `--phase-seconds` | 跟随 profile | 单类持续压测阶段时长 |
 | `--mixed-seconds` | 跟随 profile | 混合压测阶段时长 |
 | `--drain-timeout` | `60` | 等待后台任务完成的最大秒数 |
-| `--data-root-uri` | `viking://resources/bench/load_test` | Server 侧压测资源根目录 |
+| `--data-root-uri` | `wfs://resources/bench/load_test` | Server 侧压测资源根目录 |
 | `--output-dir` | 自动生成 | 报告输出目录 |
 | `--ov-bin` | `ov` | 真实 CLI 子进程使用的可执行文件 |
 

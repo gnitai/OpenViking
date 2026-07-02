@@ -48,11 +48,11 @@ class TestVikingFSURITraversalGuard:
     @pytest.mark.parametrize(
         "uri",
         [
-            "viking://resources/../_system/users.json",
-            "viking://resources/../../_system/accounts.json",
+            "wfs://resources/../_system/users.json",
+            "wfs://resources/../../_system/accounts.json",
             "/resources/../_system/users.json",
-            "viking://resources/..\\..\\_system\\users.json",
-            "viking://resources/C:\\Windows\\System32",
+            "wfs://resources/..\\..\\_system\\users.json",
+            "wfs://resources/C:\\Windows\\System32",
         ],
     )
     def test_rejects_unsafe_uri_components(self, uri: str) -> None:
@@ -66,7 +66,7 @@ class TestVikingFSURITraversalGuard:
         fs = _make_viking_fs()
 
         with pytest.raises(PermissionDeniedError, match="Unsafe URI"):
-            await fs.read_file("viking://resources/../_system/users.json")
+            await fs.read_file("wfs://resources/../_system/users.json")
 
         fs.agfs.read.assert_not_called()
 
@@ -75,7 +75,7 @@ class TestVikingFSURITraversalGuard:
         fs = _make_viking_fs()
 
         with pytest.raises(PermissionDeniedError, match="Unsafe URI"):
-            await fs.write("viking://resources/../../_system/accounts.json", "pwned")
+            await fs.write("wfs://resources/../../_system/accounts.json", "pwned")
 
         fs.agfs.write.assert_not_called()
 
@@ -86,7 +86,7 @@ class TestVikingFSURITraversalGuard:
         fs._delete_from_vector_store = AsyncMock()
 
         with pytest.raises(PermissionDeniedError, match="Unsafe URI"):
-            await fs.rm("viking://resources/../../other_account/_system/users.json")
+            await fs.rm("wfs://resources/../../other_account/_system/users.json")
 
         fs._collect_uris.assert_not_called()
         fs._delete_from_vector_store.assert_not_called()
@@ -96,8 +96,8 @@ class TestVikingFSURITraversalGuard:
     @pytest.mark.parametrize(
         ("old_uri", "new_uri"),
         [
-            ("viking://resources/../_system/users.json", "viking://resources/safe.txt"),
-            ("viking://resources/safe.txt", "viking://resources/../../victim/_system/users.json"),
+            ("wfs://resources/../_system/users.json", "wfs://resources/safe.txt"),
+            ("wfs://resources/safe.txt", "wfs://resources/../../victim/_system/users.json"),
         ],
     )
     async def test_mv_rejects_traversal_in_source_or_target(
@@ -122,7 +122,7 @@ class TestVikingFSURITraversalGuard:
         fs.agfs.stat = MagicMock(return_value=MagicMock())
         fs.agfs.read = MagicMock(return_value=b"hello")
 
-        content = await fs.read_file("viking://resources/docs/guide.md")
+        content = await fs.read_file("wfs://resources/docs/guide.md")
         assert content == "hello"
         fs.agfs.stat.assert_called_once_with("/local/default/resources/docs/guide.md")
         fs.agfs.read.assert_called_once_with("/local/default/resources/docs/guide.md")
@@ -138,7 +138,7 @@ class TestVikingFSURITraversalGuard:
         )
 
         with pytest.raises(AGFSInvalidOperationError, match="invalid regex"):
-            await fs.grep("viking://resources/docs", "(")
+            await fs.grep("wfs://resources/docs", "(")
 
         fs._grep_with_agfs.assert_awaited_once()
         fs._grep_encrypted.assert_not_awaited()
@@ -162,10 +162,10 @@ class TestVikingFSURITraversalGuard:
             }
         )
 
-        result = await fs._grep_with_agfs("viking://resources/test-root", "act")
+        result = await fs._grep_with_agfs("wfs://resources/test-root", "act")
 
         assert result["count"] == 1
-        assert result["matches"][0]["uri"] == "viking://resources/test-root/sub/a.txt"
+        assert result["matches"][0]["uri"] == "wfs://resources/test-root/sub/a.txt"
         assert result["matches"][0]["line"] == 3
         assert result["matches"][0]["content"] == "act"
 
@@ -188,10 +188,10 @@ class TestVikingFSURITraversalGuard:
             }
         )
 
-        result = await fs._grep_with_agfs("viking://resources/test-root", "act")
+        result = await fs._grep_with_agfs("wfs://resources/test-root", "act")
 
         assert result["count"] == 1
-        assert result["matches"][0]["uri"] == "viking://resources/test-root"
+        assert result["matches"][0]["uri"] == "wfs://resources/test-root"
         assert result["matches"][0]["line"] == 1
         assert result["matches"][0]["content"] == "act"
 

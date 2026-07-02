@@ -21,7 +21,7 @@ from openviking_cli.session.user_id import UserIdentifier
 @pytest.mark.asyncio
 async def test_write_updates_memory_file_and_parent_overview(service):
     ctx = RequestContext(user=service.user, role=Role.USER)
-    memory_dir = f"viking://user/{ctx.user.user_space_name()}/memories/preferences"
+    memory_dir = f"wfs://user/{ctx.user.user_space_name()}/memories/preferences"
     memory_uri = f"{memory_dir}/theme.md"
 
     await service.viking_fs.write_file(memory_uri, "Original preference", ctx=ctx)
@@ -44,7 +44,7 @@ async def test_write_updates_memory_file_and_parent_overview(service):
 async def test_write_denies_foreign_user_memory_space(service):
     owner_ctx = RequestContext(user=service.user, role=Role.USER)
     memory_uri = (
-        f"viking://user/{owner_ctx.user.user_space_name()}/memories/preferences/private-note.md"
+        f"wfs://user/{owner_ctx.user.user_space_name()}/memories/preferences/private-note.md"
     )
     await service.viking_fs.write_file(memory_uri, "Owner note", ctx=owner_ctx)
 
@@ -64,7 +64,7 @@ async def test_write_denies_foreign_user_memory_space(service):
 @pytest.mark.asyncio
 async def test_memory_replace_preserves_metadata(service):
     ctx = RequestContext(user=service.user, role=Role.USER)
-    memory_uri = f"viking://user/{ctx.user.user_space_name()}/memories/preferences/theme.md"
+    memory_uri = f"wfs://user/{ctx.user.user_space_name()}/memories/preferences/theme.md"
     metadata = {
         "tags": ["ui", "preference"],
         "created_at": "2026-04-01T10:00:00",
@@ -93,7 +93,7 @@ async def test_memory_replace_preserves_metadata(service):
 @pytest.mark.asyncio
 async def test_memory_append_preserves_metadata(service):
     ctx = RequestContext(user=service.user, role=Role.USER)
-    memory_uri = f"viking://user/{ctx.user.user_space_name()}/memories/preferences/theme.md"
+    memory_uri = f"wfs://user/{ctx.user.user_space_name()}/memories/preferences/theme.md"
     metadata = {
         "tags": ["ui", "preference"],
         "created_at": "2026-04-01T10:00:00",
@@ -207,8 +207,8 @@ class _FakeQueueManager:
 
 @pytest.mark.asyncio
 async def test_resource_write_semantic_refresh_uses_coalesce_key(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     queue = _FakeSemanticQueue()
     coordinator = ContentWriteCoordinator(
@@ -229,15 +229,15 @@ async def test_resource_write_semantic_refresh_uses_coalesce_key(monkeypatch):
 
     assert len(queue.messages) == 1
     assert queue.messages[0].coalesce_key == (
-        "resource|default|default|default|viking://resources/demo"
+        "resource|default|default|default|wfs://resources/demo"
     )
     assert queue.messages[0].lock_handoff is None
 
 
 @pytest.mark.asyncio
 async def test_write_timeout_after_enqueue_releases_resource_lock(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFS(file_uri=file_uri, root_uri=root_uri)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -274,8 +274,8 @@ async def test_write_timeout_after_enqueue_releases_resource_lock(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_resource_write_updates_target_and_queues_refresh_before_return(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFS(file_uri=file_uri, root_uri=root_uri)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -313,8 +313,8 @@ async def test_resource_write_updates_target_and_queues_refresh_before_return(mo
 
 @pytest.mark.asyncio
 async def test_resource_write_rolls_back_replace_when_enqueue_fails(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFS(file_uri=file_uri, root_uri=root_uri)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -345,8 +345,8 @@ async def test_resource_write_rolls_back_replace_when_enqueue_fails(monkeypatch)
 
 @pytest.mark.asyncio
 async def test_resource_write_rolls_back_create_when_enqueue_fails(monkeypatch):
-    file_uri = "viking://resources/demo/new.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/new.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -378,8 +378,8 @@ async def test_resource_write_rolls_back_create_when_enqueue_fails(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_memory_write_timeout_after_enqueue_releases_write_lock(monkeypatch):
-    file_uri = "viking://user/default/memories/preferences/theme.md"
-    root_uri = "viking://user/default/memories/preferences"
+    file_uri = "wfs://user/default/memories/preferences/theme.md"
+    root_uri = "wfs://user/default/memories/preferences"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFS(file_uri=file_uri, root_uri=root_uri)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -469,8 +469,8 @@ class _FakeVikingFSForCreate:
 
 @pytest.mark.asyncio
 async def test_create_mode_new_file_success(monkeypatch):
-    file_uri = "viking://user/default/memories/new_file.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/new_file.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -507,9 +507,9 @@ async def test_create_mode_new_file_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_canonicalizes_user_shorthand_memory_uri(monkeypatch):
-    input_uri = "viking://user/memories/new_file.md"
-    canonical_uri = "viking://user/default/memories/new_file.md"
-    root_uri = "viking://user/default/memories"
+    input_uri = "wfs://user/memories/new_file.md"
+    canonical_uri = "wfs://user/default/memories/new_file.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(
         file_uri=canonical_uri,
@@ -555,8 +555,8 @@ async def test_create_mode_canonicalizes_user_shorthand_memory_uri(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_existing_file_raises_409(monkeypatch):
-    file_uri = "viking://user/default/memories/existing.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/existing.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=True)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -583,8 +583,8 @@ async def test_create_mode_existing_file_raises_409(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_invalid_extension_raises_400(monkeypatch):
-    file_uri = "viking://user/default/memories/test.exe"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/test.exe"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -611,8 +611,8 @@ async def test_create_mode_invalid_extension_raises_400(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_parent_dirs_auto_created(monkeypatch):
-    file_uri = "viking://user/default/memories/new_subdir/test.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/new_subdir/test.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -655,8 +655,8 @@ async def test_create_mode_valid_extensions_pass(monkeypatch):
     valid_extensions = [".md", ".txt", ".json", ".yaml", ".yml", ".py", ".js", ".ts"]
 
     for ext in valid_extensions:
-        file_uri = f"viking://user/default/memories/test{ext}"
-        root_uri = "viking://user/default/memories"
+        file_uri = f"wfs://user/default/memories/test{ext}"
+        root_uri = "wfs://user/default/memories"
         viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
         coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
         lock_manager = _FakeLockManager()
@@ -691,8 +691,8 @@ async def test_create_mode_valid_extensions_pass(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_memory_scope(monkeypatch):
-    file_uri = "viking://user/default/memories/test.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/test.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -728,8 +728,8 @@ async def test_create_mode_memory_scope(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_resource_scope(monkeypatch):
-    file_uri = "viking://resources/demo/test.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/test.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=False)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -762,8 +762,8 @@ async def test_create_mode_resource_scope(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_regression_replace_unchanged(monkeypatch):
-    file_uri = "viking://user/default/memories/theme.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/theme.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=True)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)
@@ -798,8 +798,8 @@ async def test_create_mode_regression_replace_unchanged(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_create_mode_regression_append_unchanged(monkeypatch):
-    file_uri = "viking://user/default/memories/theme.md"
-    root_uri = "viking://user/default/memories"
+    file_uri = "wfs://user/default/memories/theme.md"
+    root_uri = "wfs://user/default/memories"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     viking_fs = _FakeVikingFSForCreate(file_uri=file_uri, root_uri=root_uri, file_exists=True)
     coordinator = ContentWriteCoordinator(viking_fs=viking_fs)

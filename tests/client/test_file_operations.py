@@ -39,7 +39,7 @@ class TestRm:
 
         # Release resource locks held by add_resource before rm
         await release_all_locks()
-        entries = await client.ls("viking://resources/")
+        entries = await client.ls("wfs://resources/")
         for data in entries:
             if data["isDir"]:
                 dir_uri = data["uri"]
@@ -59,7 +59,7 @@ class TestMv:
             reason="Test mv",
         )
         uri = result["root_uri"]
-        new_uri = "viking://resources/moved/"
+        new_uri = "wfs://resources/moved/"
         await release_all_locks()
         await client.mv(uri, new_uri)
         # Verify original location does not exist

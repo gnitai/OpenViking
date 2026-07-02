@@ -16,13 +16,13 @@ export function createRepoContext({ config }) {
     try {
       const response = await makeRequest(config, {
         method: "GET",
-        endpoint: `/api/v1/fs/ls?uri=${encodeURIComponent("viking://resources/")}&recursive=false&simple=false`,
+        endpoint: `/api/v1/fs/ls?uri=${encodeURIComponent("wfs://resources/")}&recursive=false&simple=false`,
         timeoutMs: 8000,
       })
       const result = unwrapResponse(response)
       const items = Array.isArray(result) ? result : []
       const repos = items
-        .filter((item) => item?.uri?.startsWith("viking://resources/") && item.uri !== "viking://resources/")
+        .filter((item) => item?.uri?.startsWith("wfs://resources/") && item.uri !== "wfs://resources/")
         .map(formatRepoLine)
 
       cachedRepos = repos.length > 0 ? repos.join("\n") : ""
@@ -61,7 +61,7 @@ export function createRepoContext({ config }) {
 }
 
 function formatRepoLine(item) {
-  const name = item.uri.replace("viking://resources/", "").replace(/\/$/, "") || "resources"
+  const name = item.uri.replace("wfs://resources/", "").replace(/\/$/, "") || "resources"
   const abstract = item.abstract || item.overview
   return abstract ? `- **${name}** (${item.uri})\n  ${abstract}` : `- **${name}** (${item.uri})`
 }

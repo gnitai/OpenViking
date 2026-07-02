@@ -129,7 +129,7 @@ For advanced setups, use `OPENVIKING_PLUGIN_CONFIG` to point to another configur
 The plugin exposes the following tools through the OpenCode `tool` hook:
 
 - `memsearch`: semantic retrieval across memories, resources, and skills
-- `memread`: read a specific `viking://` URI
+- `memread`: read a specific `wfs://` URI
 - `membrowse`: browse the OpenViking filesystem
 - `memcommit`: commit the current session and trigger memory extraction
 - `memgrep`: exact text or pattern search, replacing the former `ov grep` use case
@@ -158,8 +158,8 @@ Usage guidance:
 Relative paths are resolved against the current OpenCode project directory. Examples:
 
 ```text
-memadd path="https://example.com/spec.md" to="viking://resources/spec"
-memadd path="./docs/notes.md" parent="viking://resources/"
+memadd path="https://example.com/spec.md" to="wfs://resources/spec"
+memadd path="./docs/notes.md" parent="wfs://resources/"
 memadd path="file:///home/alice/project/notes.md" reason="project notes"
 ```
 

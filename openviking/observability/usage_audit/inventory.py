@@ -47,7 +47,7 @@ class ContextInventoryProvider:
         agent_root = canonical_agent_root(ctx)
 
         files, skills, user_memories, agent_memories = await asyncio.gather(
-            self._stat_count("viking://resources", ctx=ctx),
+            self._stat_count("wfs://resources", ctx=ctx),
             self._stat_count(f"{agent_root}/skills", ctx=ctx),
             self._stat_count(f"{user_root}/memories", ctx=ctx),
             self._stat_count(f"{agent_root}/memories", ctx=ctx),

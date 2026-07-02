@@ -18,8 +18,8 @@ class TestUsed:
         # Record used contexts
         session.used(
             contexts=[
-                "viking://user/test/resources/doc1.md",
-                "viking://user/test/resources/doc2.md",
+                "wfs://user/test/resources/doc1.md",
+                "wfs://user/test/resources/doc2.md",
             ]
         )
 
@@ -30,7 +30,7 @@ class TestUsed:
         """Test recording used skill"""
         session.add_message("user", [TextPart("Test message")])
 
-        session.used(skill={"uri": "viking://agent/skills/search", "name": "search_skill"})
+        session.used(skill={"uri": "wfs://agent/skills/search", "name": "search_skill"})
 
         assert len(session.usage_records) > 0
 
@@ -39,8 +39,8 @@ class TestUsed:
         session.add_message("user", [TextPart("Test message")])
 
         session.used(
-            contexts=["viking://user/test/resources/doc.md"],
-            skill={"uri": "viking://agent/skills/analyze", "name": "analyze_skill"},
+            contexts=["wfs://user/test/resources/doc.md"],
+            skill={"uri": "wfs://agent/skills/analyze", "name": "analyze_skill"},
         )
 
         assert len(session.usage_records) > 0
@@ -48,10 +48,10 @@ class TestUsed:
     async def test_used_multiple_times(self, session: Session):
         """Test recording usage multiple times"""
         session.add_message("user", [TextPart("Message 1")])
-        session.used(contexts=["viking://user/test/resources/doc1.md"])
+        session.used(contexts=["wfs://user/test/resources/doc1.md"])
 
         session.add_message("user", [TextPart("Message 2")])
-        session.used(contexts=["viking://user/test/resources/doc2.md"])
+        session.used(contexts=["wfs://user/test/resources/doc2.md"])
 
         # Should have multiple usage records
         assert len(session.usage_records) >= 2

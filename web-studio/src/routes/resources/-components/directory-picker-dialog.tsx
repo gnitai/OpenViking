@@ -37,16 +37,16 @@ interface DirectoryPickerDialogProps {
 
 function parseBreadcrumbs(uri: string): Array<{ label: string; uri: string }> {
   const crumbs: Array<{ label: string; uri: string }> = [
-    { label: 'viking://', uri: 'viking://' },
+    { label: 'wfs://', uri: 'wfs://' },
   ]
-  const body = uri.slice('viking://'.length).replace(/\/$/, '')
+  const body = uri.slice('wfs://'.length).replace(/\/$/, '')
   if (!body) return crumbs
 
   const segments = body.split('/')
   for (let i = 0; i < segments.length; i++) {
     crumbs.push({
       label: segments[i],
-      uri: `viking://${segments.slice(0, i + 1).join('/')}/`,
+      uri: `wfs://${segments.slice(0, i + 1).join('/')}/`,
     })
   }
   return crumbs

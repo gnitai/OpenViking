@@ -51,7 +51,7 @@ async def test_resources_root_is_split_into_children():
     qm = _DummyQueueManager(queue)
     vfs = _DummyVikingFS(
         {
-            "viking://temp/import_root": [
+            "wfs://temp/import_root": [
                 {"name": "existing_a", "isDir": True},
                 {"name": "new_c", "isDir": True},
             ]
@@ -72,20 +72,20 @@ async def test_resources_root_is_split_into_children():
     ):
         summarizer = Summarizer(vlm_processor=None)
         res = await summarizer.summarize(
-            resource_uris=["viking://resources"],
+            resource_uris=["wfs://resources"],
             ctx=ctx,
-            temp_uris=["viking://temp/import_root"],
+            temp_uris=["wfs://temp/import_root"],
         )
 
     assert res["status"] == "success"
     assert res["enqueued_count"] == 2
     assert [m.target_uri for m in queue.msgs] == [
-        "viking://resources/existing_a",
-        "viking://resources/new_c",
+        "wfs://resources/existing_a",
+        "wfs://resources/new_c",
     ]
     assert [m.uri for m in queue.msgs] == [
-        "viking://temp/import_root/existing_a",
-        "viking://temp/import_root/new_c",
+        "wfs://temp/import_root/existing_a",
+        "wfs://temp/import_root/new_c",
     ]
 
 
@@ -93,7 +93,7 @@ async def test_resources_root_is_split_into_children():
 async def test_resources_root_single_file_child():
     queue = _DummyQueue()
     qm = _DummyQueueManager(queue)
-    vfs = _DummyVikingFS({"viking://temp/import_root": [{"name": "file.txt", "isDir": False}]})
+    vfs = _DummyVikingFS({"wfs://temp/import_root": [{"name": "file.txt", "isDir": False}]})
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.ROOT)
 
     with (
@@ -109,15 +109,15 @@ async def test_resources_root_single_file_child():
     ):
         summarizer = Summarizer(vlm_processor=None)
         res = await summarizer.summarize(
-            resource_uris=["viking://resources/"],
+            resource_uris=["wfs://resources/"],
             ctx=ctx,
-            temp_uris=["viking://temp/import_root"],
+            temp_uris=["wfs://temp/import_root"],
         )
 
     assert res["status"] == "success"
     assert res["enqueued_count"] == 1
-    assert queue.msgs[0].target_uri == "viking://resources/file.txt"
-    assert queue.msgs[0].uri == "viking://temp/import_root/file.txt"
+    assert queue.msgs[0].target_uri == "wfs://resources/file.txt"
+    assert queue.msgs[0].uri == "wfs://temp/import_root/file.txt"
 
 
 @pytest.mark.asyncio
@@ -140,22 +140,22 @@ async def test_explicit_subpath_not_split():
     ):
         summarizer = Summarizer(vlm_processor=None)
         res = await summarizer.summarize(
-            resource_uris=["viking://resources/foo"],
+            resource_uris=["wfs://resources/foo"],
             ctx=ctx,
-            temp_uris=["viking://temp/import_root"],
+            temp_uris=["wfs://temp/import_root"],
         )
 
     assert res["status"] == "success"
     assert res["enqueued_count"] == 1
-    assert queue.msgs[0].target_uri == "viking://resources/foo"
-    assert queue.msgs[0].uri == "viking://temp/import_root"
+    assert queue.msgs[0].target_uri == "wfs://resources/foo"
+    assert queue.msgs[0].uri == "wfs://temp/import_root"
 
 
 @pytest.mark.asyncio
 async def test_resources_root_empty_import_is_error():
     queue = _DummyQueue()
     qm = _DummyQueueManager(queue)
-    vfs = _DummyVikingFS({"viking://temp/import_root": []})
+    vfs = _DummyVikingFS({"wfs://temp/import_root": []})
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.ROOT)
 
     with (
@@ -171,9 +171,9 @@ async def test_resources_root_empty_import_is_error():
     ):
         summarizer = Summarizer(vlm_processor=None)
         res = await summarizer.summarize(
-            resource_uris=["viking://resources"],
+            resource_uris=["wfs://resources"],
             ctx=ctx,
-            temp_uris=["viking://temp/import_root"],
+            temp_uris=["wfs://temp/import_root"],
         )
 
     assert res["status"] == "error"

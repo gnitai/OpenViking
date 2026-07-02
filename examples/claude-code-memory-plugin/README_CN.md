@@ -381,13 +381,13 @@ Claude Code 自带 `MEMORY.md` 文件系统，本插件**与之互补**：
 | 工具           | 说明                                                |
 |----------------|----------------------------------------------------|
 | `search`       | 跨 memories / resources / skills 的语义搜索        |
-| `read`         | 读一个或多个 `viking://` URI 的内容                |
-| `list`         | 列出 `viking://` 目录下条目                        |
+| `read`         | 读一个或多个 `wfs://` URI 的内容                |
+| `list`         | 列出 `wfs://` 目录下条目                        |
 | `store`        | 把消息存到长期记忆（触发抽取）                     |
 | `add_resource` | 把本地文件 / URL 加为资源                           |
-| `grep`         | 在 `viking://` 文件里做正则内容搜索                |
+| `grep`         | 在 `wfs://` 文件里做正则内容搜索                |
 | `glob`         | 按 glob 模式匹配文件                               |
-| `forget`       | 删除任意 `viking://` URI                           |
+| `forget`       | 删除任意 `wfs://` URI                           |
 | `health`       | 检查 OpenViking 服务健康                           |
 
 工具参数详见 [MCP 集成指南](../../docs/zh/guides/06-mcp-integration.md)。

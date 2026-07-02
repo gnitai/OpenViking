@@ -4,7 +4,7 @@ import uuid
 
 class TestContentUpdateConsistency:
     def test_write_replace_updates_search_index(self, api_client):
-        file_uri = f"viking://resources/idx_update_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/idx_update_{uuid.uuid4().hex[:8]}.md"
         try:
             write1 = api_client.fs_write(
                 file_uri,
@@ -40,7 +40,7 @@ class TestContentUpdateConsistency:
                 pass
 
     def test_abstract_changes_after_content_update(self, api_client):
-        file_uri = f"viking://resources/abs_update_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/abs_update_{uuid.uuid4().hex[:8]}.md"
         try:
             write1 = api_client.fs_write(
                 file_uri,
@@ -79,7 +79,7 @@ class TestContentUpdateConsistency:
                 pass
 
     def test_content_write_creates_fs_entry(self, api_client):
-        file_uri = f"viking://resources/fs_entry_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/fs_entry_{uuid.uuid4().hex[:8]}.md"
         try:
             write_resp = api_client.fs_write(
                 file_uri, "Content that creates fs entry", mode="create", wait=True
@@ -100,7 +100,7 @@ class TestContentUpdateConsistency:
                 pass
 
     def test_mkdir_then_write_file_inside(self, api_client):
-        dir_uri = f"viking://resources/mkdir_write_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/mkdir_write_{uuid.uuid4().hex[:8]}"
         file_uri = f"{dir_uri}/notes.md"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
@@ -128,7 +128,7 @@ class TestContentUpdateConsistency:
                 pass
 
     def test_rm_file_then_write_same_uri(self, api_client):
-        file_uri = f"viking://resources/rm_rewrite_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/rm_rewrite_{uuid.uuid4().hex[:8]}.md"
         try:
             write1 = api_client.fs_write(file_uri, "First version", mode="create", wait=True)
             if write1.status_code != 200:

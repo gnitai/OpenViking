@@ -24,7 +24,7 @@ Privacy configs are keyed by `category + target_key`.
 Storage layout in user space:
 
 ```
-viking://user/{user_space}/privacy/{category}/{target_key}/
+wfs://user/{user_space}/privacy/{category}/{target_key}/
 ├── .meta.json                 # metadata (active_version/latest_version/labels, etc.)
 ├── current.json               # active version snapshot
 └── history/
@@ -93,8 +93,8 @@ fs.read(uri)
 
 Current matching is suffix-based: `/skills/{name}/SKILL.md`, so it supports:
 
-- `viking://agent/skills/{name}/SKILL.md`
-- `viking://agent/{agent_id}/skills/{name}/SKILL.md`
+- `wfs://agent/skills/{name}/SKILL.md`
+- `wfs://agent/{agent_id}/skills/{name}/SKILL.md`
 
 ### restore Rules
 
@@ -133,7 +133,7 @@ openviking privacy list skill
 openviking privacy skill <target_key>
 openviking privacy upsert skill <target_key> --values-json '{"api_key":"..."}'
 openviking privacy activate skill <target_key> <version>
-openviking read viking://agent/default/skills/<target_key>/SKILL.md
+openviking read wfs://agent/default/skills/<target_key>/SKILL.md
 ```
 
 ---

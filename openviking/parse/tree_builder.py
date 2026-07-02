@@ -71,12 +71,12 @@ class TreeBuilder:
             media_type = get_media_type(source_path, source_format)
             if media_type:
                 return get_media_base_uri(media_type)
-            return "viking://resources"
+            return "wfs://resources"
         if scope == "user":
             # user resources go to memories (no separate resources dir)
-            return "viking://user"
+            return "wfs://user"
         # Agent scope
-        return "viking://agent"
+        return "wfs://agent"
 
     # ============================================================================
     # v5.0 Methods (temporary directory + SemanticQueue architecture)
@@ -106,7 +106,7 @@ class TreeBuilder:
         temp_uri = temp_dir_path
 
         def is_resources_root(uri: Optional[str]) -> bool:
-            return (uri or "").rstrip("/") == "viking://resources"
+            return (uri or "").rstrip("/") == "wfs://resources"
 
         # 1. Find document root directory
         entries = await viking_fs.ls(temp_uri, ctx=ctx)
@@ -131,9 +131,9 @@ class TreeBuilder:
         # For example:
         #   - source_path = "https://github.com/volcengine/OpenViking"
         #   - parsed_org_repo = "volcengine/OpenViking"
-        #   - final root_uri = "viking://resources/volcengine/OpenViking"
+        #   - final root_uri = "wfs://resources/volcengine/OpenViking"
         #
-        # Without this, we'd just get "viking://resources/OpenViking" without the org prefix
+        # Without this, we'd just get "wfs://resources/OpenViking" without the org prefix
         final_doc_name = doc_name
         if source_path and source_format == "repository":
             parsed_org_repo = parse_code_hosting_url(source_path)

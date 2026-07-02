@@ -518,12 +518,12 @@ ov --sudo admin list-users acme
 
 #### 1. API Implementation Overview
 
-List agent namespaces that exist under a workspace. This is an admin discovery API; it does not change normal `viking://agent/...` filesystem semantics.
+List agent namespaces that exist under a workspace. This is an admin discovery API; it does not change normal `wfs://agent/...` filesystem semantics.
 
 **Processing Flow:**
 1. Verify requester has ROOT privileges or is an ADMIN of the account
 2. Verify the account exists
-3. Scan the account's `viking://agent` namespace root
+3. Scan the account's `wfs://agent` namespace root
 4. Return sorted agent namespace entries
 
 **Code Entry Points:**
@@ -574,8 +574,8 @@ ov --sudo admin list-agents acme
 {
   "status": "ok",
   "result": [
-    {"agent_id": "default", "uri": "viking://agent/default"},
-    {"agent_id": "openclaw", "uri": "viking://agent/openclaw"}
+    {"agent_id": "default", "uri": "wfs://agent/default"},
+    {"agent_id": "openclaw", "uri": "wfs://agent/openclaw"}
   ],
   "time": 0.1
 }

@@ -30,7 +30,7 @@ def _make_reindex_run(ctx, counters):
 async def test_reindex_requires_admin_role(admin_client: httpx.AsyncClient):
     resp = await admin_client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/demo", "mode": "vectors_only"},
+        json={"uri": "wfs://resources/demo", "mode": "vectors_only"},
     )
     assert resp.status_code == 401
 
@@ -38,7 +38,7 @@ async def test_reindex_requires_admin_role(admin_client: httpx.AsyncClient):
 async def test_reindex_rejects_unsupported_uri(admin_client: httpx.AsyncClient):
     resp = await admin_client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://unknown/demo", "mode": "vectors_only"},
+        json={"uri": "wfs://unknown/demo", "mode": "vectors_only"},
         headers=ROOT_ACCOUNT_HEADERS,
     )
     assert resp.status_code == 400
@@ -50,7 +50,7 @@ async def test_reindex_rejects_unsupported_uri(admin_client: httpx.AsyncClient):
 async def test_reindex_rejects_session_uri(admin_client: httpx.AsyncClient):
     resp = await admin_client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://session/test/demo", "mode": "vectors_only"},
+        json={"uri": "wfs://session/test/demo", "mode": "vectors_only"},
         headers=ROOT_ACCOUNT_HEADERS,
     )
     assert resp.status_code == 400
@@ -63,7 +63,7 @@ async def test_reindex_rejects_reason_field(admin_client: httpx.AsyncClient):
     resp = await admin_client.post(
         "/api/v1/content/reindex",
         json={
-            "uri": "viking://resources/demo",
+            "uri": "wfs://resources/demo",
             "mode": "vectors_only",
             "reason": "unused",
         },
@@ -75,7 +75,7 @@ async def test_reindex_rejects_reason_field(admin_client: httpx.AsyncClient):
 async def test_reindex_root_requires_explicit_account(admin_client: httpx.AsyncClient):
     resp = await admin_client.post(
         "/api/v1/content/reindex",
-        json={"uri": "viking://resources/demo", "mode": "vectors_only"},
+        json={"uri": "wfs://resources/demo", "mode": "vectors_only"},
         headers={"X-API-Key": ROOT_KEY},
     )
     assert resp.status_code == 400
@@ -113,7 +113,7 @@ async def test_reindex_resource_vectors_only_wait_true(monkeypatch):
         user=UserIdentifier(account_id="test", user_id="alice", agent_id="default"),
         role=Role.ROOT,
     )
-    request = ReindexRequest(uri="viking://resources/demo", mode="vectors_only", wait=True)
+    request = ReindexRequest(uri="wfs://resources/demo", mode="vectors_only", wait=True)
 
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await reindex(body=request, ctx=ctx)
@@ -122,7 +122,7 @@ async def test_reindex_resource_vectors_only_wait_true(monkeypatch):
     assert response.result["status"] == "completed"
     assert response.result["object_type"] == "resource"
     assert response.result["rebuilt_records"] == 1
-    assert seen["uri"] == "viking://resources/demo"
+    assert seen["uri"] == "wfs://resources/demo"
     assert seen["mode"] == "vectors_only"
     assert seen["wait"] is True
     assert seen["ctx"] == ctx
@@ -147,7 +147,7 @@ async def test_reindex_resource_vectors_only_wait_false(monkeypatch):
         user=UserIdentifier(account_id="test", user_id="alice", agent_id="default"),
         role=Role.ROOT,
     )
-    request = ReindexRequest(uri="viking://resources/demo", mode="vectors_only", wait=False)
+    request = ReindexRequest(uri="wfs://resources/demo", mode="vectors_only", wait=False)
 
     monkeypatch.setattr("openviking.server.routers.content.get_service", lambda: FakeService())
     response = await reindex(body=request, ctx=ctx)
@@ -190,13 +190,13 @@ async def test_reindex_memory_semantic_and_vectors_rebuilds_full_subtree(monkeyp
     )
 
     await service._reindex_memory(
-        uri="viking://user/default/memories",
+        uri="wfs://user/default/memories",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["semantic"] == [("viking://user/default/memories", "memory")]
-    assert seen["vectors"] == ["viking://user/default/memories"]
+    assert seen["semantic"] == [("wfs://user/default/memories", "memory")]
+    assert seen["vectors"] == ["wfs://user/default/memories"]
 
 
 @pytest.mark.asyncio
@@ -214,12 +214,12 @@ async def test_reindex_executor_infers_resource_and_skill_container_scopes():
 
     service = ReindexExecutor()
 
-    assert service._infer_target_type("viking://resources") == "resource"
-    assert service._infer_target_type("viking://resources/demo.md") == "resource"
-    assert service._infer_target_type("viking://agent/default/skills") == "skill_namespace"
-    assert service._infer_target_type("viking://agent/default/skills/demo") == "skill"
+    assert service._infer_target_type("wfs://resources") == "resource"
+    assert service._infer_target_type("wfs://resources/demo.md") == "resource"
+    assert service._infer_target_type("wfs://agent/default/skills") == "skill_namespace"
+    assert service._infer_target_type("wfs://agent/default/skills/demo") == "skill"
     with pytest.raises(OpenVikingError, match="Unsupported reindex URI"):
-        service._infer_target_type("viking://agent/default/skills/demo/SKILL.md")
+        service._infer_target_type("wfs://agent/default/skills/demo/SKILL.md")
 
 
 @pytest.mark.asyncio
@@ -228,8 +228,8 @@ async def test_reindex_executor_infers_user_namespace_root():
 
     service = ReindexExecutor()
 
-    assert service._infer_target_type("viking://user/") == "user_namespace"
-    assert service._infer_target_type("viking://user/default") == "user_namespace"
+    assert service._infer_target_type("wfs://user/") == "user_namespace"
+    assert service._infer_target_type("wfs://user/default") == "user_namespace"
 
 
 @pytest.mark.asyncio
@@ -238,8 +238,8 @@ async def test_reindex_executor_infers_agent_namespace_root():
 
     service = ReindexExecutor()
 
-    assert service._infer_target_type("viking://agent/") == "agent_namespace"
-    assert service._infer_target_type("viking://agent/default") == "agent_namespace"
+    assert service._infer_target_type("wfs://agent/") == "agent_namespace"
+    assert service._infer_target_type("wfs://agent/default") == "agent_namespace"
 
 
 @pytest.mark.asyncio
@@ -248,7 +248,7 @@ async def test_reindex_executor_infers_global_namespace_root():
 
     service = ReindexExecutor()
 
-    assert service._infer_target_type("viking://") == "global_namespace"
+    assert service._infer_target_type("wfs://") == "global_namespace"
 
 
 @pytest.mark.asyncio
@@ -259,20 +259,20 @@ async def test_reindex_executor_does_not_treat_resource_named_memories_as_memory
     service = ReindexExecutor()
 
     assert (
-        service._infer_target_type("viking://user/default/resources/memories/report.md")
+        service._infer_target_type("wfs://user/default/resources/memories/report.md")
         == "resource"
     )
-    assert not classify_uri("viking://user/default/resources/memories-report.md").is_memory
-    assert not classify_uri("viking://agent/default/resources/memories-report.md").is_memory
+    assert not classify_uri("wfs://user/default/resources/memories-report.md").is_memory
+    assert not classify_uri("wfs://agent/default/resources/memories-report.md").is_memory
 
 
 @pytest.mark.asyncio
 async def test_reindex_executor_does_not_treat_skill_subdirectories_as_skill_roots():
     from openviking.core.namespace import classify_uri
 
-    assert classify_uri("viking://agent/default/skills/my_skill").is_skill_root
-    assert not classify_uri("viking://agent/default/skills/my_skill/assets").is_skill_root
-    assert not classify_uri("viking://agent/default/resources/skills-report.md").is_skill
+    assert classify_uri("wfs://agent/default/skills/my_skill").is_skill_root
+    assert not classify_uri("wfs://agent/default/skills/my_skill/assets").is_skill_root
+    assert not classify_uri("wfs://agent/default/resources/skills-report.md").is_skill
 
 
 @pytest.mark.asyncio
@@ -290,8 +290,8 @@ async def test_reindex_user_namespace_semantic_and_vectors_promotes_memory_mode(
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default/memories", "isDir": True},
-                {"uri": "viking://user/default/resources", "isDir": True},
+                {"uri": "wfs://user/default/memories", "isDir": True},
+                {"uri": "wfs://user/default/resources", "isDir": True},
             ]
 
     seen = {"memory_modes": [], "semantic_calls": [], "resource_calls": []}
@@ -324,13 +324,13 @@ async def test_reindex_user_namespace_semantic_and_vectors_promotes_memory_mode(
     )
 
     await service._reindex_user_namespace(
-        uri="viking://user/default",
+        uri="wfs://user/default",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory_modes"] == [("viking://user/default/memories", "semantic_and_vectors")]
-    assert seen["semantic_calls"] == [("viking://user/default/resources", "resource")]
+    assert seen["memory_modes"] == [("wfs://user/default/memories", "semantic_and_vectors")]
+    assert seen["semantic_calls"] == [("wfs://user/default/resources", "resource")]
     assert seen["resource_calls"]
 
 
@@ -351,9 +351,9 @@ async def test_reindex_user_namespace_semantic_and_vectors_does_not_reprocess_me
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default/memories", "isDir": True},
-                {"uri": "viking://user/default/memories/preferences", "isDir": True},
-                {"uri": "viking://user/default/resources", "isDir": True},
+                {"uri": "wfs://user/default/memories", "isDir": True},
+                {"uri": "wfs://user/default/memories/preferences", "isDir": True},
+                {"uri": "wfs://user/default/resources", "isDir": True},
             ]
 
     seen = {"memory_modes": [], "semantic_calls": []}
@@ -386,13 +386,13 @@ async def test_reindex_user_namespace_semantic_and_vectors_does_not_reprocess_me
     )
 
     await service._reindex_user_namespace(
-        uri="viking://user/default",
+        uri="wfs://user/default",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory_modes"] == [("viking://user/default/memories", "semantic_and_vectors")]
-    assert seen["semantic_calls"] == [("viking://user/default/resources", "resource")]
+    assert seen["memory_modes"] == [("wfs://user/default/memories", "semantic_and_vectors")]
+    assert seen["semantic_calls"] == [("wfs://user/default/resources", "resource")]
 
 
 @pytest.mark.asyncio
@@ -412,9 +412,9 @@ async def test_reindex_user_namespace_semantic_and_vectors_skips_uncovered_root_
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default/resources", "isDir": True},
-                {"uri": "viking://user/default/resources/doc.md", "isDir": False},
-                {"uri": "viking://user/default/profile.md", "isDir": False},
+                {"uri": "wfs://user/default/resources", "isDir": True},
+                {"uri": "wfs://user/default/resources/doc.md", "isDir": False},
+                {"uri": "wfs://user/default/profile.md", "isDir": False},
             ]
 
     seen = {"semantic_calls": [], "resource_files": []}
@@ -443,15 +443,15 @@ async def test_reindex_user_namespace_semantic_and_vectors_skips_uncovered_root_
     )
 
     await service._reindex_user_namespace(
-        uri="viking://user/default",
+        uri="wfs://user/default",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["semantic_calls"] == [("viking://user/default/resources", "resource")]
-    assert seen["resource_files"] == ["viking://user/default/resources/doc.md"]
+    assert seen["semantic_calls"] == [("wfs://user/default/resources", "resource")]
+    assert seen["resource_files"] == ["wfs://user/default/resources/doc.md"]
     assert counters.unsupported_records == 1
-    assert "viking://user/default/profile.md" in counters.warnings[0]
+    assert "wfs://user/default/profile.md" in counters.warnings[0]
 
 
 @pytest.mark.asyncio
@@ -471,9 +471,9 @@ async def test_reindex_agent_namespace_semantic_and_vectors_promotes_memory_and_
             ctx=None,
         ):
             return [
-                {"uri": "viking://agent/default/memories", "isDir": True},
-                {"uri": "viking://agent/default/skills/demo", "isDir": True},
-                {"uri": "viking://agent/default/resources", "isDir": True},
+                {"uri": "wfs://agent/default/memories", "isDir": True},
+                {"uri": "wfs://agent/default/skills/demo", "isDir": True},
+                {"uri": "wfs://agent/default/resources", "isDir": True},
             ]
 
     seen = {"memory_modes": [], "skill_modes": [], "semantic_calls": [], "resource_calls": []}
@@ -510,14 +510,14 @@ async def test_reindex_agent_namespace_semantic_and_vectors_promotes_memory_and_
     )
 
     await service._reindex_agent_namespace(
-        uri="viking://agent/default",
+        uri="wfs://agent/default",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory_modes"] == [("viking://agent/default/memories", "semantic_and_vectors")]
-    assert seen["skill_modes"] == [("viking://agent/default/skills/demo", "semantic_and_vectors")]
-    assert seen["semantic_calls"] == [("viking://agent/default/resources", "resource")]
+    assert seen["memory_modes"] == [("wfs://agent/default/memories", "semantic_and_vectors")]
+    assert seen["skill_modes"] == [("wfs://agent/default/skills/demo", "semantic_and_vectors")]
+    assert seen["semantic_calls"] == [("wfs://agent/default/resources", "resource")]
     assert seen["resource_calls"]
 
 
@@ -538,10 +538,10 @@ async def test_reindex_agent_namespace_semantic_and_vectors_does_not_reprocess_m
             ctx=None,
         ):
             return [
-                {"uri": "viking://agent/default/memories", "isDir": True},
-                {"uri": "viking://agent/default/memories/cases", "isDir": True},
-                {"uri": "viking://agent/default/skills/demo", "isDir": True},
-                {"uri": "viking://agent/default/resources", "isDir": True},
+                {"uri": "wfs://agent/default/memories", "isDir": True},
+                {"uri": "wfs://agent/default/memories/cases", "isDir": True},
+                {"uri": "wfs://agent/default/skills/demo", "isDir": True},
+                {"uri": "wfs://agent/default/resources", "isDir": True},
             ]
 
     seen = {"memory_modes": [], "skill_modes": [], "semantic_calls": []}
@@ -578,14 +578,14 @@ async def test_reindex_agent_namespace_semantic_and_vectors_does_not_reprocess_m
     )
 
     await service._reindex_agent_namespace(
-        uri="viking://agent/default",
+        uri="wfs://agent/default",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory_modes"] == [("viking://agent/default/memories", "semantic_and_vectors")]
-    assert seen["skill_modes"] == [("viking://agent/default/skills/demo", "semantic_and_vectors")]
-    assert seen["semantic_calls"] == [("viking://agent/default/resources", "resource")]
+    assert seen["memory_modes"] == [("wfs://agent/default/memories", "semantic_and_vectors")]
+    assert seen["skill_modes"] == [("wfs://agent/default/skills/demo", "semantic_and_vectors")]
+    assert seen["semantic_calls"] == [("wfs://agent/default/resources", "resource")]
 
 
 @pytest.mark.asyncio
@@ -605,9 +605,9 @@ async def test_reindex_skill_namespace_reindexes_only_skill_roots(monkeypatch):
             assert node_limit is None
             assert level_limit is None
             return [
-                {"uri": "viking://agent/default/skills/my_skill", "isDir": True},
-                {"uri": "viking://agent/default/skills/my_skill/assets", "isDir": True},
-                {"uri": "viking://agent/default/skills/my_skill/SKILL.md", "isDir": False},
+                {"uri": "wfs://agent/default/skills/my_skill", "isDir": True},
+                {"uri": "wfs://agent/default/skills/my_skill/assets", "isDir": True},
+                {"uri": "wfs://agent/default/skills/my_skill/SKILL.md", "isDir": False},
             ]
 
     seen = []
@@ -626,12 +626,12 @@ async def test_reindex_skill_namespace_reindexes_only_skill_roots(monkeypatch):
     )
 
     await service._reindex_skill_namespace(
-        uri="viking://agent/default/skills",
+        uri="wfs://agent/default/skills",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen == [("viking://agent/default/skills/my_skill", "semantic_and_vectors")]
+    assert seen == [("wfs://agent/default/skills/my_skill", "semantic_and_vectors")]
 
 
 @pytest.mark.asyncio
@@ -651,9 +651,9 @@ async def test_reindex_global_namespace_semantic_and_vectors_propagates_to_child
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default", "isDir": True},
-                {"uri": "viking://agent/default", "isDir": True},
-                {"uri": "viking://resources", "isDir": True},
+                {"uri": "wfs://user/default", "isDir": True},
+                {"uri": "wfs://agent/default", "isDir": True},
+                {"uri": "wfs://resources", "isDir": True},
             ]
 
     seen = {"user_modes": [], "agent_modes": [], "semantic_calls": [], "resource_calls": []}
@@ -690,14 +690,14 @@ async def test_reindex_global_namespace_semantic_and_vectors_propagates_to_child
     )
 
     await service._reindex_global_namespace(
-        uri="viking://",
+        uri="wfs://",
         mode="semantic_and_vectors",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["user_modes"] == [("viking://user/default", "semantic_and_vectors")]
-    assert seen["agent_modes"] == [("viking://agent/default", "semantic_and_vectors")]
-    assert seen["semantic_calls"] == [("viking://resources", "resource")]
+    assert seen["user_modes"] == [("wfs://user/default", "semantic_and_vectors")]
+    assert seen["agent_modes"] == [("wfs://agent/default", "semantic_and_vectors")]
+    assert seen["semantic_calls"] == [("wfs://resources", "resource")]
     assert seen["resource_calls"]
 
 
@@ -728,7 +728,7 @@ async def test_reindex_fetch_existing_record_uses_get_context_by_uri(monkeypatch
     )
 
     record = await service._fetch_existing_record(
-        uri="viking://resources/demo.txt",
+        uri="wfs://resources/demo.txt",
         level=2,
         ctx=ctx,
     )
@@ -762,8 +762,8 @@ async def test_reindex_resource_vectors_only_continues_after_single_record_failu
             assert node_limit is None
             assert level_limit is None
             return [
-                {"uri": "viking://resources/demo/bad.txt", "isDir": False},
-                {"uri": "viking://resources/demo/good.txt", "isDir": False},
+                {"uri": "wfs://resources/demo/bad.txt", "isDir": False},
+                {"uri": "wfs://resources/demo/good.txt", "isDir": False},
             ]
 
     async def fake_read_directory_abstract(self, uri, *, ctx):
@@ -804,14 +804,14 @@ async def test_reindex_resource_vectors_only_continues_after_single_record_failu
     )
 
     await service._reindex_resource_vectors(
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         counters=counters,
         ctx=ctx,
     )
 
     assert seen == [
-        "viking://resources/demo/bad.txt",
-        "viking://resources/demo/good.txt",
+        "wfs://resources/demo/bad.txt",
+        "wfs://resources/demo/good.txt",
     ]
     assert counters.failed_records == 1
     assert counters.rebuilt_records == 1
@@ -839,7 +839,7 @@ async def test_reindex_semantic_processor_runs_with_skip_vectorization(monkeypat
     )
 
     await service._run_semantic_processor(
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         context_type="resource",
         ctx=ctx,
     )
@@ -872,7 +872,7 @@ async def test_reindex_resource_l2_falls_back_to_vector_text_when_summary_missin
         ):
             assert node_limit is None
             assert level_limit is None
-            return [{"uri": "viking://resources/demo/file.txt", "isDir": False}]
+            return [{"uri": "wfs://resources/demo/file.txt", "isDir": False}]
 
     seen = {}
 
@@ -910,12 +910,12 @@ async def test_reindex_resource_l2_falls_back_to_vector_text_when_summary_missin
     )
 
     await service._reindex_resource_vectors(
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         counters=counters,
         ctx=ctx,
     )
 
-    assert seen["viking://resources/demo/file.txt"]["abstract"] == "raw file body"
+    assert seen["wfs://resources/demo/file.txt"]["abstract"] == "raw file body"
 
 
 @pytest.mark.asyncio
@@ -938,7 +938,7 @@ async def test_reindex_resource_vector_text_uses_existing_record_for_non_text(mo
     )
 
     vector_text = await service._best_resource_file_vector_text(
-        "viking://resources/demo/image.png",
+        "wfs://resources/demo/image.png",
         "",
         ctx=ctx,
     )
@@ -966,7 +966,7 @@ async def test_reindex_resource_vector_text_skips_non_text_body_without_summary(
     )
 
     vector_text = await service._best_resource_file_vector_text(
-        "viking://resources/demo/image.png",
+        "wfs://resources/demo/image.png",
         "",
         ctx=ctx,
     )
@@ -1016,12 +1016,12 @@ async def test_reindex_resource_vectors_accepts_single_file_uri(monkeypatch):
     )
 
     await service._reindex_resource_vectors(
-        uri="viking://resources/demo/file.txt",
+        uri="wfs://resources/demo/file.txt",
         counters=counters,
         ctx=ctx,
     )
 
-    assert list(seen) == ["viking://resources/demo/file.txt"]
+    assert list(seen) == ["wfs://resources/demo/file.txt"]
     assert counters.scanned_records == 1
     assert counters.rebuilt_records == 1
 
@@ -1066,12 +1066,12 @@ async def test_reindex_memory_l2_falls_back_to_body_when_abstract_missing(monkey
     )
 
     await service._reindex_memory_vectors(
-        uri="viking://user/default/memories/events/item.md",
+        uri="wfs://user/default/memories/events/item.md",
         counters=counters,
         ctx=ctx,
     )
 
-    assert seen["viking://user/default/memories/events/item.md"]["abstract"] == "memory body text"
+    assert seen["wfs://user/default/memories/events/item.md"]["abstract"] == "memory body text"
 
 
 @pytest.mark.asyncio
@@ -1118,17 +1118,17 @@ async def test_reindex_memory_l2_strips_memory_fields_from_abstract(monkeypatch)
     )
 
     await service._reindex_memory_vectors(
-        uri="viking://user/default/memories/preferences/food_preference.md",
+        uri="wfs://user/default/memories/preferences/food_preference.md",
         counters=counters,
         ctx=ctx,
     )
 
     assert (
-        seen["viking://user/default/memories/preferences/food_preference.md"]["abstract"]
+        seen["wfs://user/default/memories/preferences/food_preference.md"]["abstract"]
         == "User has a preference for watermelon, as mentioned in the conversation: '我爱吃西瓜'."
     )
     assert (
-        seen["viking://user/default/memories/preferences/food_preference.md"]["vector_text"]
+        seen["wfs://user/default/memories/preferences/food_preference.md"]["vector_text"]
         == raw_body
     )
 
@@ -1155,12 +1155,12 @@ async def test_reindex_memory_vectors_walks_deep_subtree(monkeypatch):
         ):
             if level_limit is not None:
                 return [
-                    {"uri": "viking://user/default/memories/preferences/user", "isDir": True},
+                    {"uri": "wfs://user/default/memories/preferences/user", "isDir": True},
                 ]
             return [
-                {"uri": "viking://user/default/memories/preferences/user", "isDir": True},
+                {"uri": "wfs://user/default/memories/preferences/user", "isDir": True},
                 {
-                    "uri": "viking://user/default/memories/preferences/user/food_preference.md",
+                    "uri": "wfs://user/default/memories/preferences/user/food_preference.md",
                     "isDir": False,
                 },
             ]
@@ -1194,12 +1194,12 @@ async def test_reindex_memory_vectors_walks_deep_subtree(monkeypatch):
     )
 
     await service._reindex_memory_vectors(
-        uri="viking://user/default/memories/preferences",
+        uri="wfs://user/default/memories/preferences",
         counters=counters,
         ctx=ctx,
     )
 
-    assert "viking://user/default/memories/preferences/user/food_preference.md" in seen
+    assert "wfs://user/default/memories/preferences/user/food_preference.md" in seen
 
 
 @pytest.mark.asyncio
@@ -1226,9 +1226,9 @@ async def test_reindex_memory_vectors_rebuilds_directory_levels_without_regenera
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default/memories/preferences/user", "isDir": True},
+                {"uri": "wfs://user/default/memories/preferences/user", "isDir": True},
                 {
-                    "uri": "viking://user/default/memories/preferences/user/food_preference.md",
+                    "uri": "wfs://user/default/memories/preferences/user/food_preference.md",
                     "isDir": False,
                 },
             ]
@@ -1236,14 +1236,14 @@ async def test_reindex_memory_vectors_rebuilds_directory_levels_without_regenera
     seen = []
 
     async def fake_read_directory_abstract(self, uri, *, ctx):
-        if uri == "viking://user/default/memories/preferences/user":
+        if uri == "wfs://user/default/memories/preferences/user":
             return "user preferences abstract"
         return ""
 
     async def fake_read_directory_overview(self, uri, *, ctx):
-        if uri == "viking://user/default/memories/preferences":
+        if uri == "wfs://user/default/memories/preferences":
             return "preferences overview"
-        if uri == "viking://user/default/memories/preferences/user":
+        if uri == "wfs://user/default/memories/preferences/user":
             return "user preferences overview"
         return ""
 
@@ -1282,17 +1282,17 @@ async def test_reindex_memory_vectors_rebuilds_directory_levels_without_regenera
     )
 
     await service._reindex_memory_vectors(
-        uri="viking://user/default/memories/preferences",
+        uri="wfs://user/default/memories/preferences",
         counters=counters,
         ctx=ctx,
     )
 
     assert {
-        ("viking://user/default/memories/preferences", int(ContextLevel.OVERVIEW)),
-        ("viking://user/default/memories/preferences/user", int(ContextLevel.ABSTRACT)),
-        ("viking://user/default/memories/preferences/user", int(ContextLevel.OVERVIEW)),
+        ("wfs://user/default/memories/preferences", int(ContextLevel.OVERVIEW)),
+        ("wfs://user/default/memories/preferences/user", int(ContextLevel.ABSTRACT)),
+        ("wfs://user/default/memories/preferences/user", int(ContextLevel.OVERVIEW)),
         (
-            "viking://user/default/memories/preferences/user/food_preference.md",
+            "wfs://user/default/memories/preferences/user/food_preference.md",
             int(ContextLevel.DETAIL),
         ),
     } <= {(item["uri"], item["level"]) for item in seen}
@@ -1313,12 +1313,12 @@ async def test_reindex_user_namespace_partitions_memory_and_resource(monkeypatch
             ctx=None,
         ):
             return [
-                {"uri": "viking://user/default/memories", "isDir": True},
-                {"uri": "viking://user/default/memories/preferences", "isDir": True},
-                {"uri": "viking://user/default/resources", "isDir": True},
-                {"uri": "viking://user/default/resources/doc.md", "isDir": False},
-                {"uri": "viking://user/default/profile.md", "isDir": False},
-                {"uri": "viking://user/default/memories/preferences/theme.md", "isDir": False},
+                {"uri": "wfs://user/default/memories", "isDir": True},
+                {"uri": "wfs://user/default/memories/preferences", "isDir": True},
+                {"uri": "wfs://user/default/resources", "isDir": True},
+                {"uri": "wfs://user/default/resources/doc.md", "isDir": False},
+                {"uri": "wfs://user/default/profile.md", "isDir": False},
+                {"uri": "wfs://user/default/memories/preferences/theme.md", "isDir": False},
             ]
 
     seen = {"memory": [], "resource_dirs": [], "resource_files": []}
@@ -1354,17 +1354,17 @@ async def test_reindex_user_namespace_partitions_memory_and_resource(monkeypatch
     )
 
     await service._reindex_user_namespace(
-        uri="viking://user/",
+        uri="wfs://user/",
         mode="vectors_only",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory"] == [("viking://user/default/memories", "vectors_only")]
-    assert "viking://user/default/resources" in seen["resource_dirs"]
-    assert "viking://user/default/memories" not in seen["resource_dirs"]
+    assert seen["memory"] == [("wfs://user/default/memories", "vectors_only")]
+    assert "wfs://user/default/resources" in seen["resource_dirs"]
+    assert "wfs://user/default/memories" not in seen["resource_dirs"]
     assert seen["resource_files"] == [
-        "viking://user/default/resources/doc.md",
-        "viking://user/default/profile.md",
+        "wfs://user/default/resources/doc.md",
+        "wfs://user/default/profile.md",
     ]
 
 
@@ -1383,15 +1383,15 @@ async def test_reindex_agent_namespace_partitions_memory_skill_and_resource(monk
             ctx=None,
         ):
             return [
-                {"uri": "viking://agent/default/memories", "isDir": True},
-                {"uri": "viking://agent/default/memories/cases", "isDir": True},
-                {"uri": "viking://agent/default/skills", "isDir": True},
-                {"uri": "viking://agent/default/skills/my_skill", "isDir": True},
-                {"uri": "viking://agent/default/resources", "isDir": True},
-                {"uri": "viking://agent/default/resources/doc.md", "isDir": False},
-                {"uri": "viking://agent/default/notes.md", "isDir": False},
-                {"uri": "viking://agent/default/memories/cases/a.md", "isDir": False},
-                {"uri": "viking://agent/default/skills/my_skill/SKILL.md", "isDir": False},
+                {"uri": "wfs://agent/default/memories", "isDir": True},
+                {"uri": "wfs://agent/default/memories/cases", "isDir": True},
+                {"uri": "wfs://agent/default/skills", "isDir": True},
+                {"uri": "wfs://agent/default/skills/my_skill", "isDir": True},
+                {"uri": "wfs://agent/default/resources", "isDir": True},
+                {"uri": "wfs://agent/default/resources/doc.md", "isDir": False},
+                {"uri": "wfs://agent/default/notes.md", "isDir": False},
+                {"uri": "wfs://agent/default/memories/cases/a.md", "isDir": False},
+                {"uri": "wfs://agent/default/skills/my_skill/SKILL.md", "isDir": False},
             ]
 
     seen = {"memory": [], "skill": [], "resource_dirs": [], "resource_files": []}
@@ -1431,19 +1431,19 @@ async def test_reindex_agent_namespace_partitions_memory_skill_and_resource(monk
     )
 
     await service._reindex_agent_namespace(
-        uri="viking://agent/",
+        uri="wfs://agent/",
         mode="vectors_only",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["memory"] == [("viking://agent/default/memories", "vectors_only")]
-    assert seen["skill"] == [("viking://agent/default/skills/my_skill", "vectors_only")]
-    assert "viking://agent/default/resources" in seen["resource_dirs"]
-    assert "viking://agent/default/memories" not in seen["resource_dirs"]
-    assert "viking://agent/default/skills" not in seen["resource_dirs"]
+    assert seen["memory"] == [("wfs://agent/default/memories", "vectors_only")]
+    assert seen["skill"] == [("wfs://agent/default/skills/my_skill", "vectors_only")]
+    assert "wfs://agent/default/resources" in seen["resource_dirs"]
+    assert "wfs://agent/default/memories" not in seen["resource_dirs"]
+    assert "wfs://agent/default/skills" not in seen["resource_dirs"]
     assert seen["resource_files"] == [
-        "viking://agent/default/resources/doc.md",
-        "viking://agent/default/notes.md",
+        "wfs://agent/default/resources/doc.md",
+        "wfs://agent/default/notes.md",
     ]
 
 
@@ -1462,18 +1462,18 @@ async def test_reindex_global_namespace_partitions_user_agent_and_resources(monk
             ctx=None,
         ):
             return [
-                {"uri": "viking://user", "isDir": True},
-                {"uri": "viking://user/default", "isDir": True},
-                {"uri": "viking://user/default/memories", "isDir": True},
-                {"uri": "viking://agent", "isDir": True},
-                {"uri": "viking://agent/default", "isDir": True},
-                {"uri": "viking://agent/default/skills", "isDir": True},
-                {"uri": "viking://session", "isDir": True},
-                {"uri": "viking://session/default", "isDir": True},
-                {"uri": "viking://resources", "isDir": True},
-                {"uri": "viking://session/default/archive.txt", "isDir": False},
-                {"uri": "viking://resources/demo.txt", "isDir": False},
-                {"uri": "viking://README.md", "isDir": False},
+                {"uri": "wfs://user", "isDir": True},
+                {"uri": "wfs://user/default", "isDir": True},
+                {"uri": "wfs://user/default/memories", "isDir": True},
+                {"uri": "wfs://agent", "isDir": True},
+                {"uri": "wfs://agent/default", "isDir": True},
+                {"uri": "wfs://agent/default/skills", "isDir": True},
+                {"uri": "wfs://session", "isDir": True},
+                {"uri": "wfs://session/default", "isDir": True},
+                {"uri": "wfs://resources", "isDir": True},
+                {"uri": "wfs://session/default/archive.txt", "isDir": False},
+                {"uri": "wfs://resources/demo.txt", "isDir": False},
+                {"uri": "wfs://README.md", "isDir": False},
             ]
 
     seen = {"user": [], "agent": [], "resource_dirs": [], "resource_files": []}
@@ -1513,20 +1513,20 @@ async def test_reindex_global_namespace_partitions_user_agent_and_resources(monk
     )
 
     await service._reindex_global_namespace(
-        uri="viking://",
+        uri="wfs://",
         mode="vectors_only",
         run=_make_reindex_run(ctx, counters),
     )
 
-    assert seen["user"] == [("viking://user/default", "vectors_only")]
-    assert seen["agent"] == [("viking://agent/default", "vectors_only")]
-    assert "viking://resources" in seen["resource_dirs"]
-    assert "viking://" not in seen["resource_dirs"]
-    assert "viking://user" not in seen["resource_dirs"]
-    assert "viking://agent" not in seen["resource_dirs"]
-    assert "viking://session" not in seen["resource_dirs"]
-    assert "viking://session/default" not in seen["resource_dirs"]
-    assert seen["resource_files"] == ["viking://resources/demo.txt"]
+    assert seen["user"] == [("wfs://user/default", "vectors_only")]
+    assert seen["agent"] == [("wfs://agent/default", "vectors_only")]
+    assert "wfs://resources" in seen["resource_dirs"]
+    assert "wfs://" not in seen["resource_dirs"]
+    assert "wfs://user" not in seen["resource_dirs"]
+    assert "wfs://agent" not in seen["resource_dirs"]
+    assert "wfs://session" not in seen["resource_dirs"]
+    assert "wfs://session/default" not in seen["resource_dirs"]
+    assert seen["resource_files"] == ["wfs://resources/demo.txt"]
 
 
 @pytest.mark.asyncio
@@ -1573,12 +1573,12 @@ async def test_reindex_skill_l2_falls_back_to_skill_content_when_abstract_missin
     )
 
     await service._reindex_skill_vectors(
-        uri="viking://agent/skills/my_skill",
+        uri="wfs://agent/skills/my_skill",
         counters=counters,
         ctx=ctx,
     )
 
-    assert seen["viking://agent/skills/my_skill/SKILL.md"]["abstract"] == "skill abstract"
+    assert seen["wfs://agent/skills/my_skill/SKILL.md"]["abstract"] == "skill abstract"
 
 
 @pytest.mark.asyncio
@@ -1609,12 +1609,12 @@ async def test_openviking_service_reindex_uses_default_root_context(monkeypatch)
 
     result = await OpenVikingService.reindex(
         service,
-        uri="viking://resources/demo",
+        uri="wfs://resources/demo",
         mode="vectors_only",
         wait=True,
     )
 
-    assert result == {"status": "completed", "uri": "viking://resources/demo"}
+    assert result == {"status": "completed", "uri": "wfs://resources/demo"}
     assert seen["ctx"].role == Role.ROOT
     assert seen["ctx"].user.account_id == "acct"
     assert seen["ctx"].user.user_id == "alice"

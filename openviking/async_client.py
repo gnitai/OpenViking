@@ -486,7 +486,7 @@ class AsyncOpenViking:
             exclude_uri=exclude_uri,
         )
 
-    async def glob(self, pattern: str, uri: str = "viking://") -> Dict:
+    async def glob(self, pattern: str, uri: str = "wfs://") -> Dict:
         """File pattern matching"""
         await self._ensure_initialized()
         return await self._client.glob(pattern, uri=uri)
@@ -601,7 +601,7 @@ class AsyncOpenViking:
 
         Args:
             file_path: Local .ovpack file path
-            parent: Target parent URI (e.g., viking://user/alice/resources/references/)
+            parent: Target parent URI (e.g., wfs://user/alice/resources/references/)
             on_conflict: One of "fail", "overwrite", or "skip"
             vector_mode: One of "auto", "recompute", or "require"
 

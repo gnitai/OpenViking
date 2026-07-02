@@ -40,7 +40,7 @@ async def test_add_message_externalizes_large_tool_output(session: Session):
 
     part = msg.get_tool_parts()[0]
     assert part.tool_output_truncated is True
-    assert part.tool_output_ref.startswith(f"viking://session/{session.session_id}/tool-results/")
+    assert part.tool_output_ref.startswith(f"wfs://session/{session.session_id}/tool-results/")
     assert part.tool_output_original_chars == len(raw)
     assert part.tool_output_externalized_reason == "single_threshold"
     assert raw not in part.tool_output
@@ -260,7 +260,7 @@ async def test_list_tool_results_filters_tool_name_before_limit():
 
     store = ToolResultStore(
         FakeVikingFS(),
-        "viking://session/filter-before-limit",
+        "wfs://session/filter-before-limit",
         "filter-before-limit",
         ctx=None,
     )

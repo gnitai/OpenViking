@@ -31,7 +31,7 @@ class IORecorder:
 
     Usage:
         recorder = IORecorder(enabled=True)
-        recorder.record_fs("read", {"uri": "viking://..."}, b"content", 10.5)
+        recorder.record_fs("read", {"uri": "wfs://..."}, b"content", 10.5)
 
         # Or use as context manager
         with IORecorder.record_context("fs", "read", {"uri": "..."}) as r:

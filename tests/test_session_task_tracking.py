@@ -72,7 +72,7 @@ def _make_tracked_commit(behavior="instant", result_overrides=None, gate=None, s
             account_id=_ctx.account_id,
             user_id=_ctx.user.user_id,
         )
-        archive_uri = f"viking://session/test/{_sid}/history/archive_001"
+        archive_uri = f"wfs://session/test/{_sid}/history/archive_001"
 
         async def _background():
             await tracker.start(task.task_id, account_id=_ctx.account_id, user_id=_ctx.user.user_id)
@@ -342,7 +342,7 @@ async def test_add_resource_async_returns_task_id(api_client):
 
     async def fake_add_resource(**kwargs):
         tracker = get_task_tracker()
-        root_uri = "viking://resources/async-test"
+        root_uri = "wfs://resources/async-test"
         task = await tracker.create(
             "add_resource",
             resource_id=root_uri,
@@ -384,7 +384,7 @@ async def test_add_resource_sync_no_task_id(api_client):
     client, service = api_client
 
     async def fake_add_resource(**kwargs):
-        root_uri = "viking://resources/sync-test"
+        root_uri = "wfs://resources/sync-test"
         return {"status": "success", "root_uri": root_uri}
 
     service.resources.add_resource = fake_add_resource
@@ -404,7 +404,7 @@ async def test_add_resource_async_task_lifecycle(api_client):
 
     async def fake_add_resource(**kwargs):
         tracker = get_task_tracker()
-        root_uri = "viking://resources/test-resource"
+        root_uri = "wfs://resources/test-resource"
         task = await tracker.create(
             "add_resource",
             resource_id=root_uri,
@@ -458,7 +458,7 @@ async def test_add_resource_task_list_filter(api_client):
 
     async def fake_add_resource(**kwargs):
         tracker = get_task_tracker()
-        root_uri = "viking://resources/filter-test"
+        root_uri = "wfs://resources/filter-test"
         task = await tracker.create(
             "add_resource",
             resource_id=root_uri,

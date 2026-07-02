@@ -42,7 +42,7 @@ class TestNewProjectBootstrap:
         """ls of the member's preset user root must not 404 for a new project."""
         client = self._client()
         try:
-            resp = client.fs_ls(f"viking://user/{_MEMBER}")
+            resp = client.fs_ls(f"wfs://user/{_MEMBER}")
             # First contact triggers lazy init of the preset dirs; the listing
             # must resolve (200) rather than 404. A 200 envelope with status
             # != "ok" would indicate the dirs were not created.
@@ -60,11 +60,11 @@ class TestNewProjectBootstrap:
         """A write+read must round-trip for a brand-new project."""
         client = self._client()
         suffix = uuid.uuid4().hex[:8]
-        test_uri = f"viking://resources/new_project_bootstrap_{suffix}.txt"
+        test_uri = f"wfs://resources/new_project_bootstrap_{suffix}.txt"
         test_content = f"new project bootstrap {suffix}"
         try:
             # resources is a preset dir created by lazy init; mkdir is idempotent.
-            client.fs_mkdir("viking://resources")
+            client.fs_mkdir("wfs://resources")
 
             write_resp = client.fs_write(test_uri, test_content, mode="create", wait=True)
             assert write_resp.status_code == 200, (

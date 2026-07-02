@@ -118,7 +118,7 @@ describe("context-engine assemble()", () => {
         .mockResolvedValueOnce({
           memories: [
             {
-              uri: "viking://user/default/memories/rust-pref",
+              uri: "wfs://user/default/memories/rust-pref",
               level: 2,
               category: "preferences",
               abstract: "User prefers Rust for backend tasks.",

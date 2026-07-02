@@ -21,10 +21,10 @@ class AgentState(TypedDict, total=False):
 def build_app(client: InMemoryOpenVikingClient | None = None):
     client = client or InMemoryOpenVikingClient(
         {
-            "viking://user/memories/profile.md": (
+            "wfs://user/memories/profile.md": (
                 "The user wants LangGraph agents to use OpenViking for durable context."
             ),
-            "viking://resources/runbooks/langgraph.md": (
+            "wfs://resources/runbooks/langgraph.md": (
                 "LangGraph workflows can call OpenViking tools before model nodes."
             ),
         }

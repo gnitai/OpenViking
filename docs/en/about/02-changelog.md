@@ -91,7 +91,7 @@ This changelog is automatically generated from [GitHub Releases](https://github.
 - **User-level privacy configs**: New `/api/v1/privacy-configs` API and `openviking privacy` CLI for managing sensitive skill settings with version history and rollback.
 - **Observability upgrade**: Unified `server.observability` config enables Prometheus `/metrics` and OpenTelemetry exporters for metrics, traces, and logs.
 - **Retrieval tuning**: New `embedding.text_source`, `embedding.max_input_tokens`, `retrieval.hotness_alpha`, and `retrieval.score_propagation_alpha` controls.
-- **API semantics**: Empty search queries rejected early; stricter `viking://` URI validation; standard error envelopes for processing/zip/HTTP errors.
+- **API semantics**: Empty search queries rejected early; stricter `wfs://` URI validation; standard error envelopes for processing/zip/HTTP errors.
 - **Docker experience**: Persistent state consolidated under `/app/.openviking`; missing `ov.conf` returns 503 initialization guide instead of crashing.
 - **Security**: Bot image tool sandboxed from host filesystem; health checks skip identity resolution without credentials; API key hashing is now an explicit separate switch.
 

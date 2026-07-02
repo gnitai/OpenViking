@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn profiled_filesystem_message_includes_profile_section() {
         let result = json!({
-            "result": "Directory created: viking://dir",
+            "result": "Directory created: wfs://dir",
             "profile": [
                 "mkdir took 1ms"
             ]
@@ -153,7 +153,7 @@ mod tests {
             rendered,
             Some(
                 [
-                    "Directory created: viking://dir",
+                    "Directory created: wfs://dir",
                     "",
                     "profile",
                     "mkdir took 1ms",

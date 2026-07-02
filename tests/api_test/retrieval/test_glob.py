@@ -4,7 +4,7 @@ import json
 class TestGlob:
     def test_glob_basic(self, api_client):
         try:
-            response = api_client.glob("**/*", "viking://user/")
+            response = api_client.glob("**/*", "wfs://user/")
             print(f"\nGlob API status code: {response.status_code}")
 
             data = response.json()

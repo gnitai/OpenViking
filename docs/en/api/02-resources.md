@@ -194,7 +194,7 @@ curl -X POST http://localhost:1933/api/v1/resources \
   -H "X-API-Key: your-key" \
   -d "{
     \"temp_file_id\": \"$TEMP_FILE_ID\",
-    \"to\": \"viking://resources/guide.md\",
+    \"to\": \"wfs://resources/guide.md\",
     \"reason\": \"User guide\"
   }"
 ```
@@ -222,7 +222,7 @@ print(f"Added: {result['root_uri']}")
 # Add from URL to specific location
 result = client.add_resource(
     "https://example.com/api-docs.md",
-    to="viking://resources/external/api-docs.md",
+    to="wfs://resources/external/api-docs.md",
     reason="External API documentation"
 )
 
@@ -232,7 +232,7 @@ client.wait_processed()
 # Enable scheduled updates
 client.add_resource(
     "./documents/guide.md",
-    to="viking://resources/guide.md",
+    to="wfs://resources/guide.md",
     watch_interval=60  # Update every 60 minutes
 )
 ```
@@ -244,27 +244,27 @@ client.add_resource(
 ov add-resource ./documents/guide.md --reason "User guide"
 
 # Add from URL
-ov add-resource https://example.com/guide.md --to viking://resources/guide.md
+ov add-resource https://example.com/guide.md --to wfs://resources/guide.md
 
 # Wait for processing to complete
 ov add-resource ./documents/guide.md --wait
 
 # Enable scheduled updates (check every 60 minutes)
-ov add-resource https://github.com/example/repo.git --to viking://resources/guide.md --watch-interval 60
+ov add-resource https://github.com/example/repo.git --to wfs://resources/guide.md --watch-interval 60
 
 # Cancel scheduled updates
-ov add-resource https://github.com/example/repo.git --to viking://resources/guide.md --watch-interval 0
+ov add-resource https://github.com/example/repo.git --to wfs://resources/guide.md --watch-interval 0
 
 # Add with parent directory (parent must exist)
-ov add-resource ./documents/guide.md --parent viking://resources/docs
+ov add-resource ./documents/guide.md --parent wfs://resources/docs
 
 # Add with parent directory (auto-create parent if it doesn't exist)
-ov add-resource ./documents/guide.md -p viking://resources/docs/2026/05/07
+ov add-resource ./documents/guide.md -p wfs://resources/docs/2026/05/07
 # Or using full flag
-ov add-resource ./documents/guide.md --parent-auto-create viking://resources/docs/2026/05/07
+ov add-resource ./documents/guide.md --parent-auto-create wfs://resources/docs/2026/05/07
 
 # Using path variables with auto-create
-ov add-resource ./documents/guide.md -p viking://resources/docs/{calendar:today}
+ov add-resource ./documents/guide.md -p wfs://resources/docs/{calendar:today}
 ```
 
 **Response Example**
@@ -276,8 +276,8 @@ ov add-resource ./documents/guide.md -p viking://resources/docs/{calendar:today}
   "status": "ok",
   "result": {
     "status": "success",
-    "root_uri": "viking://resources/guide.md",
-    "temp_uri": "viking://temp/username/04291108_b62dc7/guide.md",
+    "root_uri": "wfs://resources/guide.md",
+    "temp_uri": "wfs://temp/username/04291108_b62dc7/guide.md",
     "source_path": "./documents/guide.md",
     "meta": {},
     "errors": [],
@@ -302,8 +302,8 @@ status       success
 errors       []
 source_path  /Users/bytedance/workspace/github.com/OpenViking/docs/en/api/01-overview.md
 meta         {}
-root_uri     viking://resources/01-overview
-temp_uri     viking://temp/shengmaojia/04291108_b62dc7/01-overview
+root_uri     wfs://resources/01-overview
+temp_uri     wfs://temp/shengmaojia/04291108_b62dc7/01-overview
 ```
 
 **CLI Response (JSON Format, using -o json)**
@@ -311,8 +311,8 @@ temp_uri     viking://temp/shengmaojia/04291108_b62dc7/01-overview
 ```json
 {
   "status": "success",
-  "root_uri": "viking://resources/01-overview",
-  "temp_uri": "viking://temp/shengmaojia/04291108_b62dc7/01-overview",
+  "root_uri": "wfs://resources/01-overview",
+  "temp_uri": "wfs://temp/shengmaojia/04291108_b62dc7/01-overview",
   "source_path": "/Users/bytedance/workspace/github.com/OpenViking/docs/en/api/01-overview.md",
   "meta": {},
   "errors": []
@@ -357,7 +357,7 @@ This control plane wraps the `WatchManager` primitives without changing any serv
 
 #### 2. Interface and Parameter Description
 
-For every single-task endpoint the path `{task_id}` can be replaced with a `?to_uri=` query argument. The CLI `<key>` argument is auto-classified: any value starting with `viking://` routes to the by-URI path, anything else is treated as a task ID (other URI schemes such as `http://` are rejected locally to avoid silent 404s).
+For every single-task endpoint the path `{task_id}` can be replaced with a `?to_uri=` query argument. The CLI `<key>` argument is auto-classified: any value starting with `wfs://` routes to the by-URI path, anything else is treated as a task ID (other URI schemes such as `http://` are rejected locally to avoid silent 404s).
 
 **`PATCH /watches` body** (all fields optional; at least one is required)
 
@@ -389,7 +389,7 @@ curl -X POST "http://localhost:1933/api/v1/watches/<task_id>/trigger" \
   -H "X-API-Key: your-key"
 
 # Resolve by URI instead of task ID
-curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=viking://resources/guide.md" \
+curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=wfs://resources/guide.md" \
   -H "X-API-Key: your-key"
 ```
 
@@ -399,28 +399,28 @@ curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=viking://resources/g
 # List active watches (drop --active-only to include paused ones)
 ov task watch ls --active-only
 
-# Inspect a single watch (key may be either a viking:// URI or a task_id)
-ov task watch show viking://resources/guide.md
+# Inspect a single watch (key may be either a wfs:// URI or a task_id)
+ov task watch show wfs://resources/guide.md
 
 # Pause / resume without losing the cadence
-ov task watch pause viking://resources/guide.md
-ov task watch resume viking://resources/guide.md
+ov task watch pause wfs://resources/guide.md
+ov task watch resume wfs://resources/guide.md
 
 # Update the cadence (or any combination of --active / --reason / --instruction)
-ov task watch update viking://resources/guide.md --interval 30
+ov task watch update wfs://resources/guide.md --interval 30
 
 # Trigger an immediate fire-and-forget refresh
-ov task watch trigger viking://resources/guide.md
+ov task watch trigger wfs://resources/guide.md
 
 # Remove a watch task entirely
-ov task watch rm viking://resources/guide.md
+ov task watch rm wfs://resources/guide.md
 ```
 
 **MCP** (agent control plane — minimum closure only)
 
 ```text
 list_watches()                                            # one line per task; URIs only, no task_ids surfaced
-cancel_watch(to_uri="viking://resources/guide.md")        # idempotent removal by URI
+cancel_watch(to_uri="wfs://resources/guide.md")        # idempotent removal by URI
 ```
 
 Pause / resume / trigger / update are intentionally not exposed via MCP — those power-user operations live on the CLI/REST surface to keep the agent system prompt compact. Creating a watch or changing its cadence from the agent side still goes through [`add_resource`](#add_resource) with `watch_interval` and `to`.
@@ -532,8 +532,8 @@ ov add-skill ./skills/my-skill.json --wait
   "status": "ok",
   "result": {
     "status": "success",
-    "root_uri": "viking://agent/skills/my-skill",
-    "uri": "viking://agent/skills/my-skill",
+    "root_uri": "wfs://agent/skills/my-skill",
+    "uri": "wfs://agent/skills/my-skill",
     "name": "my-skill",
     "auxiliary_files": 2,
     "queue_status": {
@@ -554,8 +554,8 @@ ov add-skill ./skills/my-skill.json --wait
 Note: Skill is being processed in the background.
 Use 'ov wait' to wait for completion, or 'ov observer queue' to check status.
 status          success
-root_uri        viking://agent/skills/my-skill
-uri             viking://agent/skills/my-skill
+root_uri        wfs://agent/skills/my-skill
+uri             wfs://agent/skills/my-skill
 name            my-skill
 auxiliary_files 2
 ```
@@ -565,8 +565,8 @@ auxiliary_files 2
 ```json
 {
   "status": "success",
-  "root_uri": "viking://agent/skills/my-skill",
-  "uri": "viking://agent/skills/my-skill",
+  "root_uri": "wfs://agent/skills/my-skill",
+  "uri": "wfs://agent/skills/my-skill",
   "name": "my-skill",
   "auxiliary_files": 2
 }
@@ -618,7 +618,7 @@ Notes:
 - The default is `local`, so existing clients keep the original behavior unless they explicitly opt into `shared`.
 - Use `upload_mode=shared` only when you explicitly want distributed shared temporary uploads.
 - `shared` mode returns a one-time `temp_file_id` in the `shared_<upload_id>` form.
-- Shared upload objects live under the internal `viking://upload/...` namespace and are not part of the normal filesystem browsing surface.
+- Shared upload objects live under the internal `wfs://upload/...` namespace and are not part of the normal filesystem browsing surface.
 
 #### 3. Usage Examples
 

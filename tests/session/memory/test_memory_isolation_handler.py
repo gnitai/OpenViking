@@ -340,7 +340,7 @@ class TestCalculateMemoryUris:
     @patch("openviking.session.memory.memory_isolation_handler.generate_uri")
     def test_calculate_memory_uris_single_user_agent(self, mock_generate_uri):
         """Test calculate_memory_uris with single user and agent."""
-        mock_generate_uri.return_value = "viking://user/user_a/memories/preferences"
+        mock_generate_uri.return_value = "wfs://user/user_a/memories/preferences"
 
         ctx = create_ctx()
         messages = [create_message("user", "user_a")]
@@ -352,7 +352,7 @@ class TestCalculateMemoryUris:
         schema = MemoryTypeSchema(
             memory_type="preferences",
             filename_template="preferences.md",
-            directory="viking://user/{user_space}/memories",
+            directory="wfs://user/{user_space}/memories",
         )
 
         operation = ResolvedOperation(
@@ -371,7 +371,7 @@ class TestCalculateMemoryUris:
     def test_calculate_memory_uris_multiple_users_agents(self, mock_generate_uri):
         """Test calculate_memory_uris with multiple users and agents."""
         mock_generate_uri.side_effect = lambda **kwargs: (
-            f"viking://user/{kwargs.get('user_space')}/memories/test"
+            f"wfs://user/{kwargs.get('user_space')}/memories/test"
         )
 
         ctx = create_ctx()
@@ -384,7 +384,7 @@ class TestCalculateMemoryUris:
         schema = MemoryTypeSchema(
             memory_type="test",
             filename_template="test.md",
-            directory="viking://user/{user_space}/memories",
+            directory="wfs://user/{user_space}/memories",
         )
 
         operation = ResolvedOperation(

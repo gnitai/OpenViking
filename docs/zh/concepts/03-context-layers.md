@@ -28,7 +28,7 @@ API 认证指南，涵盖 OAuth 2.0、JWT 令牌和 API 密钥的安全访问方
 ### API
 
 ```python
-abstract = client.abstract("viking://resources/docs/auth")
+abstract = client.abstract("wfs://resources/docs/auth")
 ```
 
 ## L1: 概览
@@ -57,13 +57,13 @@ abstract = client.abstract("viking://resources/docs/auth")
 - JWT 用于服务间通信
 
 ## 访问
-使用 `read("viking://resources/docs/auth/oauth.md")` 获取完整文档。
+使用 `read("wfs://resources/docs/auth/oauth.md")` 获取完整文档。
 ```
 
 ### API
 
 ```python
-overview = client.overview("viking://resources/docs/auth")
+overview = client.overview("wfs://resources/docs/auth")
 ```
 
 ## L2: 详情
@@ -79,7 +79,7 @@ overview = client.overview("viking://resources/docs/auth")
 ### API
 
 ```python
-content = client.read("viking://resources/docs/auth/oauth.md")
+content = client.read("wfs://resources/docs/auth/oauth.md")
 ```
 
 ## 生成机制
@@ -109,7 +109,7 @@ content = client.read("viking://resources/docs/auth/oauth.md")
 每个目录都遵循统一的文件结构：
 
 ```
-viking://resources/docs/auth/
+wfs://resources/docs/auth/
 ├── .abstract.md          # L0: ~100 tokens
 ├── .overview.md          # L1: ~1k tokens
 ├── .relations.json       # 相关资源

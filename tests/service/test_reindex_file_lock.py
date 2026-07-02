@@ -36,7 +36,7 @@ class _FakeVikingFS:
 async def test_reindex_single_file_uri_acquires_tree_lock_without_not_a_directory(
     agfs_client, test_dir, monkeypatch, caplog
 ):
-    uri = "viking://resources/profile.md"
+    uri = "wfs://resources/profile.md"
     path = f"{test_dir}/profile.md"
     agfs_client.write(path, b"# Profile\nSingle file reindex source.\n")
     init_lock_manager(agfs_client)

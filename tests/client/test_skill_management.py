@@ -108,7 +108,7 @@ This skill was created from a string.
             seen["telemetry_id"] = telemetry.telemetry_id
             seen["kwargs"] = kwargs
             return {
-                "uri": "viking://agent/skills/waited-skill",
+                "uri": "wfs://agent/skills/waited-skill",
                 "queue_status": queue_status,
             }
 
@@ -128,7 +128,7 @@ This skill was created from a string.
             telemetry=False,
         )
 
-        assert result["uri"] == "viking://agent/skills/waited-skill"
+        assert result["uri"] == "wfs://agent/skills/waited-skill"
         assert result["queue_status"] == queue_status
         assert seen["enabled"] is True
         assert str(seen["telemetry_id"]).startswith("tm_")
@@ -233,7 +233,7 @@ Use this skill to test canonical URI vector indexing.
 
         result = await client.add_skill(data=skill_file, wait=True)
         canonical_uri = f"{_agent_skills_root(client)}/canonical-scope-skill"
-        short_uri = "viking://agent/skills/canonical-scope-skill"
+        short_uri = "wfs://agent/skills/canonical-scope-skill"
 
         assert result["uri"] == canonical_uri
 

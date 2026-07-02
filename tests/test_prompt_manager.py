@@ -189,7 +189,7 @@ def test_memory_type_registry_loads_schemas_from_prompt_manager_resolved_templat
             {
                 "memory_type": "custom_memory",
                 "description": "custom schema from resolved prompt root",
-                "directory": "viking://user/{{ user_space }}/memories/custom",
+                "directory": "wfs://user/{{ user_space }}/memories/custom",
                 "filename_template": "custom.md",
                 "fields": [],
             }
@@ -227,7 +227,7 @@ def test_memory_type_registry_prefers_custom_memory_dir_over_prompt_manager_temp
             {
                 "memory_type": "prompt_root_memory",
                 "description": "schema from prompt manager root",
-                "directory": "viking://user/{{ user_space }}/memories/prompt-root",
+                "directory": "wfs://user/{{ user_space }}/memories/prompt-root",
                 "filename_template": "prompt-root.md",
                 "fields": [],
             }
@@ -239,7 +239,7 @@ def test_memory_type_registry_prefers_custom_memory_dir_over_prompt_manager_temp
             {
                 "memory_type": "custom_memory",
                 "description": "schema from custom memory dir",
-                "directory": "viking://user/{{ user_space }}/memories/custom",
+                "directory": "wfs://user/{{ user_space }}/memories/custom",
                 "filename_template": "custom.md",
                 "fields": [],
             }

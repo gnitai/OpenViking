@@ -625,11 +625,11 @@ nohup openviking-server > /data/log/openviking.log 2>&1 &
 ```bash
 ov status
 ov add-resource https://github.com/volcengine/OpenViking # --wait
-ov ls viking://resources/
-ov tree viking://resources/volcengine -L 2
+ov ls wfs://resources/
+ov tree wfs://resources/volcengine -L 2
 # wait some time for semantic processing if not --wait
 ov find "what is openviking"
-ov grep "openviking" --uri viking://resources/volcengine/OpenViking/docs/zh
+ov grep "openviking" --uri wfs://resources/volcengine/OpenViking/docs/zh
 ```
 
 Congratulations! You have successfully run OpenViking 🎉
@@ -671,12 +671,12 @@ After running the first example, let's dive into the design philosophy of OpenVi
 
 ### 1. Filesystem Management Paradigm → Solves Fragmentation
 
-We no longer view context as flat text slices but unify them into an abstract virtual filesystem. Whether it's memories, resources, or capabilities, they are mapped to virtual directories under the `viking://` protocol, each with a unique URI.
+We no longer view context as flat text slices but unify them into an abstract virtual filesystem. Whether it's memories, resources, or capabilities, they are mapped to virtual directories under the `wfs://` protocol, each with a unique URI.
 
 This paradigm gives Agents unprecedented context manipulation capabilities, enabling them to locate, browse, and manipulate information precisely and deterministically through standard commands like `ls` and `find`, just like a developer. This transforms context management from vague semantic matching into intuitive, traceable "file operations". Learn more: [Viking URI](./docs/en/concepts/04-viking-uri.md) | [Context Types](./docs/en/concepts/02-context-types.md)
 
 ```
-viking://
+wfs://
 ├── resources/              # Resources: project docs, repos, web pages, etc.
 │   ├── my_project/
 │   │   ├── docs/
@@ -710,7 +710,7 @@ Stuffing massive amounts of context into a prompt all at once is not only expens
 Learn more: [Context Layers](./docs/en/concepts/03-context-layers.md)
 
 ```
-viking://resources/my_project/
+wfs://resources/my_project/
 ├── .abstract               # L0 Layer: Abstract (~100 tokens) - Quick relevance check
 ├── .overview               # L1 Layer: Overview (~2k tokens) - Understand structure and key points
 ├── docs/
@@ -740,7 +740,7 @@ This "lock high-score directory first, then refine content exploration" strategy
 
 ### 4. Visualized Retrieval Trajectory → Observable Context
 
-OpenViking's organization uses a hierarchical virtual filesystem structure. All context is integrated in a unified format, and each entry corresponds to a unique URI (like a `viking://` path), breaking the traditional flat black-box management mode with a clear hierarchy that is easy to understand.
+OpenViking's organization uses a hierarchical virtual filesystem structure. All context is integrated in a unified format, and each entry corresponds to a unique URI (like a `wfs://` path), breaking the traditional flat black-box management mode with a clear hierarchy that is easy to understand.
 
 The retrieval process adopts a directory recursive strategy. The trajectory of directory browsing and file positioning for each retrieval is fully preserved, allowing users to clearly observe the root cause of problems and guide the optimization of retrieval logic. Learn more: [Retrieval Mechanism](./docs/en/concepts/07-retrieval.md)
 

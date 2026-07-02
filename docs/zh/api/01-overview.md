@@ -141,7 +141,7 @@ client.initialize()
 直接 HTTP（curl）调用示例如下
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
     -H "X-API-Key: your-key"
 ```
 
@@ -165,7 +165,7 @@ openviking [全局选项] <command> [参数] [命令选项]
 示例：
 
 ```bash
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 ```
 
 ## 生命周期
@@ -199,7 +199,7 @@ client.close()
 CLI 则直接通过命令行调用，需要先配置 ovcli.conf 文件，无需额外初始化客户端：
 
 ```
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 ```
 
 ## 认证
@@ -234,7 +234,7 @@ openviking -o json ls viking://resources/
   "status": "error",
   "error": {
     "code": "NOT_FOUND",
-    "message": "Resource not found: viking://resources/nonexistent/"
+    "message": "Resource not found: wfs://resources/nonexistent/"
   },
   "time": 0.01
 }
@@ -253,9 +253,9 @@ Python HTTP SDK（`SyncHTTPClient` 和 `AsyncHTTPClient`）会把该 envelope �
 列表数据渲染为表格，非列表数据 fallback 到格式化 JSON：
 
 ```bash
-openviking ls viking://resources/
+openviking ls wfs://resources/
 # name          size  mode  isDir  uri
-# .abstract.md  100   420   false  viking://resources/.abstract.md
+# .abstract.md  100   420   false  wfs://resources/.abstract.md
 ```
 
 ### JSON 模式（`--output json`）
@@ -263,7 +263,7 @@ openviking ls viking://resources/
 所有命令输出格式化 JSON，与 API 响应的 `result` 结构一致：
 
 ```bash
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 # [{ "name": "...", "size": 100, ... }, ...]
 ```
 

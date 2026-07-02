@@ -48,7 +48,7 @@ def _scope_relative_path(uri: str) -> str:
 
 def validate_public_scope(uri: str, *, operation: str, allow_root: bool = False) -> None:
     parsed = VikingURI(uri)
-    if parsed.uri == "viking://":
+    if parsed.uri == "wfs://":
         if allow_root:
             return
         raise InvalidArgumentError(f"ovpack {operation} is not supported for root URI")
@@ -95,12 +95,12 @@ def is_backup_package(manifest: dict[str, Any]) -> bool:
     return (
         isinstance(root, dict)
         and root.get("package_type") == OVPACK_BACKUP_TYPE
-        and manifest_root_uri(manifest) == "viking://"
+        and manifest_root_uri(manifest) == "wfs://"
     )
 
 
 def is_top_level_scope_package(manifest: dict[str, Any]) -> bool:
-    return manifest_root_uri(manifest) in {f"viking://{scope}" for scope in IMPORTABLE_SCOPES}
+    return manifest_root_uri(manifest) in {f"wfs://{scope}" for scope in IMPORTABLE_SCOPES}
 
 
 def resolve_import_root_uri(parent: str, base_name: str, manifest: dict[str, Any]) -> str:
@@ -110,17 +110,17 @@ def resolve_import_root_uri(parent: str, base_name: str, manifest: dict[str, Any
             details={"root": base_name, "parent": parent},
         )
 
-    if parent == "viking://":
+    if parent == "wfs://":
         if not is_top_level_scope_package(manifest):
             raise InvalidArgumentError(
-                "Only top-level scope ovpack packages can be imported to viking://",
+                "Only top-level scope ovpack packages can be imported to wfs://",
                 details={"root": base_name},
             )
         return manifest_root_uri(manifest)
 
     if is_top_level_scope_package(manifest):
         raise InvalidArgumentError(
-            "Top-level scope ovpack packages must be imported to viking://",
+            "Top-level scope ovpack packages must be imported to wfs://",
             details={"root": base_name, "parent": parent},
         )
     return join_uri(parent, base_name)

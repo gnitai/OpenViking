@@ -38,7 +38,7 @@ Parser handles document format conversion and structuring, creating file structu
 parse_result = registry.parse("/path/to/doc.md")
 
 # 2. Returns temp directory URI
-parse_result.temp_dir_path  # viking://temp/abc123
+parse_result.temp_dir_path  # wfs://temp/abc123
 ```
 
 ### Smart Splitting
@@ -72,7 +72,7 @@ TreeBuilder moves temp directory to AGFS and queues semantic processing.
 
 ```python
 building_tree = tree_builder.finalize_from_temp(
-    temp_dir_path="viking://temp/abc123",
+    temp_dir_path="wfs://temp/abc123",
     scope="resources",  # resources/user/agent
 )
 ```
@@ -89,9 +89,9 @@ building_tree = tree_builder.finalize_from_temp(
 
 | scope | Base URI |
 |-------|----------|
-| resources | `viking://resources` |
-| user | `viking://user` |
-| agent | `viking://agent` |
+| resources | `wfs://resources` |
+| user | `wfs://user` |
+| agent | `wfs://agent` |
 
 ## SemanticQueue
 
@@ -194,7 +194,7 @@ openviking/parse/parsers/code/ast/
 | Phase | Resource | Memory | Skill |
 |-------|----------|--------|-------|
 | **Parser** | Common flow | Common flow | Common flow |
-| **Base URI** | `viking://resources` | `viking://user/memories` | `viking://agent/skills` |
+| **Base URI** | `wfs://resources` | `wfs://user/memories` | `wfs://agent/skills` |
 | **TreeBuilder scope** | resources | user/agent | agent |
 | **SemanticMsg type** | resource | memory | skill |
 
@@ -219,7 +219,7 @@ await client.add_skill({
     "content": "# search-web\\n..."
 })
 
-# Flow: Direct write to viking://agent/skills/{name}/ → SemanticQueue
+# Flow: Direct write to wfs://agent/skills/{name}/ → SemanticQueue
 ```
 
 ### Memory Extraction

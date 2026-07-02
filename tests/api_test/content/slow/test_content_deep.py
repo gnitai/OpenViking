@@ -49,13 +49,13 @@ class TestContentDeep:
             assert isinstance(result, str), f"overview should be string, got {type(result)}"
 
     def test_abstract_nonexistent_uri(self, api_client):
-        abstract_resp = api_client.get_abstract("viking://resources/nonexistent_abstract")
+        abstract_resp = api_client.get_abstract("wfs://resources/nonexistent_abstract")
         assert abstract_resp.status_code == 404, (
             f"abstract of nonexistent URI should return 404/500, got {abstract_resp.status_code}"
         )
 
     def test_overview_nonexistent_uri(self, api_client):
-        overview_resp = api_client.get_overview("viking://resources/nonexistent_overview")
+        overview_resp = api_client.get_overview("wfs://resources/nonexistent_overview")
         assert overview_resp.status_code == 404, (
             f"overview of nonexistent URI should return 404/500, got {overview_resp.status_code}"
         )

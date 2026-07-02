@@ -61,7 +61,7 @@ async def test_semantic_processor_borrows_caller_owned_lock(monkeypatch):
             self.lock = kwargs["lock"]
 
         async def run(self, root_uri):
-            assert root_uri == "viking://resources/demo"
+            assert root_uri == "wfs://resources/demo"
             assert self.lock.handle_id == "lock-1"
 
         def get_stats(self):
@@ -82,7 +82,7 @@ async def test_semantic_processor_borrows_caller_owned_lock(monkeypatch):
 
     await processor.on_dequeue(
         SemanticMsg(
-            uri="viking://resources/demo",
+            uri="wfs://resources/demo",
             context_type="resource",
             recursive=False,
         ).to_dict(),
@@ -188,7 +188,7 @@ async def test_semantic_processor_lock_error_requeues_without_circuit_breaker(mo
     )
 
     msg = SemanticMsg(
-        uri="viking://resources/CONTRIBUTING_CN_3",
+        uri="wfs://resources/CONTRIBUTING_CN_3",
         context_type="resource",
         recursive=True,
         lock_handoff=LockHandoffRef(
@@ -199,7 +199,7 @@ async def test_semantic_processor_lock_error_requeues_without_circuit_breaker(mo
 
     await processor.on_dequeue(msg.to_dict())
 
-    assert reenqueue_calls == ["viking://resources/CONTRIBUTING_CN_3"]
+    assert reenqueue_calls == ["wfs://resources/CONTRIBUTING_CN_3"]
     assert requeue_called is True
     assert success_called is True
     assert error_called is False

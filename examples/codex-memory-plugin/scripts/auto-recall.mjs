@@ -187,7 +187,7 @@ async function resolveScopeSpace(scope) {
 
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
   try {
-    const entries = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`viking://${scope}`)}&output=original`);
+    const entries = await fetchJSON(`/api/v1/fs/ls?uri=${encodeURIComponent(`wfs://${scope}`)}&output=original`);
     if (Array.isArray(entries)) {
       const spaces = entries
         .filter((e) => e?.isDir)
@@ -207,7 +207,7 @@ async function resolveScopeSpace(scope) {
 
 async function resolveTargetUri(targetUri) {
   const trimmed = targetUri.trim().replace(/\/+$/, "");
-  const m = trimmed.match(/^viking:\/\/(user|agent)(?:\/(.*))?$/);
+  const m = trimmed.match(/^wfs:\/\/(user|agent)(?:\/(.*))?$/);
   if (!m) return trimmed;
   const scope = m[1];
   const rawRest = (m[2] ?? "").trim();
@@ -217,7 +217,7 @@ async function resolveTargetUri(targetUri) {
   const reservedDirs = scope === "user" ? USER_RESERVED_DIRS : AGENT_RESERVED_DIRS;
   if (!reservedDirs.has(parts[0])) return trimmed;
   const space = await resolveScopeSpace(scope);
-  return `viking://${scope}/${space}/${parts.join("/")}`;
+  return `wfs://${scope}/${space}/${parts.join("/")}`;
 }
 
 async function searchScope(query, targetUri, limit, bucket = "memories") {
@@ -231,9 +231,9 @@ async function searchScope(query, targetUri, limit, bucket = "memories") {
 
 async function searchAll(query, limit) {
   const [userMems, agentMems, agentSkills] = await Promise.all([
-    searchScope(query, "viking://user/memories", limit),
-    searchScope(query, "viking://agent/memories", limit),
-    searchScope(query, "viking://agent/skills", limit, "skills"),
+    searchScope(query, "wfs://user/memories", limit),
+    searchScope(query, "wfs://agent/memories", limit),
+    searchScope(query, "wfs://agent/skills", limit, "skills"),
   ]);
   log("search_complete", { scope: "user", rawCount: userMems.length, topScores: userMems.slice(0, 3).map((m) => m.score) });
   log("search_complete", { scope: "agent", rawCount: agentMems.length, topScores: agentMems.slice(0, 3).map((m) => m.score) });

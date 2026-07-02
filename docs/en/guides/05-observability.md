@@ -15,7 +15,7 @@ If you just want to know where to look first, start with the table below.
 | Entry point | Best for | Typical use case |
 | --- | --- | --- |
 | `/health`, `observer/*` | service health, queue backlog, VikingDB and VLM status | deployment validation, on-call checks |
-| `ov tui` | `viking://` trees, directory summaries, file content, vector records, image preview for supported image files | development debugging, verifying that data actually landed |
+| `ov tui` | `wfs://` trees, directory summaries, file content, vector records, image preview for supported image files | development debugging, verifying that data actually landed |
 | `Web Studio` (`/studio`) | same-origin web UI on the OV server: Home shows token / retrieval / context-commit trends; Resources browses URIs; Retrieval runs find; Request Logs shows audit | interactive investigation without typing every command |
 | `telemetry` | per-request duration, token usage, vector retrieval, ingestion stages | debugging one specific slow or unexpected call |
 | `/metrics` | request trends, error rates, latency distribution, queue and probe state | Prometheus scraping, Grafana dashboards, alert rules |
@@ -106,7 +106,7 @@ curl http://localhost:1933/api/v1/debug/health \
 Every API response includes an `X-Process-Time` header with the server-side processing time in seconds:
 
 ```bash
-curl -v http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl -v http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-key" 2>&1 | grep X-Process-Time
 # < X-Process-Time: 0.0023
 ```
@@ -124,7 +124,7 @@ ov tui /
 You can also start from a specific scope:
 
 ```bash
-ov tui viking://resources
+ov tui wfs://resources
 ```
 
 Prerequisites:
@@ -135,7 +135,7 @@ Prerequisites:
 
 This TUI is useful for two kinds of inspection:
 
-- checking what actually exists under `viking://resources`, `viking://user`, `viking://agent`, and `viking://session`
+- checking what actually exists under `wfs://resources`, `wfs://user`, `wfs://agent`, and `wfs://session`
 - checking whether vector records for a URI were actually written, and how many there are
 
 Common keys:
@@ -151,7 +151,7 @@ Common keys:
 
 A typical debugging flow is:
 
-1. Run `ov tui viking://resources` and locate the target document or directory.
+1. Run `ov tui wfs://resources` and locate the target document or directory.
 2. Confirm the right-side panel shows `abstract`, `overview`, or file content (supported image files — `png`, `jpg`, `jpeg`, `gif`, `bmp`, `webp`, `tiff`, `tif` — are rendered inline as a preview).
 3. Press `v` to inspect vector records for that URI.
 4. Press `c` to get the total count, and `n` to keep paging if needed.

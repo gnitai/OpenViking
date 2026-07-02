@@ -35,7 +35,7 @@ session.add_message(
     "assistant",
     [
         TextPart("Here's how..."),
-        ContextPart(uri="viking://user/memories/profile.md"),
+        ContextPart(uri="wfs://user/memories/profile.md"),
     ]
 )
 ```
@@ -44,11 +44,11 @@ session.add_message(
 
 ```python
 # Record used contexts
-session.used(contexts=["viking://user/memories/profile.md"])
+session.used(contexts=["wfs://user/memories/profile.md"])
 
 # Record used skill
 session.used(skill={
-    "uri": "viking://agent/skills/code-search",
+    "uri": "wfs://agent/skills/code-search",
     "input": "search config",
     "output": "found 3 files",
     "success": True
@@ -62,7 +62,7 @@ result = session.commit()
 # {
 #   "status": "accepted",
 #   "task_id": "uuid-xxx",
-#   "archive_uri": "viking://session/.../history/archive_001",
+#   "archive_uri": "wfs://session/.../history/archive_001",
 #   "archived": True
 # }
 
@@ -175,7 +175,7 @@ Each `session.commit()` writes a `memory_diff.json` to the archive directory, re
 
 ```json
 {
-  "archive_uri": "viking://session/{session_id}/history/archive_001",
+  "archive_uri": "wfs://session/{session_id}/history/archive_001",
   "extracted_at": "2026-04-21T10:00:00Z",
   "operations": {
     "adds": [
@@ -223,7 +223,7 @@ An empty `memory_diff.json` (all counts zero) is written even when no memory ope
 ## Storage Structure
 
 ```
-viking://session/{session_id}/
+wfs://session/{session_id}/
 ├── messages.jsonl            # Current messages
 ├── .abstract.md              # Current abstract
 ├── .overview.md              # Current overview
@@ -238,13 +238,13 @@ viking://session/{session_id}/
 └── tools/
     └── {tool_id}/tool.json
 
-viking://user/memories/
+wfs://user/memories/
 ├── profile.md                # Append-only user profile
 ├── preferences/
 ├── entities/
 └── events/
 
-viking://agent/memories/
+wfs://agent/memories/
 ├── cases/
 ├── patterns/
 ├── tools/

@@ -73,7 +73,7 @@ class TestWatchE2EBasicFlow:
         """Test creating a resource with watch enabled."""
         client = e2e_client
 
-        to_uri = "viking://resources/watch_e2e_test"
+        to_uri = "wfs://resources/watch_e2e_test"
 
         result = await client.add_resource(
             path=str(watch_test_file),
@@ -99,8 +99,8 @@ class TestWatchE2EBasicFlow:
         """Test querying watch status for resources."""
         client = e2e_client
 
-        watched_uri = "viking://resources/watched_resource"
-        unwatched_uri = "viking://resources/unwatched_resource"
+        watched_uri = "wfs://resources/watched_resource"
+        unwatched_uri = "wfs://resources/unwatched_resource"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -127,7 +127,7 @@ class TestWatchE2EBasicFlow:
         """Test updating watch interval."""
         client = e2e_client
 
-        to_uri = "viking://resources/update_interval_test"
+        to_uri = "wfs://resources/update_interval_test"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -163,7 +163,7 @@ class TestWatchE2EBasicFlow:
         """Test cancelling watch by setting interval to 0 or negative."""
         client = e2e_client
 
-        to_uri = "viking://resources/cancel_test"
+        to_uri = "wfs://resources/cancel_test"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -196,7 +196,7 @@ class TestWatchE2EConflictDetection:
         """Test that conflict is raised when trying to watch an already watched URI."""
         client = e2e_client
 
-        to_uri = "viking://resources/conflict_test"
+        to_uri = "wfs://resources/conflict_test"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -221,7 +221,7 @@ class TestWatchE2EConflictDetection:
         """Test reactivating an inactive watch task."""
         client = e2e_client
 
-        to_uri = "viking://resources/reactivate_test"
+        to_uri = "wfs://resources/reactivate_test"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -270,7 +270,7 @@ class TestWatchE2ESchedulerExecution:
             async def process_resource(self, **kwargs):
                 nonlocal execution_count
                 execution_count += 1
-                return {"root_uri": kwargs.get("to", "viking://resources/test")}
+                return {"root_uri": kwargs.get("to", "wfs://resources/test")}
 
         class MockSkillProcessor:
             async def process_skill(self, **kwargs):
@@ -297,7 +297,7 @@ class TestWatchE2ESchedulerExecution:
 
         task = await watch_manager.create_task(
             path=str(watch_test_file),
-            to_uri="viking://resources/scheduler_test",
+            to_uri="wfs://resources/scheduler_test",
             reason="Scheduler test",
             watch_interval=0.002,
         )
@@ -318,7 +318,7 @@ class TestWatchE2ESchedulerExecution:
 
         class MockResourceProcessor:
             async def process_resource(self, **kwargs):
-                return {"root_uri": kwargs.get("to", "viking://resources/test")}
+                return {"root_uri": kwargs.get("to", "wfs://resources/test")}
 
         class MockSkillProcessor:
             async def process_skill(self, **kwargs):
@@ -346,7 +346,7 @@ class TestWatchE2ESchedulerExecution:
 
         task = await watch_manager.create_task(
             path=str(watch_test_file),
-            to_uri="viking://resources/execution_time_test",
+            to_uri="wfs://resources/execution_time_test",
             reason="Execution time test",
             watch_interval=0.002,
         )
@@ -377,9 +377,9 @@ class TestWatchE2EMultipleResources:
         client = e2e_client
 
         uris = [
-            "viking://resources/multi_test_1",
-            "viking://resources/multi_test_2",
-            "viking://resources/multi_test_3",
+            "wfs://resources/multi_test_1",
+            "wfs://resources/multi_test_2",
+            "wfs://resources/multi_test_3",
         ]
 
         intervals = [30.0, 60.0, 120.0]
@@ -416,8 +416,8 @@ class TestWatchE2EMultipleResources:
         """Test that watch tasks are independent."""
         client = e2e_client
 
-        uri1 = "viking://resources/independent_1"
-        uri2 = "viking://resources/independent_2"
+        uri1 = "wfs://resources/independent_1"
+        uri2 = "wfs://resources/independent_2"
 
         await client.add_resource(
             path=str(watch_test_file),
@@ -460,7 +460,7 @@ class TestWatchE2EErrorHandling:
 
         class MockResourceProcessor:
             async def process_resource(self, **kwargs):
-                return {"root_uri": kwargs.get("to", "viking://resources/test")}
+                return {"root_uri": kwargs.get("to", "wfs://resources/test")}
 
         class MockSkillProcessor:
             async def process_skill(self, **kwargs):
@@ -482,7 +482,7 @@ class TestWatchE2EErrorHandling:
         result = await resource_service.add_resource(
             path=str(watch_test_file),
             ctx=ctx,
-            to="viking://resources/no_watch_test",
+            to="wfs://resources/no_watch_test",
             watch_interval=30.0,
         )
 
@@ -492,5 +492,5 @@ class TestWatchE2EErrorHandling:
     @pytest.mark.asyncio
     async def test_watch_task_nonexistent_resource(self, e2e_client: AsyncOpenViking):
         client = e2e_client
-        task = await get_watch_task(client, "viking://resources/nonexistent")
+        task = await get_watch_task(client, "wfs://resources/nonexistent")
         assert task is None

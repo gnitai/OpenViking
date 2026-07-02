@@ -1217,7 +1217,7 @@ mod tests {
     #[test]
     fn build_write_body_omits_removed_semantic_flags() {
         let body = HttpClient::build_write_body(
-            "viking://resources/demo.md",
+            "wfs://resources/demo.md",
             "updated",
             "replace",
             true,
@@ -1227,7 +1227,7 @@ mod tests {
         assert_eq!(
             body,
             json!({
-                "uri": "viking://resources/demo.md",
+                "uri": "wfs://resources/demo.md",
                 "content": "updated",
                 "mode": "replace",
                 "wait": true,

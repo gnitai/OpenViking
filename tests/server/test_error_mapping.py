@@ -28,41 +28,41 @@ class _HTTPStatusError(Exception):
 
 def test_agfs_client_does_not_exist_maps_to_not_found():
     mapped = map_exception(
-        AGFSClientError("path viking://missing does not exist"),
-        resource="viking://missing",
+        AGFSClientError("path wfs://missing does not exist"),
+        resource="wfs://missing",
         resource_type="file",
     )
 
     assert isinstance(mapped, NotFoundError)
     assert mapped.code == "NOT_FOUND"
-    assert mapped.details == {"resource": "viking://missing", "type": "file"}
+    assert mapped.details == {"resource": "wfs://missing", "type": "file"}
 
 
 def test_agfs_client_invalid_uri_maps_to_invalid_uri():
     mapped = map_exception(
-        AGFSClientError("Invalid URI: viking://"),
-        resource="viking://",
+        AGFSClientError("Invalid URI: wfs://"),
+        resource="wfs://",
     )
 
     assert isinstance(mapped, InvalidURIError)
     assert mapped.code == "INVALID_URI"
-    assert mapped.details["uri"] == "viking://"
+    assert mapped.details["uri"] == "wfs://"
 
 
 def test_agfs_http_status_keeps_storage_mapping():
     mapped = map_exception(
         AGFSHTTPError("No such file or directory", 404),
-        resource="viking://missing",
+        resource="wfs://missing",
         resource_type="file",
     )
 
     assert isinstance(mapped, NotFoundError)
     assert mapped.code == "NOT_FOUND"
-    assert mapped.message == "File not found: viking://missing"
+    assert mapped.message == "File not found: wfs://missing"
 
 
 def test_value_error_invalid_uri_maps_to_invalid_uri():
-    mapped = map_exception(ValueError("invalid viking URI: missing path"), resource="viking://")
+    mapped = map_exception(ValueError("invalid viking URI: missing path"), resource="wfs://")
 
     assert isinstance(mapped, InvalidURIError)
     assert mapped.code == "INVALID_URI"
@@ -145,19 +145,19 @@ def test_bare_model_api_key_required_maps_to_failed_precondition():
 def test_resource_busy_maps_to_structured_conflict():
     mapped = map_exception(
         ResourceBusyError(
-            "Reexact is busy: viking://resources/docs/a.md",
-            uri="viking://resources/docs/a.md",
+            "Reexact is busy: wfs://resources/docs/a.md",
+            uri="wfs://resources/docs/a.md",
             conflict_type="path_busy",
             retryable=True,
         ),
-        resource="viking://resources/docs",
+        resource="wfs://resources/docs",
     )
 
     assert mapped is not None
     assert mapped.code == "CONFLICT"
     assert mapped.details == {
-        "resource": "viking://resources/docs/a.md",
-        "uri": "viking://resources/docs/a.md",
+        "resource": "wfs://resources/docs/a.md",
+        "uri": "wfs://resources/docs/a.md",
         "conflict_type": "path_busy",
         "retryable": True,
     }
@@ -166,14 +166,14 @@ def test_resource_busy_maps_to_structured_conflict():
 def test_lock_acquisition_maps_to_structured_conflict():
     mapped = map_exception(
         LockAcquisitionError("Failed to acquire exact lock"),
-        resource="viking://resources/docs/a.md",
+        resource="wfs://resources/docs/a.md",
     )
 
     assert mapped is not None
     assert mapped.code == "CONFLICT"
     assert mapped.details == {
-        "resource": "viking://resources/docs/a.md",
-        "uri": "viking://resources/docs/a.md",
+        "resource": "wfs://resources/docs/a.md",
+        "uri": "wfs://resources/docs/a.md",
         "conflict_type": "path_busy",
         "retryable": True,
     }

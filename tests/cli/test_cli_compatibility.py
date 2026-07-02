@@ -113,7 +113,7 @@ class TestCLIExitCodes:
         assert r["exit_code"] == 0, "successful command should exit with code 0"
 
     def test_error_exit_code_for_invalid_uri(self):
-        r = ov(["stat", "viking://nonexistent/path/xyz", "-o", "json"])
+        r = ov(["stat", "wfs://nonexistent/path/xyz", "-o", "json"])
         assert r["exit_code"] != 0, "invalid URI should return non-zero exit code"
 
 

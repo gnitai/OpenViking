@@ -35,7 +35,7 @@ class TestUriGeneration:
         memory_type = MemoryTypeSchema(
             memory_type="preferences",
             description="User preference memory",
-            directory="viking://user/{{ user_space }}/memories/preferences",
+            directory="wfs://user/{{ user_space }}/memories/preferences",
             filename_template="{{ topic }}.md",
             fields=[
                 MemoryField(
@@ -59,14 +59,14 @@ class TestUriGeneration:
             user_space="default",
         )
 
-        assert uri == "viking://user/default/memories/preferences/Python code style.md"
+        assert uri == "wfs://user/default/memories/preferences/Python code style.md"
 
     def test_generate_uri_tools(self):
         """Test generating URI for tools memory type."""
         memory_type = MemoryTypeSchema(
             memory_type="tools",
             description="Tool usage memory",
-            directory="viking://agent/{{ agent_space }}/memories/tools",
+            directory="wfs://agent/{{ agent_space }}/memories/tools",
             filename_template="{{ tool_name }}.md",
             fields=[
                 MemoryField(
@@ -84,21 +84,21 @@ class TestUriGeneration:
             agent_space="default",
         )
 
-        assert uri == "viking://agent/default/memories/tools/web_search.md"
+        assert uri == "wfs://agent/default/memories/tools/web_search.md"
 
     def test_generate_uri_only_directory(self):
         """Test generating URI with only directory."""
         memory_type = MemoryTypeSchema(
             memory_type="test",
             description="Test memory",
-            directory="viking://user/{{ user_space }}/memories/test",
+            directory="wfs://user/{{ user_space }}/memories/test",
             filename_template="",
             fields=[],
         )
 
         uri = generate_uri(memory_type, {}, user_space="alice")
 
-        assert uri == "viking://user/alice/memories/test"
+        assert uri == "wfs://user/alice/memories/test"
 
     def test_generate_uri_only_filename(self):
         """Test generating URI with only filename template."""
@@ -126,7 +126,7 @@ class TestUriGeneration:
         memory_type = MemoryTypeSchema(
             memory_type="preferences",
             description="User preference memory",
-            directory="viking://user/{{ user_space }}/memories/preferences",
+            directory="wfs://user/{{ user_space }}/memories/preferences",
             filename_template="{{ topic }}.md",
             fields=[],
         )
@@ -139,7 +139,7 @@ class TestUriGeneration:
         memory_type = MemoryTypeSchema(
             memory_type="preferences",
             description="User preference memory",
-            directory="viking://user/{{ user_space }}/memories/preferences",
+            directory="wfs://user/{{ user_space }}/memories/preferences",
             filename_template="{{ topic }}.md",
             fields=[],
         )
@@ -152,7 +152,7 @@ class TestUriGeneration:
         memory_type = MemoryTypeSchema(
             memory_type="preferences",
             description="User preference memory",
-            directory="viking://user/{{ user_space }}/memories/preferences",
+            directory="wfs://user/{{ user_space }}/memories/preferences",
             filename_template="{{ topic }}.md",
             fields=[
                 MemoryField(
@@ -171,7 +171,7 @@ class TestUriGeneration:
         memory_type = MemoryTypeSchema(
             memory_type="preferences",
             description="User preference memory",
-            directory="viking://user/{{ user_space }}/memories/preferences",
+            directory="wfs://user/{{ user_space }}/memories/preferences",
             filename_template="{{ missing_field }}.md",
             fields=[
                 MemoryField(
@@ -207,21 +207,21 @@ class TestUriValidation:
             MemoryTypeSchema(
                 memory_type="preferences",
                 description="Preferences",
-                directory="viking://user/{{ user_space }}/memories/preferences",
+                directory="wfs://user/{{ user_space }}/memories/preferences",
                 filename_template="{{ topic }}.md",
                 fields=[],
             ),
             MemoryTypeSchema(
                 memory_type="tools",
                 description="Tools",
-                directory="viking://agent/{{ agent_space }}/memories/tools",
+                directory="wfs://agent/{{ agent_space }}/memories/tools",
                 filename_template="{{ tool_name }}.md",
                 fields=[],
             ),
             MemoryTypeSchema(
                 memory_type="disabled",
                 description="Disabled",
-                directory="viking://user/default/memories/disabled",
+                directory="wfs://user/default/memories/disabled",
                 filename_template="",
                 fields=[],
                 enabled=False,
@@ -233,8 +233,8 @@ class TestUriValidation:
         )
 
         assert dirs == {
-            "viking://user/default/memories/preferences",
-            "viking://agent/default/memories/tools",
+            "wfs://user/default/memories/preferences",
+            "wfs://agent/default/memories/tools",
         }
 
     def test_collect_allowed_path_patterns(self):
@@ -243,7 +243,7 @@ class TestUriValidation:
             MemoryTypeSchema(
                 memory_type="preferences",
                 description="Preferences",
-                directory="viking://user/{{ user_space }}/memories/preferences",
+                directory="wfs://user/{{ user_space }}/memories/preferences",
                 filename_template="{{ topic }}.md",
                 fields=[],
             ),
@@ -254,20 +254,20 @@ class TestUriValidation:
         )
 
         assert patterns == {
-            "viking://user/default/memories/preferences/{{ topic }}.md",
+            "wfs://user/default/memories/preferences/{{ topic }}.md",
         }
 
     def test_is_uri_allowed_by_directory(self):
         """Test URI allowed by matching directory prefix."""
         allowed_dirs = {
-            "viking://user/default/memories/preferences",
-            "viking://agent/default/memories/tools",
+            "wfs://user/default/memories/preferences",
+            "wfs://agent/default/memories/tools",
         }
         allowed_patterns = set()
 
         assert (
             is_uri_allowed(
-                "viking://user/default/memories/preferences/test.md",
+                "wfs://user/default/memories/preferences/test.md",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -276,7 +276,7 @@ class TestUriValidation:
 
         assert (
             is_uri_allowed(
-                "viking://user/default/memories/preferences",
+                "wfs://user/default/memories/preferences",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -285,7 +285,7 @@ class TestUriValidation:
 
         assert (
             is_uri_allowed(
-                "viking://user/default/memories/preferences/subdir/test.md",
+                "wfs://user/default/memories/preferences/subdir/test.md",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -296,12 +296,12 @@ class TestUriValidation:
         """Test URI allowed by matching pattern."""
         allowed_dirs = set()
         allowed_patterns = {
-            "viking://user/default/memories/preferences/{{ topic }}.md",
+            "wfs://user/default/memories/preferences/{{ topic }}.md",
         }
 
         assert (
             is_uri_allowed(
-                "viking://user/default/memories/preferences/Python code style.md",
+                "wfs://user/default/memories/preferences/Python code style.md",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -311,13 +311,13 @@ class TestUriValidation:
     def test_is_uri_disallowed(self):
         """Test URI not allowed."""
         allowed_dirs = {
-            "viking://user/default/memories/preferences",
+            "wfs://user/default/memories/preferences",
         }
         allowed_patterns = set()
 
         assert (
             is_uri_allowed(
-                "viking://user/default/memories/other/test.md",
+                "wfs://user/default/memories/other/test.md",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -326,7 +326,7 @@ class TestUriValidation:
 
         assert (
             is_uri_allowed(
-                "viking://user/other/memories/preferences/test.md",
+                "wfs://user/other/memories/preferences/test.md",
                 allowed_dirs,
                 allowed_patterns,
             )
@@ -339,7 +339,7 @@ class TestUriValidation:
             MemoryTypeSchema(
                 memory_type="preferences",
                 description="Preferences",
-                directory="viking://user/{{ user_space }}/memories/preferences",
+                directory="wfs://user/{{ user_space }}/memories/preferences",
                 filename_template="{{ topic }}.md",
                 fields=[],
             ),
@@ -347,7 +347,7 @@ class TestUriValidation:
 
         assert (
             is_uri_allowed_for_schema(
-                "viking://user/default/memories/preferences/test.md",
+                "wfs://user/default/memories/preferences/test.md",
                 schemas,
             )
             is True
@@ -355,7 +355,7 @@ class TestUriValidation:
 
         assert (
             is_uri_allowed_for_schema(
-                "viking://user/default/memories/other/test.md",
+                "wfs://user/default/memories/other/test.md",
                 schemas,
             )
             is False
@@ -375,7 +375,7 @@ class TestUriResolution:
             MemoryTypeSchema(
                 memory_type="preferences",
                 description="User preferences",
-                directory="viking://user/{{ user_space }}/memories/preferences",
+                directory="wfs://user/{{ user_space }}/memories/preferences",
                 filename_template="{{ topic }}.md",
                 fields=[
                     MemoryField(name="topic", field_type=FieldType.STRING, description="Topic"),
@@ -388,7 +388,7 @@ class TestUriResolution:
             MemoryTypeSchema(
                 memory_type="tools",
                 description="Tool memories",
-                directory="viking://agent/{{ agent_space }}/memories/tools",
+                directory="wfs://agent/{{ agent_space }}/memories/tools",
                 filename_template="{{ tool_name }}.md",
                 fields=[
                     MemoryField(
@@ -418,7 +418,7 @@ class TestUriResolution:
                 },
             ],
             delete_uris=[
-                "viking://user/default/memories/preferences/Delete me.md",
+                "wfs://user/default/memories/preferences/Delete me.md",
             ],
         )
 
@@ -431,11 +431,11 @@ class TestUriResolution:
 
         # Verify resolved URIs - both write and edit go to operations list
         uris = [op.uri for op in resolved.operations]
-        assert "viking://user/default/memories/preferences/Write test.md" in uris
-        assert "viking://agent/default/memories/tools/edit_tool.md" in uris
+        assert "wfs://user/default/memories/preferences/Write test.md" in uris
+        assert "wfs://agent/default/memories/tools/edit_tool.md" in uris
         assert (
             resolved.delete_operations[0][1]
-            == "viking://user/default/memories/preferences/Delete me.md"
+            == "wfs://user/default/memories/preferences/Delete me.md"
         )
 
     def test_resolve_all_operations_with_errors(self, test_registry):
@@ -526,7 +526,7 @@ Content"""
 
     def test_write_preserves_memory_type_in_memory_fields_comment(self):
         memory_file = MemoryFile(
-            uri="viking://user/default/memories/preferences/code_style.md",
+            uri="wfs://user/default/memories/preferences/code_style.md",
             memory_type="preferences",
             content="Prefers concise responses.",
             extra_fields={"topic": "code_style"},
@@ -540,22 +540,22 @@ Content"""
         assert parsed["content"] == "Prefers concise responses."
 
     def test_read_preserves_markdown_links_in_content(self):
-        raw_content = """2023-08-22 ChatLog\n\n[Calvin]: Worked with [Frank Ocean](../../../../entities/personal/calvin.md).\n\n<!-- MEMORY_FIELDS\n{\"memory_type\": \"events\", \"links\": [{\"to_uri\": \"viking://user/Calvin/memories/entities/personal/calvin.md\", \"link_type\": \"related_to\", \"match_text\": \"Frank\"}]}\n-->"""
+        raw_content = """2023-08-22 ChatLog\n\n[Calvin]: Worked with [Frank Ocean](../../../../entities/personal/calvin.md).\n\n<!-- MEMORY_FIELDS\n{\"memory_type\": \"events\", \"links\": [{\"to_uri\": \"wfs://user/Calvin/memories/entities/personal/calvin.md\", \"link_type\": \"related_to\", \"match_text\": \"Frank\"}]}\n-->"""
 
         memory_file = MemoryFileUtils.read(
             raw_content,
-            uri="viking://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
+            uri="wfs://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
         )
 
         assert "[Frank Ocean](../../../../entities/personal/calvin.md)" in memory_file.content
 
     def test_memory_file_plain_content_strips_markdown_links(self):
         memory_file = MemoryFile(
-            uri="viking://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
+            uri="wfs://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
             content="Worked with [Frank Ocean](../../../../entities/personal/calvin.md).",
             links=[
                 {
-                    "to_uri": "viking://user/Calvin/memories/entities/personal/calvin.md",
+                    "to_uri": "wfs://user/Calvin/memories/entities/personal/calvin.md",
                     "link_type": "related_to",
                     "match_text": "Frank",
                 }

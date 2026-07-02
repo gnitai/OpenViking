@@ -94,14 +94,14 @@ class TestBuildErrorHandling:
         raise AssertionError(f"SSH URL格式错误应返回 error 或降级, 实际: {data.get('status')}")
 
     def test_error_non_resources_scope_rejected(self, api_client):
-        """TC-E11 非resources scope拒绝：验证 to=viking://sessions/xxx 返回错误"""
+        """TC-E11 非resources scope拒绝：验证 to=wfs://sessions/xxx 返回错误"""
         random_id = str(uuid.uuid4())[:8]
         test_content = f"scope测试内容 {random_id}"
         test_file_path, temp_dir = create_test_file(content=test_content, suffix=".txt")
         try:
             response = api_client.add_resource(
                 path=test_file_path,
-                to="viking://sessions/test_session",
+                to="wfs://sessions/test_session",
                 wait=True,
             )
 

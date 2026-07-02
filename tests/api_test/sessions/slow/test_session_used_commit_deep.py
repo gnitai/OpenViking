@@ -9,7 +9,7 @@ class TestSessionUsedCommitDeep:
             r = api_client.create_session()
             session_id = r.json()["result"]["session_id"]
 
-            ctx_uri = f"viking://resources/used_ctx_{uuid.uuid4().hex[:6]}"
+            ctx_uri = f"wfs://resources/used_ctx_{uuid.uuid4().hex[:6]}"
             used_resp = api_client.session_used(session_id, contexts=[ctx_uri])
             assert used_resp.status_code == 200
 
@@ -61,7 +61,7 @@ class TestSessionUsedCommitDeep:
             session_id = r.json()["result"]["session_id"]
 
             ctx_uris = [
-                f"viking://resources/multi_ctx_{uuid.uuid4().hex[:6]}_{i}" for i in range(3)
+                f"wfs://resources/multi_ctx_{uuid.uuid4().hex[:6]}_{i}" for i in range(3)
             ]
             used_resp = api_client.session_used(session_id, contexts=ctx_uris)
             assert used_resp.status_code == 200
@@ -91,7 +91,7 @@ class TestSessionUsedCommitDeep:
 
     def test_used_on_nonexistent_session(self, api_client):
         fake_session = f"nonexist_{uuid.uuid4().hex[:12]}"
-        used_resp = api_client.session_used(fake_session, contexts=["viking://resources/test"])
+        used_resp = api_client.session_used(fake_session, contexts=["wfs://resources/test"])
         assert used_resp.status_code == 200, (
             f"used on nonexistent session should return error, got {used_resp.status_code}"
         )
@@ -105,7 +105,7 @@ class TestSessionUsedCommitDeep:
             api_client.add_message(session_id, "user", "Used+commit test about distributed systems")
             api_client.add_message(session_id, "assistant", "Distributed systems reply")
 
-            ctx_uri = f"viking://resources/used_commit_{uuid.uuid4().hex[:6]}"
+            ctx_uri = f"wfs://resources/used_commit_{uuid.uuid4().hex[:6]}"
             api_client.session_used(session_id, contexts=[ctx_uri])
 
             commit_resp = api_client.session_commit(session_id)

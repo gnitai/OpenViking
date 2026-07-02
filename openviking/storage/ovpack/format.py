@@ -41,7 +41,7 @@ _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 
 def strip_uri_trailing_slash(uri: str) -> str:
     normalized = VikingURI(uri.strip()).uri
-    return normalized if normalized == "viking://" else normalized.rstrip("/")
+    return normalized if normalized == "wfs://" else normalized.rstrip("/")
 
 
 def join_uri(base_uri: str, rel_path: str) -> str:

@@ -126,7 +126,7 @@ class ResourceService:
 
         Args:
             path: Resource path (local file or URL)
-            to: Target URI (e.g., "viking://resources/my_resource")
+            to: Target URI (e.g., "wfs://resources/my_resource")
             parent: Parent URI under which the resource will be stored
             reason: Reason for adding the resource
             instruction: Processing instruction for semantic extraction

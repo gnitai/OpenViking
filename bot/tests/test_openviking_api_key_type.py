@@ -208,8 +208,8 @@ async def test_search_memory_uses_flat_agent_namespace_by_default(monkeypatch):
     await client.search_memory("hello", "sender-1", "admin", limit=5)
 
     assert calls == [
-        "viking://user/sender-1/memories/",
-        "viking://agent/workspace/memories/",
+        "wfs://user/sender-1/memories/",
+        "wfs://agent/workspace/memories/",
     ]
 
 
@@ -246,8 +246,8 @@ async def test_search_memory_uses_policy_scoped_namespaces(monkeypatch):
     await client.search_memory("hello", "sender-1", "admin", limit=5)
 
     assert calls == [
-        "viking://user/sender-1/agent/workspace/memories/",
-        "viking://agent/workspace/user/sender-1/memories/",
+        "wfs://user/sender-1/agent/workspace/memories/",
+        "wfs://agent/workspace/user/sender-1/memories/",
     ]
 
 
@@ -270,7 +270,7 @@ async def test_skill_memory_uri_respects_namespace_policy(monkeypatch):
 
     assert (
         client._skill_memory_uri("planner", "admin")
-        == "viking://agent/workspace/user/admin/memories/skills/planner.md"
+        == "wfs://agent/workspace/user/admin/memories/skills/planner.md"
     )
 
 
@@ -293,7 +293,7 @@ async def test_openviking_grep_passes_admin_user_id(monkeypatch):
             return {
                 "matches": [
                     {
-                        "uri": "viking://resources/doc.md",
+                        "uri": "wfs://resources/doc.md",
                         "line": 3,
                         "content": "hello admin scoped grep",
                     }
@@ -307,14 +307,14 @@ async def test_openviking_grep_passes_admin_user_id(monkeypatch):
 
     result = await tool.execute(
         SimpleNamespace(workspace_id="workspace"),
-        uri="viking://resources/",
+        uri="wfs://resources/",
         pattern="hello",
         case_insensitive=True,
     )
 
-    assert calls == [("viking://resources/", "hello", True, "admin")]
+    assert calls == [("wfs://resources/", "hello", True, "admin")]
     assert "Found 1 match for pattern 'hello':" in result
-    assert "viking://resources/doc.md" in result
+    assert "wfs://resources/doc.md" in result
 
 
 @pytest.mark.asyncio
@@ -350,7 +350,7 @@ async def test_openviking_search_uses_policy_scoped_user_namespace(monkeypatch):
     result = await tool.execute(tool_context, query="hello")
 
     assert "sender-1/agent/workspace/memories" in result
-    assert calls == ["viking://user/sender-1/agent/workspace/memories/"]
+    assert calls == ["wfs://user/sender-1/agent/workspace/memories/"]
 
 
 @pytest.mark.asyncio
@@ -376,5 +376,5 @@ async def test_openviking_search_user_key_mode_uses_current_user_namespace(monke
     )
     result = await tool.execute(tool_context, query="hello")
 
-    assert "viking://user/memories/" in result
-    assert calls == ["viking://user/memories/"]
+    assert "wfs://user/memories/" in result
+    assert calls == ["wfs://user/memories/"]

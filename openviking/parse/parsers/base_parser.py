@@ -110,6 +110,6 @@ class BaseParser(ABC):
         three-phase parsing architecture.
 
         Returns:
-            Temporary URI string (e.g., "viking://temp/abc12345")
+            Temporary URI string (e.g., "wfs://temp/abc12345")
         """
         return self._get_viking_fs().create_temp_uri()

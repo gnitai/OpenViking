@@ -8,7 +8,7 @@ class TestPermissionAndSecurity:
             api_client.api_key = "invalid-key-12345"
             api_client.session.headers["Authorization"] = "Bearer invalid-key-12345"
 
-            resp = api_client.fs_ls("viking://resources/")
+            resp = api_client.fs_ls("wfs://resources/")
             assert resp.status_code == 401, (
                 f"invalid API key should return 401, got {resp.status_code}: {resp.text[:200]}"
             )
@@ -22,7 +22,7 @@ class TestPermissionAndSecurity:
             api_client.api_key = ""
             api_client.session.headers["Authorization"] = "Bearer "
 
-            resp = api_client.fs_ls("viking://resources/")
+            resp = api_client.fs_ls("wfs://resources/")
             assert resp.status_code == 401, (
                 f"empty API key should return 401/403, got {resp.status_code}: {resp.text[:200]}"
             )
@@ -36,7 +36,7 @@ class TestPermissionAndSecurity:
             resp = api_client._request_with_retry(
                 "GET",
                 f"{api_client.server_url}/api/v1/fs/ls",
-                params={"uri": "viking://resources/"},
+                params={"uri": "wfs://resources/"},
             )
             assert resp.status_code == 401, (
                 f"no auth header should return 401/403, got {resp.status_code}: {resp.text[:200]}"
@@ -129,7 +129,7 @@ class TestPermissionAndSecurity:
         )
 
     def test_path_traversal_prevention(self, api_client):
-        stat_resp = api_client.fs_stat("viking://resources/../../../etc/passwd")
+        stat_resp = api_client.fs_stat("wfs://resources/../../../etc/passwd")
         assert stat_resp.status_code == 403, (
             f"path traversal should be blocked with 403, got {stat_resp.status_code}"
         )

@@ -155,7 +155,7 @@ class MemoryReadTool(MemoryTool):
             "properties": {
                 "uri": {
                     "type": "string",
-                    "description": "Memory URI to read, e.g., 'viking://user/user123/memories/profile.md'",
+                    "description": "Memory URI to read, e.g., 'wfs://user/user123/memories/profile.md'",
                 },
                 "offset": {
                     "type": "integer",
@@ -303,7 +303,7 @@ class MemoryLsTool(MemoryTool):
             "properties": {
                 "uri": {
                     "type": "string",
-                    "description": "Directory URI to list, e.g., 'viking://user/user123/memories'",
+                    "description": "Directory URI to list, e.g., 'wfs://user/user123/memories'",
                 },
             },
             "required": ["uri"],

@@ -137,7 +137,7 @@ store backend，而不是让多个实例各写各的本地 SQLite。
 
 Dashboard 首屏的上下文数据量是当前状态查询，不是历史事件累加：
 
-- `files`：读取 `viking://resources` 的 `stat.count`
+- `files`：读取 `wfs://resources` 的 `stat.count`
 - `skills`：读取当前 Agent `skills` 根目录的 `stat.count`
 - `memories`：读取当前 User 和当前 Agent 的 `memories` 根目录 `stat.count` 后求和
 

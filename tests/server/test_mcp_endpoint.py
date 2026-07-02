@@ -105,7 +105,7 @@ async def test_search_returns_formatted_results(service, client_with_resource):
 
 
 async def test_search_with_target_uri(service):
-    result = await search(query="test", target_uri="viking://resources", limit=3)
+    result = await search(query="test", target_uri="wfs://resources", limit=3)
     assert isinstance(result, str)
 
 
@@ -125,7 +125,7 @@ async def test_find_tool_calls_lightweight_find(service, monkeypatch):
 
     result = await mcp_endpoint.find(
         query="fast lookup",
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
         limit=2,
         min_score=0.2,
     )
@@ -133,7 +133,7 @@ async def test_find_tool_calls_lightweight_find(service, monkeypatch):
     assert result == "No matching context found."
     assert captured["query"] == "fast lookup"
     assert captured["ctx"] == DEFAULT_CTX
-    assert captured["target_uri"] == "viking://resources"
+    assert captured["target_uri"] == "wfs://resources"
     assert captured["limit"] == 2
     assert captured["score_threshold"] == 0.2
 
@@ -165,7 +165,7 @@ async def test_search_tool_calls_context_aware_search_with_session(service, monk
 
     result = await search(
         query="deep lookup",
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
         session_id="session-1",
         limit=4,
         min_score=0.1,
@@ -177,7 +177,7 @@ async def test_search_tool_calls_context_aware_search_with_session(service, monk
     assert captured["session_id"] == "session-1"
     assert captured["query"] == "deep lookup"
     assert captured["ctx"] == DEFAULT_CTX
-    assert captured["target_uri"] == "viking://resources"
+    assert captured["target_uri"] == "wfs://resources"
     assert captured["session"] == session
     assert captured["limit"] == 4
     assert captured["score_threshold"] == 0.1
@@ -189,15 +189,15 @@ async def test_search_tool_calls_context_aware_search_with_session(service, monk
 
 
 async def test_read_nonexistent_uri(service):
-    result = await read("viking://user/default/memories/does_not_exist.md")
+    result = await read("wfs://user/default/memories/does_not_exist.md")
     assert "nothing found" in result.lower()
 
 
 async def test_read_batch(service):
     result = await read(
         [
-            "viking://user/default/memories/does_not_exist_1.md",
-            "viking://user/default/memories/does_not_exist_2.md",
+            "wfs://user/default/memories/does_not_exist_1.md",
+            "wfs://user/default/memories/does_not_exist_2.md",
         ]
     )
     assert "===" in result
@@ -210,16 +210,16 @@ async def test_read_batch(service):
 
 
 async def test_list_root(service):
-    result = await list_tool("viking://user")
+    result = await list_tool("wfs://user")
     assert isinstance(result, str)
 
 
 async def test_list_empty_dir(service):
     ctx = DEFAULT_CTX
     await service.viking_fs.mkdir(
-        "viking://user/default/memories/empty_test", ctx=ctx, exist_ok=True
+        "wfs://user/default/memories/empty_test", ctx=ctx, exist_ok=True
     )
-    result = await list_tool("viking://user/default/memories/empty_test")
+    result = await list_tool("wfs://user/default/memories/empty_test")
     assert isinstance(result, str)
 
 
@@ -404,7 +404,7 @@ async def test_add_resource_remote_url_is_ingested(service, monkeypatch):
     async def fake_add_resource(*, path, ctx, **kwargs):
         captured["path"] = path
         captured["enforce_public_remote_targets"] = kwargs.get("enforce_public_remote_targets")
-        return {"root_uri": "viking://resources/test_remote"}
+        return {"root_uri": "wfs://resources/test_remote"}
 
     monkeypatch.setattr(service.resources, "add_resource", fake_add_resource)
     result = await add_resource(path="https://example.com/x.md")
@@ -431,7 +431,7 @@ async def test_add_resource_temp_file_id_branch_resolves_and_ingests(
     async def fake_add_resource(*, path, ctx, **kwargs):
         captured["path"] = path
         captured["allow_local_path_resolution"] = kwargs.get("allow_local_path_resolution")
-        return {"root_uri": "viking://resources/from_tfid"}
+        return {"root_uri": "wfs://resources/from_tfid"}
 
     monkeypatch.setattr(service.resources, "add_resource", fake_add_resource)
 
@@ -462,7 +462,7 @@ async def test_add_resource_rejects_negative_watch_interval(service):
     result = await add_resource(
         path="https://example.com/foo",
         watch_interval=-1,
-        to="viking://resources/test/neg",
+        to="wfs://resources/test/neg",
     )
     assert "error" in result.lower()
     assert "watch_interval must be >= 0" in result
@@ -473,7 +473,7 @@ async def test_add_resource_rejects_negative_watch_interval(service):
 # ---------------------------------------------------------------------------
 
 
-async def _seed_watch(service, to_uri="viking://resources/test/foo"):
+async def _seed_watch(service, to_uri="wfs://resources/test/foo"):
     wm = service.watch_scheduler.watch_manager
     return await wm.create_task(
         path="https://example.com/foo",
@@ -492,7 +492,7 @@ async def test_list_watches_empty(service):
 
 
 async def test_list_watches_with_seed(service):
-    task = await _seed_watch(service, to_uri="viking://resources/test/list")
+    task = await _seed_watch(service, to_uri="wfs://resources/test/list")
     result = await list_watches()
     assert task.to_uri in result
     assert "active" in result.lower()
@@ -500,7 +500,7 @@ async def test_list_watches_with_seed(service):
 
 
 async def test_cancel_watch_by_uri(service):
-    task = await _seed_watch(service, to_uri="viking://resources/test/cancel")
+    task = await _seed_watch(service, to_uri="wfs://resources/test/cancel")
     result = await cancel_watch(to_uri=task.to_uri)
     assert "cancelled" in result.lower()
     # Verify it's actually gone
@@ -509,7 +509,7 @@ async def test_cancel_watch_by_uri(service):
 
 
 async def test_cancel_watch_not_found(service):
-    result = await cancel_watch(to_uri="viking://resources/never/existed")
+    result = await cancel_watch(to_uri="wfs://resources/never/existed")
     assert "no watch task found" in result.lower()
 
 
@@ -520,8 +520,8 @@ async def test_cancel_watch_not_found(service):
 
 async def test_forget_by_uri_deletes_memory(service):
     ctx = DEFAULT_CTX
-    uri = "viking://user/default/memories/test_forget.md"
-    await service.viking_fs.mkdir("viking://user/default/memories", ctx=ctx, exist_ok=True)
+    uri = "wfs://user/default/memories/test_forget.md"
+    await service.viking_fs.mkdir("wfs://user/default/memories", ctx=ctx, exist_ok=True)
     await service.viking_fs.write(uri, "test data", ctx=ctx)
 
     result = await forget(uri=uri)
@@ -530,10 +530,10 @@ async def test_forget_by_uri_deletes_memory(service):
 
 
 async def test_forget_by_uri_deletes_resource(service):
-    """forget should work on any viking:// URI, not just memories."""
+    """forget should work on any wfs:// URI, not just memories."""
     ctx = DEFAULT_CTX
-    uri = "viking://resources/test_forget_resource.md"
-    await service.viking_fs.mkdir("viking://resources", ctx=ctx, exist_ok=True)
+    uri = "wfs://resources/test_forget_resource.md"
+    await service.viking_fs.mkdir("wfs://resources", ctx=ctx, exist_ok=True)
     await service.viking_fs.write(uri, "resource data", ctx=ctx)
 
     result = await forget(uri=uri)
@@ -542,7 +542,7 @@ async def test_forget_by_uri_deletes_resource(service):
 
 async def test_forget_directory_without_recursive_fails(service):
     ctx = DEFAULT_CTX
-    dir_uri = "viking://resources/test_forget_dir"
+    dir_uri = "wfs://resources/test_forget_dir"
     child_uri = f"{dir_uri}/child.md"
     await service.viking_fs.mkdir(dir_uri, ctx=ctx, exist_ok=True)
     await service.viking_fs.write(child_uri, "child data", ctx=ctx)
@@ -553,7 +553,7 @@ async def test_forget_directory_without_recursive_fails(service):
 
 async def test_forget_directory_with_recursive_succeeds(service):
     ctx = DEFAULT_CTX
-    dir_uri = "viking://resources/test_forget_dir_recursive"
+    dir_uri = "wfs://resources/test_forget_dir_recursive"
     child_uri = f"{dir_uri}/child.md"
     await service.viking_fs.mkdir(dir_uri, ctx=ctx, exist_ok=True)
     await service.viking_fs.write(child_uri, "child data", ctx=ctx)
@@ -568,7 +568,7 @@ async def test_forget_directory_with_recursive_succeeds(service):
 
 
 async def test_grep_no_matches(service):
-    result = await grep(uri="viking://resources", pattern="zzz_no_match_xyz_99999")
+    result = await grep(uri="wfs://resources", pattern="zzz_no_match_xyz_99999")
     assert "No matches found" in result
 
 
@@ -579,14 +579,14 @@ async def test_grep_single_pattern(service, client_with_resource):
 
 
 async def test_grep_multiple_patterns(service):
-    result = await grep(uri="viking://resources", pattern=["pattern_a_xyz", "pattern_b_xyz"])
+    result = await grep(uri="wfs://resources", pattern=["pattern_a_xyz", "pattern_b_xyz"])
     assert "No matches found" in result
     assert "pattern_a_xyz" in result
     assert "pattern_b_xyz" in result
 
 
 async def test_grep_case_insensitive(service):
-    result = await grep(uri="viking://resources", pattern="TEST", case_insensitive=True)
+    result = await grep(uri="wfs://resources", pattern="TEST", case_insensitive=True)
     assert isinstance(result, str)
 
 
@@ -607,7 +607,7 @@ async def test_glob_match_all_md(service, client_with_resource):
 
 
 async def test_glob_with_uri_scope(service):
-    result = await glob(pattern="*", uri="viking://resources")
+    result = await glob(pattern="*", uri="wfs://resources")
     assert isinstance(result, str)
 
 

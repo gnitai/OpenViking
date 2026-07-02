@@ -64,7 +64,7 @@ def main():
     try:
         # ── 1. 浏览团队已有资源 ──
         print("\n== 1. 浏览团队资源 ==")
-        entries = client.ls("viking://")
+        entries = client.ls("wfs://")
         if not entries:
             print("  （空，Alice 还没添加资源）")
         for entry in entries:

@@ -187,7 +187,7 @@ curl -X POST http://localhost:1933/api/v1/resources \
   -H "X-API-Key: your-key" \
   -d "{
     \"temp_file_id\": \"$TEMP_FILE_ID\",
-    \"to\": \"viking://resources/guide.md\",
+    \"to\": \"wfs://resources/guide.md\",
     \"reason\": \"User guide\"
   }"
 ```
@@ -215,7 +215,7 @@ print(f"Added: {result['root_uri']}")
 ## 从 URL 添加到指定位置
 result = client.add_resource(
     "https://example.com/api-docs.md",
-    to="viking://resources/external/api-docs.md",
+    to="wfs://resources/external/api-docs.md",
     reason="External API docs"
 )
 
@@ -225,7 +225,7 @@ client.wait_processed()
 ## 开启定时更新
 client.add_resource(
     "./documents/guide.md",
-    to="viking://resources/guide.md",
+    to="wfs://resources/guide.md",
     watch_interval=60  # 每60分钟更新一次
 )
 ```
@@ -237,27 +237,27 @@ client.add_resource(
 ov add-resource ./documents/guide.md --reason "User guide"
 
 # 从 URL 添加
-ov add-resource https://example.com/guide.md --to viking://resources/guide.md
+ov add-resource https://example.com/guide.md --to wfs://resources/guide.md
 
 # 等待处理完成
 ov add-resource ./documents/guide.md --wait
 
 # 开启定时更新（每60分钟检测一次）
-ov add-resource https://github.com/example/repo.git --to viking://resources/my_repo --watch-interval 60
+ov add-resource https://github.com/example/repo.git --to wfs://resources/my_repo --watch-interval 60
 
 # 取消定时更新
-ov add-resource https://github.com/example/repo.git --to viking://resources/my_repo --watch-interval 0
+ov add-resource https://github.com/example/repo.git --to wfs://resources/my_repo --watch-interval 0
 
 # 添加到指定父目录（父目录必须存在）
-ov add-resource ./documents/guide.md --parent viking://resources/docs
+ov add-resource ./documents/guide.md --parent wfs://resources/docs
 
 # 添加到指定父目录（父目录不存在时自动创建）
-ov add-resource ./documents/guide.md -p viking://resources/docs/2026/05/07
+ov add-resource ./documents/guide.md -p wfs://resources/docs/2026/05/07
 # 或使用完整参数名
-ov add-resource ./documents/guide.md --parent-auto-create viking://resources/docs/2026/05/07
+ov add-resource ./documents/guide.md --parent-auto-create wfs://resources/docs/2026/05/07
 
 # 使用路径变量配合自动创建父目录
-ov add-resource ./documents/guide.md -p viking://resources/docs/{calendar:today}
+ov add-resource ./documents/guide.md -p wfs://resources/docs/{calendar:today}
 ```
 
 #### 4. 响应示例
@@ -269,8 +269,8 @@ ov add-resource ./documents/guide.md -p viking://resources/docs/{calendar:today}
   "status": "ok",
   "result": {
     "status": "success",
-    "root_uri": "viking://resources/guide.md",
-    "temp_uri": "viking://temp/username/04291108_b62dc7/guide.md",
+    "root_uri": "wfs://resources/guide.md",
+    "temp_uri": "wfs://temp/username/04291108_b62dc7/guide.md",
     "source_path": "./documents/guide.md",
     "meta": {},
     "errors": [],
@@ -295,8 +295,8 @@ status       success
 errors       []
 source_path  /Users/bytedance/workspace/github.com/OpenViking/docs/en/api/01-overview.md
 meta         {}
-root_uri     viking://resources/01-overview
-temp_uri     viking://temp/shengmaojia/04291108_b62dc7/01-overview
+root_uri     wfs://resources/01-overview
+temp_uri     wfs://temp/shengmaojia/04291108_b62dc7/01-overview
 ```
 
 **CLI 响应 (JSON 格式，使用 -o json)**
@@ -304,8 +304,8 @@ temp_uri     viking://temp/shengmaojia/04291108_b62dc7/01-overview
 ```json
 {
   "status": "success",
-  "root_uri": "viking://resources/01-overview",
-  "temp_uri": "viking://temp/shengmaojia/04291108_b62dc7/01-overview",
+  "root_uri": "wfs://resources/01-overview",
+  "temp_uri": "wfs://temp/shengmaojia/04291108_b62dc7/01-overview",
   "source_path": "/Users/bytedance/workspace/github.com/OpenViking/docs/en/api/01-overview.md",
   "meta": {},
   "errors": []
@@ -350,7 +350,7 @@ temp_uri     viking://temp/shengmaojia/04291108_b62dc7/01-overview
 
 #### 2. 接口和参数说明
 
-对每个单任务端点，路径中的 `{task_id}` 都可用查询参数 `?to_uri=` 替代。CLI 的 `<key>` 参数会自动分类：任何以 `viking://` 开头的值走 by-URI 路径，其他值视为 task_id（其它 scheme 如 `http://` 会在本地直接报错，避免静默 404）。
+对每个单任务端点，路径中的 `{task_id}` 都可用查询参数 `?to_uri=` 替代。CLI 的 `<key>` 参数会自动分类：任何以 `wfs://` 开头的值走 by-URI 路径，其他值视为 task_id（其它 scheme 如 `http://` 会在本地直接报错，避免静默 404）。
 
 **`PATCH /watches` 请求体**（字段均可选，至少需提供一个）
 
@@ -382,7 +382,7 @@ curl -X POST "http://localhost:1933/api/v1/watches/<task_id>/trigger" \
   -H "X-API-Key: your-key"
 
 # 按 URI 而非 task_id 定位任务
-curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=viking://resources/guide.md" \
+curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=wfs://resources/guide.md" \
   -H "X-API-Key: your-key"
 ```
 
@@ -392,28 +392,28 @@ curl -X DELETE "http://localhost:1933/api/v1/watches?to_uri=viking://resources/g
 # 列出活跃监控任务（去掉 --active-only 可同时包含已暂停的任务）
 ov task watch ls --active-only
 
-# 查看单个监控任务（key 可以是 viking:// URI 或 task_id）
-ov task watch show viking://resources/guide.md
+# 查看单个监控任务（key 可以是 wfs:// URI 或 task_id）
+ov task watch show wfs://resources/guide.md
 
 # 暂停 / 恢复，不丢失配置周期
-ov task watch pause viking://resources/guide.md
-ov task watch resume viking://resources/guide.md
+ov task watch pause wfs://resources/guide.md
+ov task watch resume wfs://resources/guide.md
 
 # 更新周期（或 --active / --reason / --instruction 的任意组合）
-ov task watch update viking://resources/guide.md --interval 30
+ov task watch update wfs://resources/guide.md --interval 30
 
 # 触发一次立即刷新（fire-and-forget）
-ov task watch trigger viking://resources/guide.md
+ov task watch trigger wfs://resources/guide.md
 
 # 删除监控任务
-ov task watch rm viking://resources/guide.md
+ov task watch rm wfs://resources/guide.md
 ```
 
 **MCP**（Agent 控制面——仅最小闭包）
 
 ```text
 list_watches()                                            # 每个任务一行；只暴露 URI，不暴露 task_id
-cancel_watch(to_uri="viking://resources/guide.md")        # 按 URI 幂等删除
+cancel_watch(to_uri="wfs://resources/guide.md")        # 按 URI 幂等删除
 ```
 
 暂停 / 恢复 / 触发 / 更新故意不通过 MCP 暴露——这些 power-user 操作放在 CLI/REST 一侧，以保持 Agent 系统提示词的紧凑。Agent 侧若需创建监控任务或调整周期，仍走 [`add_resource`](#add_resource) 配合 `watch_interval` 和 `to`。
@@ -525,8 +525,8 @@ ov add-skill ./skills/my-skill.json --wait
   "status": "ok",
   "result": {
     "status": "success",
-    "root_uri": "viking://agent/skills/my-skill",
-    "uri": "viking://agent/skills/my-skill",
+    "root_uri": "wfs://agent/skills/my-skill",
+    "uri": "wfs://agent/skills/my-skill",
     "name": "my-skill",
     "auxiliary_files": 2,
     "queue_status": {
@@ -547,8 +547,8 @@ ov add-skill ./skills/my-skill.json --wait
 Note: Skill is being processed in the background.
 Use 'ov wait' to wait for completion, or 'ov observer queue' to check status.
 status          success
-root_uri        viking://agent/skills/my-skill
-uri             viking://agent/skills/my-skill
+root_uri        wfs://agent/skills/my-skill
+uri             wfs://agent/skills/my-skill
 name            my-skill
 auxiliary_files 2
 ```
@@ -558,8 +558,8 @@ auxiliary_files 2
 ```json
 {
   "status": "success",
-  "root_uri": "viking://agent/skills/my-skill",
-  "uri": "viking://agent/skills/my-skill",
+  "root_uri": "wfs://agent/skills/my-skill",
+  "uri": "wfs://agent/skills/my-skill",
   "name": "my-skill",
   "auxiliary_files": 2
 }
@@ -611,7 +611,7 @@ auxiliary_files 2
 - 默认值是 `local`，所以现有客户端在不改动的情况下仍保持原有行为。
 - 只有在你明确需要分布式共享临时上传时，才应显式使用 `upload_mode=shared`。
 - `shared` 模式下返回的一次性 `temp_file_id` 形如 `shared_<upload_id>`。
-- shared 上传对象存放在内部 `viking://upload/...` 命名空间下，不属于普通文件系统浏览空间。
+- shared 上传对象存放在内部 `wfs://upload/...` 命名空间下，不属于普通文件系统浏览空间。
 
 #### 3. 使用示例
 

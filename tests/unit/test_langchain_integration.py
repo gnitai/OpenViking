@@ -43,28 +43,28 @@ def test_langchain_client_exposes_apply_commit_policy_without_legacy_alias():
 def test_retriever_returns_langchain_documents():
     client = InMemoryOpenVikingClient(
         {
-            "viking://user/memories/preferences.md": "The user prefers azure deploys.",
-            "viking://resources/runbooks/release.md": "Release notes mention LangChain.",
+            "wfs://user/memories/preferences.md": "The user prefers azure deploys.",
+            "wfs://resources/runbooks/release.md": "Release notes mention LangChain.",
         }
     )
     retriever = OpenVikingRetriever(
         client=client,
-        target_uri=["viking://user/memories", "viking://resources"],
+        target_uri=["wfs://user/memories", "wfs://resources"],
         limit=3,
     )
 
     docs = retriever.invoke("azure LangChain")
 
     assert {doc.metadata["openviking_uri"] for doc in docs} == {
-        "viking://resources/runbooks/release.md",
-        "viking://user/memories/preferences.md",
+        "wfs://resources/runbooks/release.md",
+        "wfs://user/memories/preferences.md",
     }
     assert all(doc.page_content for doc in docs)
 
 
 def test_create_openviking_tools_exposes_common_viking_primitives():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "The user likes LangGraph agents."}
+        {"wfs://user/memories/profile.md": "The user likes LangGraph agents."}
     )
     tools = create_openviking_tools(client=client, profile="agent")
     names = {tool.name for tool in tools}
@@ -85,7 +85,7 @@ def test_create_openviking_tools_exposes_common_viking_primitives():
     assert "viking_forget" not in names
 
     find_tool = next(tool for tool in tools if tool.name == "viking_find")
-    assert "viking://user/memories/profile.md" in find_tool.invoke(
+    assert "wfs://user/memories/profile.md" in find_tool.invoke(
         {"query": "LangGraph", "limit": 2}
     )
 
@@ -136,26 +136,26 @@ def test_create_openviking_tools_profiles_control_destructive_tools():
 
 def test_openviking_tools_read_l0_l1_l2_content_modes():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/release.md": "Release runbook full details."}
+        {"wfs://resources/runbooks/release.md": "Release runbook full details."}
     )
     tools = {tool.name: tool for tool in create_openviking_tools(client=client)}
     read_tool = tools["viking_read"]
 
     abstract = read_tool.invoke(
         {
-            "uris": "viking://resources/runbooks/release.md",
+            "uris": "wfs://resources/runbooks/release.md",
             "content_mode": "abstract",
         }
     )
     overview = read_tool.invoke(
         {
-            "uris": "viking://resources/runbooks/release.md",
+            "uris": "wfs://resources/runbooks/release.md",
             "content_mode": "overview",
         }
     )
     full = read_tool.invoke(
         {
-            "uris": "viking://resources/runbooks/release.md",
+            "uris": "wfs://resources/runbooks/release.md",
             "content_mode": "read",
         }
     )
@@ -241,7 +241,7 @@ def test_openviking_client_retries_recoverable_read_with_fresh_client(monkeypatc
             return {
                 "memories": [
                     {
-                        "uri": "viking://user/default/memories/profile.md",
+                        "uri": "wfs://user/default/memories/profile.md",
                         "abstract": "OpenViking recovered",
                         "overview": "OpenViking recovered",
                     }
@@ -343,7 +343,7 @@ def test_retriever_recovers_from_stale_cached_remote_client(monkeypatch):
                 "memories": [],
                 "resources": [
                     {
-                        "uri": "viking://resources/recovered.md",
+                        "uri": "wfs://resources/recovered.md",
                         "level": 1,
                         "abstract": "Recovered resource",
                         "overview": "Recovered resource overview",
@@ -360,7 +360,7 @@ def test_retriever_recovers_from_stale_cached_remote_client(monkeypatch):
     retriever = OpenVikingRetriever(url="http://localhost:1933")
     docs = retriever.invoke("recover")
 
-    assert [doc.metadata["openviking_uri"] for doc in docs] == ["viking://resources/recovered.md"]
+    assert [doc.metadata["openviking_uri"] for doc in docs] == ["wfs://resources/recovered.md"]
     assert len(instances) == 2
     assert instances[0].closed is True
 
@@ -467,7 +467,7 @@ def test_system_messages_are_never_persisted_to_openviking_history():
 
 def test_session_context_assembler_uses_archive_active_messages_and_recall():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Azure deployments use OpenViking context."}
+        {"wfs://resources/runbooks/deploy.md": "Azure deployments use OpenViking context."}
     )
     client.add_message("assembler-session", "user", content="Earlier user turn")
     client.add_message("assembler-session", "assistant", content="Earlier assistant turn")
@@ -476,7 +476,7 @@ def test_session_context_assembler_uses_archive_active_messages_and_recall():
 
     assembler = OpenVikingSessionContextAssembler(
         client=client,
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
     )
     assembled = assembler.assemble(session_id="assembler-session", query="azure context")
 
@@ -491,7 +491,7 @@ def test_session_context_assembler_uses_archive_active_messages_and_recall():
 
 def test_with_openviking_context_wraps_runnable_with_history():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Azure is the deployment color."}
+        {"wfs://resources/runbooks/deploy.md": "Azure is the deployment color."}
     )
 
     def answer(messages):
@@ -502,7 +502,7 @@ def test_with_openviking_context_wraps_runnable_with_history():
         RunnableLambda(answer),
         client=client,
         session_id="wrapped-session",
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
     )
 
     result = runnable.invoke(
@@ -527,7 +527,7 @@ def test_with_openviking_context_dynamic_session_requires_config():
 
 def test_with_openviking_context_dynamic_session_uses_configured_session():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Azure dynamic context."}
+        {"wfs://resources/runbooks/deploy.md": "Azure dynamic context."}
     )
 
     def answer(messages):
@@ -537,7 +537,7 @@ def test_with_openviking_context_dynamic_session_uses_configured_session():
     runnable = with_openviking_context(
         RunnableLambda(answer),
         client=client,
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
     )
 
     result = runnable.invoke(
@@ -552,12 +552,12 @@ def test_with_openviking_context_dynamic_session_uses_configured_session():
 
 def test_with_openviking_context_dynamic_session_can_use_thread_id_key():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Thread dynamic context."}
+        {"wfs://resources/runbooks/deploy.md": "Thread dynamic context."}
     )
     runnable = with_openviking_context(
         RunnableLambda(lambda _messages: AIMessage(content="thread ok")),
         client=client,
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
         session_id_config_key="thread_id",
     )
 
@@ -573,7 +573,7 @@ def test_with_openviking_context_dynamic_session_can_use_thread_id_key():
 
 def test_with_openviking_context_clears_pending_context_after_failure():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Azure failure context."}
+        {"wfs://resources/runbooks/deploy.md": "Azure failure context."}
     )
     calls = {"count": 0}
 
@@ -587,7 +587,7 @@ def test_with_openviking_context_clears_pending_context_after_failure():
         RunnableLambda(answer),
         client=client,
         session_id="failure-session",
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
     )
 
     with pytest.raises(RuntimeError, match="synthetic model failure"):
@@ -603,7 +603,7 @@ def test_with_openviking_context_clears_pending_context_after_failure():
 
 def test_with_openviking_context_dynamic_error_clears_pending_context():
     client = InMemoryOpenVikingClient(
-        {"viking://resources/runbooks/deploy.md": "Azure dynamic failure context."}
+        {"wfs://resources/runbooks/deploy.md": "Azure dynamic failure context."}
     )
     calls = {"count": 0}
 
@@ -616,7 +616,7 @@ def test_with_openviking_context_dynamic_error_clears_pending_context():
     runnable = with_openviking_context(
         RunnableLambda(answer),
         client=client,
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
     )
 
     with pytest.raises(RuntimeError, match="synthetic dynamic failure"):
@@ -677,7 +677,7 @@ def test_archive_search_without_archive_id_searches_raw_history():
     )
 
     assert "Hidden cobalt archive detail" in searched
-    assert "viking://session/archive-search-session/history" in searched
+    assert "wfs://session/archive-search-session/history" in searched
 
 
 def test_archive_grep_pattern_uses_backend_safe_token_regex():
@@ -817,29 +817,29 @@ def test_langgraph_store_batch_rejects_ttl_writes():
     ("root_uri", "shorthand_prefix", "canonical_prefix"),
     [
         (
-            "viking://user/memories/langgraph_store",
-            "viking://user/memories",
-            "viking://user/default/memories",
+            "wfs://user/memories/langgraph_store",
+            "wfs://user/memories",
+            "wfs://user/default/memories",
         ),
         (
-            "viking://user/memories/langgraph_store",
-            "viking://user/memories",
-            "viking://user/default/agent/support/memories",
+            "wfs://user/memories/langgraph_store",
+            "wfs://user/memories",
+            "wfs://user/default/agent/support/memories",
         ),
         (
-            "viking://agent/memories/langgraph_store",
-            "viking://agent/memories",
-            "viking://agent/support/memories",
+            "wfs://agent/memories/langgraph_store",
+            "wfs://agent/memories",
+            "wfs://agent/support/memories",
         ),
         (
-            "viking://agent/memories/langgraph_store",
-            "viking://agent/memories",
-            "viking://agent/support/user/default/memories",
+            "wfs://agent/memories/langgraph_store",
+            "wfs://agent/memories",
+            "wfs://agent/support/user/default/memories",
         ),
         (
-            "viking://agent/skills/langgraph_store",
-            "viking://agent/skills",
-            "viking://agent/support/user/default/skills",
+            "wfs://agent/skills/langgraph_store",
+            "wfs://agent/skills",
+            "wfs://agent/support/user/default/skills",
         ),
     ],
     ids=[
@@ -869,7 +869,7 @@ def test_langgraph_store_accepts_canonical_result_uris_for_shorthand_root(
         def read(self, uri, *args, **kwargs):
             return super().read(self._canonicalize(uri), *args, **kwargs)
 
-        def glob(self, pattern, uri="viking://"):
+        def glob(self, pattern, uri="wfs://"):
             return super().glob(pattern, self._canonicalize(uri))
 
         def find(self, query, target_uri="", **kwargs):
@@ -893,18 +893,18 @@ def test_langgraph_store_accepts_canonical_result_uris_for_shorthand_root(
 def test_langgraph_store_ignores_unrelated_canonical_result_uris():
     store = OpenVikingStore(
         client=InMemoryOpenVikingClient(),
-        root_uri="viking://user/memories/langgraph_store",
+        root_uri="wfs://user/memories/langgraph_store",
     )
 
     assert (
         store._parse_index_uri(
-            "viking://user/default/agent/support/memories/other_store/index/users/ada.md"
+            "wfs://user/default/agent/support/memories/other_store/index/users/ada.md"
         )
         is None
     )
     assert (
         store._parse_index_uri(
-            "viking://agent/support/user/default/memories/langgraph_store/index/users/ada.md"
+            "wfs://agent/support/user/default/memories/langgraph_store/index/users/ada.md"
         )
         is None
     )
@@ -954,7 +954,7 @@ def test_langgraph_store_uses_create_first_and_preserves_created_at_on_replace()
     store.put(("users",), "ada", {"color": "teal"})
     second = store.get(("users",), "ada")
 
-    data_uri = "viking://user/memories/langgraph_store/data/users/ada.json"
+    data_uri = "wfs://user/memories/langgraph_store/data/users/ada.json"
     assert client.write_modes[0] == (data_uri, "create")
     assert (data_uri, "replace") in client.write_modes
     assert second.created_at == first.created_at
@@ -976,11 +976,11 @@ def test_pending_token_commit_does_not_create_missing_session():
 
 def test_langgraph_middleware_injects_recall_and_captures_messages():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "The user prefers azure deployments."}
+        {"wfs://user/memories/profile.md": "The user prefers azure deployments."}
     )
     middleware = OpenVikingContextMiddleware(
         client=client,
-        target_uri="viking://user/memories",
+        target_uri="wfs://user/memories",
         session_id_resolver=lambda state, runtime: "middleware-session",
         commit_on_after_agent=True,
     )
@@ -1024,7 +1024,7 @@ def test_langgraph_middleware_injects_recall_and_captures_messages():
 
 def test_langgraph_middleware_does_not_duplicate_active_messages_in_context():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "Middleware recall uses green context."}
+        {"wfs://user/memories/profile.md": "Middleware recall uses green context."}
     )
     client.add_message(
         "middleware-active-session",
@@ -1038,7 +1038,7 @@ def test_langgraph_middleware_does_not_duplicate_active_messages_in_context():
     )
     middleware = OpenVikingContextMiddleware(
         client=client,
-        target_uri="viking://user/memories",
+        target_uri="wfs://user/memories",
         session_id_resolver=lambda state, runtime: "middleware-active-session",
     )
     captured_request = {}
@@ -1066,11 +1066,11 @@ def test_langgraph_middleware_does_not_duplicate_active_messages_in_context():
 
 def test_langgraph_middleware_uses_runtime_thread_id():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "Runtime thread users prefer teal."}
+        {"wfs://user/memories/profile.md": "Runtime thread users prefer teal."}
     )
     middleware = OpenVikingContextMiddleware(
         client=client,
-        target_uri="viking://user/memories",
+        target_uri="wfs://user/memories",
     )
     captured_request = {}
 
@@ -1111,11 +1111,11 @@ def test_langgraph_middleware_uses_runtime_thread_id():
 
 def test_langgraph_middleware_requires_explicit_session_id():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "Shared fallback should never be used."}
+        {"wfs://user/memories/profile.md": "Shared fallback should never be used."}
     )
     middleware = OpenVikingContextMiddleware(
         client=client,
-        target_uri="viking://user/memories",
+        target_uri="wfs://user/memories",
     )
 
     class Request:
@@ -1290,11 +1290,11 @@ def test_langgraph_middleware_signature_includes_dict_tool_output():
 
 def test_langgraph_middleware_clears_pending_context_on_duplicate_retry():
     client = InMemoryOpenVikingClient(
-        {"viking://user/memories/profile.md": "Retry cleanup context."}
+        {"wfs://user/memories/profile.md": "Retry cleanup context."}
     )
     middleware = OpenVikingContextMiddleware(
         client=client,
-        target_uri="viking://user/memories",
+        target_uri="wfs://user/memories",
         session_id_resolver=lambda state, runtime: "middleware-pending-cleanup",
     )
 

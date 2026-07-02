@@ -18,8 +18,8 @@ def test_graph_view_module_compiles_without_escape_warnings():
 def test_render_graph_html_supports_relative_markdown_links():
     nodes = [
         {
-            "id": "viking://user/Caroline/memories/profile.md",
-            "uri": "viking://user/Caroline/memories/profile.md",
+            "id": "wfs://user/Caroline/memories/profile.md",
+            "uri": "wfs://user/Caroline/memories/profile.md",
             "label": "profile",
             "memory_type": "profile",
             "category": "",
@@ -46,20 +46,20 @@ def test_render_graph_html_renders_tooltip_content_as_markdown():
 def test_render_graph_html_embeds_full_markdown_content_and_link_targets():
     nodes = [
         {
-            "id": "viking://user/Caroline/memories/profile.md",
-            "uri": "viking://user/Caroline/memories/profile.md",
+            "id": "wfs://user/Caroline/memories/profile.md",
+            "uri": "wfs://user/Caroline/memories/profile.md",
             "label": "profile",
             "memory_type": "profile",
             "category": "",
             "content_preview": "# Caroline",
-            "content_full": "# Caroline\n\nSee [music](viking://user/Caroline/memories/preferences/music.md)",
+            "content_full": "# Caroline\n\nSee [music](wfs://user/Caroline/memories/preferences/music.md)",
             "content_truncated": False,
         }
     ]
     edges = [
         {
-            "source": "viking://user/Caroline/memories/profile.md",
-            "target": "viking://user/Caroline/memories/preferences/music.md",
+            "source": "wfs://user/Caroline/memories/profile.md",
+            "target": "wfs://user/Caroline/memories/preferences/music.md",
             "link_type": "related_to",
             "weight": 1.0,
             "description": "music preference",
@@ -68,7 +68,7 @@ def test_render_graph_html_embeds_full_markdown_content_and_link_targets():
 
     html = _render_graph_html(nodes, edges)
 
-    assert '"content_full": "# Caroline\\n\\nSee [music](viking://user/Caroline/memories/preferences/music.md)"' in html
+    assert '"content_full": "# Caroline\\n\\nSee [music](wfs://user/Caroline/memories/preferences/music.md)"' in html
     assert "function renderMarkdown" in html
     assert "detailContent.innerHTML = renderMarkdown(node.content_full || node.content_preview || '', node.uri || '');" in html
     assert "detailContent.addEventListener('click'" in html
@@ -85,8 +85,8 @@ def test_render_graph_html_clicking_detail_link_centers_target_node():
 def test_render_graph_html_uses_dark_node_background_with_light_text():
     nodes = [
         {
-            "id": "viking://agent/demo/memories/experiences/a.md",
-            "uri": "viking://agent/demo/memories/experiences/a.md",
+            "id": "wfs://agent/demo/memories/experiences/a.md",
+            "uri": "wfs://agent/demo/memories/experiences/a.md",
             "label": "a",
             "memory_type": "experiences",
             "category": "",
@@ -106,8 +106,8 @@ def test_render_graph_html_uses_dark_node_background_with_light_text():
 def test_render_graph_html_embeds_vis_network_viewer_metadata():
     nodes = [
         {
-            "id": "viking://agent/demo/memories/experiences/a.md",
-            "uri": "viking://agent/demo/memories/experiences/a.md",
+            "id": "wfs://agent/demo/memories/experiences/a.md",
+            "uri": "wfs://agent/demo/memories/experiences/a.md",
             "label": "a",
             "memory_type": "experiences",
             "category": "",
@@ -117,8 +117,8 @@ def test_render_graph_html_embeds_vis_network_viewer_metadata():
     ]
     edges = [
         {
-            "source": "viking://agent/demo/memories/experiences/a.md",
-            "target": "viking://agent/demo/memories/experiences/b.md",
+            "source": "wfs://agent/demo/memories/experiences/a.md",
+            "target": "wfs://agent/demo/memories/experiences/b.md",
             "link_type": "related_to",
             "weight": 0.8,
             "description": "same topic",
@@ -197,8 +197,8 @@ def test_render_graph_html_restores_visibility_without_rebuilding_dataset():
 def test_render_graph_html_inverts_selected_node_colors():
     nodes = [
         {
-            "id": "viking://agent/demo/memories/experiences/a.md",
-            "uri": "viking://agent/demo/memories/experiences/a.md",
+            "id": "wfs://agent/demo/memories/experiences/a.md",
+            "uri": "wfs://agent/demo/memories/experiences/a.md",
             "label": "a",
             "memory_type": "experiences",
             "category": "",
@@ -239,22 +239,22 @@ ${escapeHtml(edge.description || '(no description)')}`);""" in html
 def test_render_graph_html_renders_dynamic_relationship_legend_from_edges():
     edges = [
         {
-            "source": "viking://user/Caroline/memories/profile.md",
-            "target": "viking://user/Caroline/memories/preferences/music.md",
+            "source": "wfs://user/Caroline/memories/profile.md",
+            "target": "wfs://user/Caroline/memories/preferences/music.md",
             "link_type": "inspired_by",
             "weight": 1.0,
             "description": "same hash color",
         },
         {
-            "source": "viking://user/Caroline/memories/preferences/music.md",
-            "target": "viking://user/Caroline/memories/events/show.md",
+            "source": "wfs://user/Caroline/memories/preferences/music.md",
+            "target": "wfs://user/Caroline/memories/events/show.md",
             "link_type": "works_with",
             "weight": 1.0,
             "description": "different hash color",
         },
         {
-            "source": "viking://user/Caroline/memories/events/show.md",
-            "target": "viking://user/Caroline/memories/entities/band.md",
+            "source": "wfs://user/Caroline/memories/events/show.md",
+            "target": "wfs://user/Caroline/memories/entities/band.md",
             "link_type": "inspired_by",
             "weight": 0.5,
             "description": "same hash color again",
@@ -277,8 +277,8 @@ def test_render_graph_html_renders_dynamic_relationship_legend_from_edges():
 def test_render_graph_html_keeps_node_label_plain_text_while_rendering_body_links():
     nodes = [
         {
-            "id": "viking://user/Caroline/memories/profile.md",
-            "uri": "viking://user/Caroline/memories/profile.md",
+            "id": "wfs://user/Caroline/memories/profile.md",
+            "uri": "wfs://user/Caroline/memories/profile.md",
             "label": "Caroline profile",
             "memory_type": "profile",
             "category": "",

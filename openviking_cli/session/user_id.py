@@ -107,10 +107,10 @@ class UserIdentifier(object):
         return hashlib.md5(self._agent_space_source().encode()).hexdigest()[:12]
 
     def memory_space_uri(self) -> str:
-        return f"viking://agent/{self.agent_space_name()}/memories"
+        return f"wfs://agent/{self.agent_space_name()}/memories"
 
     def work_space_uri(self) -> str:
-        return f"viking://agent/{self.agent_space_name()}/workspaces"
+        return f"wfs://agent/{self.agent_space_name()}/workspaces"
 
     def to_dict(self):
         return {

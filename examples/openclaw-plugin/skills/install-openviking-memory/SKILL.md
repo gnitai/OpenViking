@@ -436,7 +436,7 @@ Expected output:
 
 The context-engine pipeline has three distinct stages — keep them apart, especially when telling users when memories actually appear in `~/.openviking/data/`:
 
-- **Archive / capture (context-engine `afterTurn`)**: at the end of a user turn, the plugin commits user/assistant messages to the OpenViking session via `POST /api/v1/sessions/.../messages`. This is **archive only** — no memory extraction yet. You'll see session message counts grow on the server, but no new files under `viking://user/.../memories/`.
+- **Archive / capture (context-engine `afterTurn`)**: at the end of a user turn, the plugin commits user/assistant messages to the OpenViking session via `POST /api/v1/sessions/.../messages`. This is **archive only** — no memory extraction yet. You'll see session message counts grow on the server, but no new files under `wfs://user/.../memories/`.
 - **Memory extraction (on `/compact`)**: memory extraction runs when the user invokes OpenClaw's `/compact` command. The server-side extraction pipeline reads the archived session and writes new memories. The plugin's `after_compaction` hook is currently reserved; the extraction itself is driven by the server. **No `/compact`, no new memory files.**
   - `captureMode: "semantic"` (default): server extraction pipeline filters all qualifying text.
   - `captureMode: "keyword"`: only text matching trigger words (e.g. "remember", "preference") is considered.
@@ -493,7 +493,7 @@ These are the keys under `plugins.entries.openviking.config` in `openclaw.json`.
 | `agent_prefix` | `""` | Prefix for routing memories per agent. Letters / digits / `_` / `-`. |
 | `accountId` | — | Required when `apiKey` is a root key. |
 | `userId` | — | Required when `apiKey` is a root key. |
-| `targetUri` | `viking://user/memories` | Default search scope URI. |
+| `targetUri` | `wfs://user/memories` | Default search scope URI. |
 | `timeoutMs` | (plugin default) | HTTP timeout for OpenViking calls. |
 | `autoCapture` | `true` | Auto-archive turn messages to OpenViking session at `afterTurn` (extraction itself runs on `/compact`, not here). |
 | `captureMode` | `"semantic"` | Filter mode used by the server-side extraction pipeline: `semantic` or `keyword`. |

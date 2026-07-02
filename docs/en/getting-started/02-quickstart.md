@@ -209,7 +209,7 @@ Overview:
 ...
 
 Search results:
-  viking://resources/... (score: 0.8523)
+  wfs://resources/... (score: 0.8523)
   ...
 ```
 

@@ -8,9 +8,9 @@ export function fileNameFromUri(uri: string): string {
 export function normalizeDirUri(uri: string): string {
   const value = uri.trim()
   if (!value) {
-    return 'viking://'
+    return 'wfs://'
   }
-  if (value === 'viking://') {
+  if (value === 'wfs://') {
     return value
   }
   return value.endsWith('/') ? value : `${value}/`
@@ -19,9 +19,9 @@ export function normalizeDirUri(uri: string): string {
 export function normalizeFileUri(uri: string): string {
   const value = uri.trim()
   if (!value) {
-    return 'viking://'
+    return 'wfs://'
   }
-  if (value === 'viking://') {
+  if (value === 'wfs://') {
     return value
   }
   return value.endsWith('/') ? value.slice(0, -1) : value
@@ -29,16 +29,16 @@ export function normalizeFileUri(uri: string): string {
 
 export function parentUri(uri: string): string {
   const normalized = normalizeDirUri(uri)
-  if (normalized === 'viking://') {
+  if (normalized === 'wfs://') {
     return normalized
   }
 
-  const body = normalized.slice('viking://'.length, -1)
+  const body = normalized.slice('wfs://'.length, -1)
   if (!body.includes('/')) {
-    return 'viking://'
+    return 'wfs://'
   }
 
-  return `viking://${body.slice(0, body.lastIndexOf('/') + 1)}`
+  return `wfs://${body.slice(0, body.lastIndexOf('/') + 1)}`
 }
 
 export function joinUri(baseUri: string, child: string): string {
@@ -46,7 +46,7 @@ export function joinUri(baseUri: string, child: string): string {
   if (!raw) {
     return normalizeDirUri(baseUri)
   }
-  if (raw.startsWith('viking://')) {
+  if (raw.startsWith('wfs://')) {
     return raw
   }
 

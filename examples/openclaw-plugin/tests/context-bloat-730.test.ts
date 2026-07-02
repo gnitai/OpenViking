@@ -26,10 +26,10 @@ describe("Slice A: recallScoreThreshold default", () => {
     const cfg = memoryOpenVikingConfigSchema.parse({});
 
     const memories = [
-      mockMemory({ uri: "viking://user/memories/1", score: 0.05 }),
-      mockMemory({ uri: "viking://user/memories/2", score: 0.10 }),
-      mockMemory({ uri: "viking://user/memories/3", score: 0.20 }),
-      mockMemory({ uri: "viking://user/memories/4", score: 0.50 }),
+      mockMemory({ uri: "wfs://user/memories/1", score: 0.05 }),
+      mockMemory({ uri: "wfs://user/memories/2", score: 0.10 }),
+      mockMemory({ uri: "wfs://user/memories/3", score: 0.20 }),
+      mockMemory({ uri: "wfs://user/memories/4", score: 0.50 }),
     ];
 
     const result = postProcessMemories(memories, {
@@ -40,8 +40,8 @@ describe("Slice A: recallScoreThreshold default", () => {
     // Only scores >= 0.15 should pass
     expect(result).toHaveLength(2);
     expect(result.map((m) => m.uri)).toEqual([
-      "viking://user/memories/4",
-      "viking://user/memories/3",
+      "wfs://user/memories/4",
+      "wfs://user/memories/3",
     ]);
   });
 
@@ -59,13 +59,13 @@ describe("Slice B: prefer abstract over full content fetch", () => {
 
     const memories: FindResultItem[] = [
       mockMemory({
-        uri: "viking://user/memories/1",
+        uri: "wfs://user/memories/1",
         abstract: "Short abstract text",
         level: 2,
         score: 0.8,
       }),
       mockMemory({
-        uri: "viking://user/memories/2",
+        uri: "wfs://user/memories/2",
         abstract: "",
         level: 2,
         score: 0.7,
@@ -79,7 +79,7 @@ describe("Slice B: prefer abstract over full content fetch", () => {
     // Item 1 has abstract — read() should NOT be called for it
     // Item 2 has empty abstract — read() SHOULD be called
     expect(mockRead).toHaveBeenCalledTimes(1);
-    expect(mockRead).toHaveBeenCalledWith("viking://user/memories/2");
+    expect(mockRead).toHaveBeenCalledWith("wfs://user/memories/2");
     expect(lines[0]).toContain("Short abstract text");
   });
 });
@@ -93,7 +93,7 @@ describe("Slice D: individual memory integrity", () => {
 
     const memories: FindResultItem[] = [
       mockMemory({
-        uri: "viking://user/memories/1",
+        uri: "wfs://user/memories/1",
         abstract: "",
         level: 2,
         score: 0.8,
@@ -116,7 +116,7 @@ describe("Slice E: character budget enforcement", () => {
     // Each memory ~200 chars -> ~50 tokens per line (200 chars + "- [memory] " prefix)
     const memories: FindResultItem[] = Array.from({ length: 10 }, (_, i) =>
       mockMemory({
-        uri: `viking://user/memories/${i}`,
+        uri: `wfs://user/memories/${i}`,
         abstract: "A".repeat(200),
         level: 2,
         score: 0.8 - i * 0.01,
@@ -157,13 +157,13 @@ describe("Slice E: character budget enforcement", () => {
 describe("Slice C: isLeafLikeMemory narrowing", () => {
   it("should NOT boost .md URI items that are not level 2", () => {
     const mdButNotLeaf = mockMemory({
-      uri: "viking://user/resources/notes.md",
+      uri: "wfs://user/resources/notes.md",
       level: 1,
       score: 0.30,
       abstract: "Some notes file",
     });
     const actualLeaf = mockMemory({
-      uri: "viking://user/memories/real-memory",
+      uri: "wfs://user/memories/real-memory",
       level: 2,
       score: 0.30,
       abstract: "Actual leaf memory",
@@ -176,6 +176,6 @@ describe("Slice C: isLeafLikeMemory narrowing", () => {
     );
 
     // The level-2 item should rank higher (gets boost), .md non-leaf should not
-    expect(result[0]!.uri).toBe("viking://user/memories/real-memory");
+    expect(result[0]!.uri).toBe("wfs://user/memories/real-memory");
   });
 });

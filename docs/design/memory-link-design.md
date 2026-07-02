@@ -1372,8 +1372,8 @@ content 保持纯净，不插入 Markdown 链接。链接存储在 `.relations.j
 [
   {
     "id": "link_1",
-    "from_uri": "viking://user/caroline/memories/preferences/Python_code_style.md",
-    "to_uri": "viking://user/caroline/memories/profile.md",
+    "from_uri": "wfs://user/caroline/memories/preferences/Python_code_style.md",
+    "to_uri": "wfs://user/caroline/memories/profile.md",
     "direction": "links",
     "link_type": "belongs_to",
     "weight": 0.9,
@@ -1385,8 +1385,8 @@ content 保持纯净，不插入 Markdown 链接。链接存储在 `.relations.j
   },
   {
     "id": "link_2",
-    "from_uri": "viking://user/caroline/memories/events/2026/04/27/code_review.md",
-    "to_uri": "viking://user/caroline/memories/preferences/Python_code_style.md",
+    "from_uri": "wfs://user/caroline/memories/events/2026/04/27/code_review.md",
+    "to_uri": "wfs://user/caroline/memories/preferences/Python_code_style.md",
     "direction": "backlinks",
     "link_type": "related_to",
     "weight": 0.7,
@@ -1427,7 +1427,7 @@ content 原文不修改，链接渲染延迟到检索阶段，根据 `match_text
 
 ```
 存储: "User dislikes type hints, prefers concise comments."
-渲染: "[User](viking://.../profile.md) dislikes type hints, prefers concise comments."
+渲染: "[User](wfs://.../profile.md) dislikes type hints, prefers concise comments."
 ```
 
 **不同场景的渲染策略**：

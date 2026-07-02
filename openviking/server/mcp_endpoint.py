@@ -289,7 +289,7 @@ def _format_search_result(result) -> str:
 
 @mcp.tool()
 async def read(uris: str | list[str]) -> str:
-    """Read full content from one or more viking:// file URIs. Pass a single URI string or a list for batch reads. For directory listing, use the list tool instead."""
+    """Read full content from one or more wfs:// file URIs. Pass a single URI string or a list for batch reads. For directory listing, use the list tool instead."""
     import asyncio
 
     service = get_service()
@@ -322,7 +322,7 @@ async def read(uris: str | list[str]) -> str:
 
 @mcp.tool(name="list")
 async def ls(uri: str, recursive: bool = False) -> str:
-    """List files and subdirectories under a viking:// directory URI. Use recursive=true for deep listing."""
+    """List files and subdirectories under a wfs:// directory URI. Use recursive=true for deep listing."""
     service = get_service()
     ctx = _get_ctx()
 
@@ -434,9 +434,9 @@ def _resolve_public_base_url() -> tuple[str, str]:
 
 _WATCH_REQUIRES_TO_HINT = (
     "watch_interval > 0 requires `to` to be specified (the stable target URI to refresh into). "
-    "Pick a deterministic URI under viking://resources/. For example:\n"
-    "  - https://github.com/<org>/<repo>  -> to='viking://resources/<org>/<repo>'\n"
-    "  - https://example.com/docs/api     -> to='viking://resources/example.com/docs/api'\n"
+    "Pick a deterministic URI under wfs://resources/. For example:\n"
+    "  - https://github.com/<org>/<repo>  -> to='wfs://resources/<org>/<repo>'\n"
+    "  - https://example.com/docs/api     -> to='wfs://resources/example.com/docs/api'\n"
     "Tip: call add_resource without watch_interval first, observe the returned URI, "
     "then call again with watch_interval=<minutes> and to=<that URI>."
 )
@@ -477,8 +477,8 @@ async def add_resource(
             each time). Prefer >=1440 (24h) unless the source genuinely changes
             faster — every refresh re-embeds the entire resource. Requires ``to``.
             Only applies to remote-URL invocations.
-        to: Target URI under viking://resources/ (e.g.
-            "viking://resources/volcengine/OpenViking"). Required when
+        to: Target URI under wfs://resources/ (e.g.
+            "wfs://resources/volcengine/OpenViking"). Required when
             watch_interval > 0. Leave empty for one-shot adds — the system will
             auto-derive a URI from the source.
     """
@@ -663,7 +663,7 @@ async def list_watches() -> str:
 async def cancel_watch(to_uri: str) -> str:
     """Cancel (delete) a watch task by its target URI.
 
-    The URI must match the watch task's `to` value (e.g. "viking://resources/volcengine/OpenViking").
+    The URI must match the watch task's `to` value (e.g. "wfs://resources/volcengine/OpenViking").
     To change the cadence or pause temporarily, cancel and re-add with a new watch_interval.
     """
     from openviking.resource import watch_manager as _wm_mod
@@ -711,7 +711,7 @@ async def cancel_watch(to_uri: str) -> str:
 async def grep(
     uri: str, pattern: str | list[str], case_insensitive: bool = False, node_limit: int = 10
 ) -> str:
-    """Search content in viking:// files using regex patterns (like grep). Supports multiple patterns searched concurrently. Use this for exact text matching; use the search tool for semantic retrieval."""
+    """Search content in wfs:// files using regex patterns (like grep). Supports multiple patterns searched concurrently. Use this for exact text matching; use the search tool for semantic retrieval."""
     import asyncio
 
     service = get_service()
@@ -759,8 +759,8 @@ async def grep(
 
 
 @mcp.tool()
-async def glob(pattern: str, uri: str = "viking://", node_limit: int = 100) -> str:
-    """Find viking:// files matching a glob pattern (e.g. **/*.md, *.py). Use this for filename matching; use the search tool for content-based retrieval."""
+async def glob(pattern: str, uri: str = "wfs://", node_limit: int = 100) -> str:
+    """Find wfs:// files matching a glob pattern (e.g. **/*.md, *.py). Use this for filename matching; use the search tool for content-based retrieval."""
     service = get_service()
     ctx = _get_ctx()
 
@@ -785,7 +785,7 @@ async def glob(pattern: str, uri: str = "viking://", node_limit: int = 100) -> s
 
 @mcp.tool()
 async def forget(uri: str, recursive: bool = False) -> str:
-    """Permanently delete a viking:// URI from OpenViking. This is irreversible. Only use when the user explicitly asks to forget or delete something. Always confirm with the user before calling this tool. Use the search tool first to find the exact URI, then pass it here. Set recursive=true only when the user explicitly asks to delete a directory tree."""
+    """Permanently delete a wfs:// URI from OpenViking. This is irreversible. Only use when the user explicitly asks to forget or delete something. Always confirm with the user before calling this tool. Use the search tool first to find the exact URI, then pass it here. Set recursive=true only when the user explicitly asks to delete a directory tree."""
     service = get_service()
     ctx = _get_ctx()
     await service.fs.rm(uri, ctx=ctx, recursive=recursive)
@@ -799,11 +799,11 @@ _CODE_SEARCH_CONCURRENCY = 10
 
 
 def _require_viking_uri(uri: str) -> Optional[str]:
-    """Return error message if uri is not a viking:// URI, else None."""
-    if not isinstance(uri, str) or not uri.startswith("viking://"):
+    """Return error message if uri is not a wfs:// URI, else None."""
+    if not isinstance(uri, str) or not uri.startswith("wfs://"):
         return (
-            "Error: only viking:// URIs are supported; "
-            "use add_resource to ingest local code as a viking:// resource first."
+            "Error: only wfs:// URIs are supported; "
+            "use add_resource to ingest local code as a wfs:// resource first."
         )
     return None
 
@@ -846,7 +846,7 @@ async def code_outline(uri: str) -> str:
     file when you only need to locate a method or understand a file's API surface.
     Typical workflow: code_search → code_outline → code_expand.
 
-    uri must be a viking:// file URI (not a directory)."""
+    uri must be a wfs:// file URI (not a directory)."""
     err = _require_viking_uri(uri)
     if err:
         return err
@@ -863,7 +863,7 @@ async def code_outline(uri: str) -> str:
 
 @mcp.tool()
 async def code_search(query: str, uri: str) -> str:
-    """Search symbol names (class / function / method) by substring across a viking://
+    """Search symbol names (class / function / method) by substring across a wfs://
     directory. Returns structured results: symbol type, class context, file URI, line range.
 
     Use when you don't know which file contains the symbol you're looking for. Returns
@@ -920,7 +920,7 @@ async def code_expand(uri: str, symbol: str) -> str:
     symbols from the same file, Read is often more efficient.
 
     `symbol` accepts 'bar' (top-level) or 'Foo.bar' (method).
-    uri must be a viking:// file URI."""
+    uri must be a wfs:// file URI."""
     err = _require_viking_uri(uri)
     if err:
         return err

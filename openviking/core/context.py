@@ -119,9 +119,9 @@ class Context:
         """Best-effort owner space derived from URI and user."""
         if not user:
             return ""
-        if self.uri.startswith("viking://agent/"):
+        if self.uri.startswith("wfs://agent/"):
             return user.agent_id
-        if self.uri.startswith("viking://user/") or self.uri.startswith("viking://session/"):
+        if self.uri.startswith("wfs://user/") or self.uri.startswith("wfs://session/"):
             return user.user_id
         return ""
 

@@ -220,9 +220,9 @@ class CollectionAdapter(ABC):
         if not isinstance(value, str):
             return value
         stripped = value.strip()
-        if not stripped.startswith("viking://"):
+        if not stripped.startswith("wfs://"):
             return value
-        suffix = stripped[len("viking://") :].strip("/")
+        suffix = stripped[len("wfs://") :].strip("/")
         return f"/{suffix}" if suffix else "/"
 
     @staticmethod
@@ -230,12 +230,12 @@ class CollectionAdapter(ABC):
         if not isinstance(value, str):
             return value
         stripped = value.strip()
-        if stripped.startswith("viking://"):
+        if stripped.startswith("wfs://"):
             return stripped
         if not stripped.startswith("/"):
             return value
         suffix = stripped.strip("/")
-        return f"viking://{suffix}" if suffix else "viking://"
+        return f"wfs://{suffix}" if suffix else "wfs://"
 
     def _normalize_filter_payload_for_write(self, payload: Any) -> Any:
         if isinstance(payload, list):

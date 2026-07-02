@@ -39,19 +39,19 @@ Browse directory structure:
 ov ls
 
 # List specific directory
-ov ls viking://resources/my-project/docs/
+ov ls wfs://resources/my-project/docs/
 
 # Simple path output (only uris, no metadata)
-ov ls viking://resources --simple
+ov ls wfs://resources --simple
 
 # Show hidden files
-ov ls viking://resources --all
+ov ls wfs://resources --all
 
 # Control output limits (default 256)
-ov ls viking://resources --node-limit 50
+ov ls wfs://resources --node-limit 50
 
 # Control abstract info length limit for each node (default 256)
-ov ls viking://resources --abs-limit 128
+ov ls wfs://resources --abs-limit 128
 ```
 
 ### Tree View (`ov tree`)
@@ -60,16 +60,16 @@ Visualize directory hierarchy:
 
 ```bash
 # Show tree structure
-ov tree viking://resources
+ov tree wfs://resources
 
 # Control depth limits (default 3)
-ov tree viking://resources --level-limit 2
+ov tree wfs://resources --level-limit 2
 
 # Control node limits
-ov tree viking://resources --node-limit 100 --abs-limit 128
+ov tree wfs://resources --node-limit 100 --abs-limit 128
 
 # Show all files including hidden
-ov tree viking://resources --all
+ov tree wfs://resources --all
 ```
 
 ### Semantic find (`ov find`)
@@ -81,7 +81,7 @@ Find method with semantic relevance ranking:
 ov find "how to handle API rate limits"
 
 # Find within specific URI scope
-ov find "authentication flow" --uri "viking://resources/my-project"
+ov find "authentication flow" --uri "wfs://resources/my-project"
 
 # Limit results and set relevance score threshold
 ov find "error handling" --node-limit 5 --threshold 0.3
@@ -93,13 +93,13 @@ Literal pattern matching:
 
 ```bash
 # Find exact text pattern (Note: this is expensive, and suggest within specific small URI scope)
-ov grep "viking://resources" "TODO:" --uri "viking://resources/my-project"
+ov grep "wfs://resources" "TODO:" --uri "wfs://resources/my-project"
 
 # Case-insensitive search
-ov grep "viking://resources" "API_KEY" --ignore-case --uri "viking://resources/my-project"
+ov grep "wfs://resources" "API_KEY" --ignore-case --uri "wfs://resources/my-project"
 
 # Limit results and set node limit
-ov grep "viking://resources" "API_KEY" --node-limit 5 --uri "viking://resources/my-project"
+ov grep "wfs://resources" "API_KEY" --node-limit 5 --uri "wfs://resources/my-project"
 ```
 
 ### File Glob Search (`ov glob`)
@@ -108,10 +108,10 @@ File path pattern matching:
 
 ```bash
 # Find all markdown files (Note: this is expensive, and suggest within specific small URI scope)
-ov glob "**/*.md" --uri "viking://resources/my-project"
+ov glob "**/*.md" --uri "wfs://resources/my-project"
 
 # Limit results and set node limit
-ov glob "**/*.md" --uri "viking://resources/my-project" --node-limit 5
+ov glob "**/*.md" --uri "wfs://resources/my-project" --node-limit 5
 ```
 
 ### Read File Content (`ov read`)
@@ -120,18 +120,18 @@ Retrieve full content (L0-L2 layer):
 
 ```bash
 # Read full content
-ov read viking://resources/docs/api/api-1.md
+ov read wfs://resources/docs/api/api-1.md
 
 # Read first 10 lines of api-2.md
-ov read viking://resources/docs/api/api-2.md | head -n 10
+ov read wfs://resources/docs/api/api-2.md | head -n 10
 
 # Read abstract (L0 - quick summary)
-ov abstract viking://resources/docs/api/
-ov read viking://resources/docs/api/.abstract.md
+ov abstract wfs://resources/docs/api/
+ov read wfs://resources/docs/api/.abstract.md
 
 # Read overview (L1 - key points)
-ov overview viking://resources/docs/api/
-ov read viking://resources/docs/api/.overview.md
+ov overview wfs://resources/docs/api/
+ov read wfs://resources/docs/api/.overview.md
 ```
 
 ### Combining Search
@@ -139,16 +139,16 @@ ov read viking://resources/docs/api/.overview.md
 Use search results to guide further actions:
 
 ```bash
-ov ls viking://resources/
+ov ls wfs://resources/
 
 # Search for relevant files
-ov search "authentication" --uri "viking://resources/project-A"
+ov search "authentication" --uri "wfs://resources/project-A"
 
 # Get overview for context
-ov overview viking://resources/project-A/backend
+ov overview wfs://resources/project-A/backend
 
 # Decide to read specific content
-ov read viking://resources/project-A/backend/auth.md
+ov read wfs://resources/project-A/backend/auth.md
 ```
 
 ## Prerequisites

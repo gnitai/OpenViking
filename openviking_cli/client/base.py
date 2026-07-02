@@ -199,7 +199,7 @@ class BaseClient(ABC):
         ...
 
     @abstractmethod
-    async def glob(self, pattern: str, uri: str = "viking://") -> Dict[str, Any]:
+    async def glob(self, pattern: str, uri: str = "wfs://") -> Dict[str, Any]:
         """File pattern matching."""
         ...
 

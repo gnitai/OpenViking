@@ -938,7 +938,7 @@ mod tests {
             params![
                 "Semantic",
                 "legacy-msg-id",
-                r#"{"id":"legacy-msg-id","data":"{\"id\":\"semantic-inner\",\"uri\":\"viking://resources/demo\",\"context_type\":\"resource\",\"status\":\"pending\",\"timestamp\":1776411350,\"recursive\":true,\"account_id\":\"default\",\"user_id\":\"default\",\"agent_id\":\"default\",\"role\":\"root\",\"skip_vectorization\":false,\"telemetry_id\":\"tm_demo\",\"target_uri\":null,\"lifecycle_lock_handle_id\":\"lock-demo\",\"is_code_repo\":false,\"changes\":null}","timestamp":"2026-04-17T15:37:39.287855+08:00"}"#,
+                r#"{"id":"legacy-msg-id","data":"{\"id\":\"semantic-inner\",\"uri\":\"wfs://resources/demo\",\"context_type\":\"resource\",\"status\":\"pending\",\"timestamp\":1776411350,\"recursive\":true,\"account_id\":\"default\",\"user_id\":\"default\",\"agent_id\":\"default\",\"role\":\"root\",\"skip_vectorization\":false,\"telemetry_id\":\"tm_demo\",\"target_uri\":null,\"lifecycle_lock_handle_id\":\"lock-demo\",\"is_code_repo\":false,\"changes\":null}","timestamp":"2026-04-17T15:37:39.287855+08:00"}"#,
                 1776411459_i64,
             ],
         )
@@ -949,7 +949,7 @@ mod tests {
             SQLiteQueueBackend::open(&db_path_str, SQLiteQueueOptions::default()).unwrap();
         let msg = reopened.dequeue("Semantic").unwrap().unwrap();
         let payload = String::from_utf8(msg.data).unwrap();
-        assert!(payload.contains("\"uri\":\"viking://resources/demo\""));
+        assert!(payload.contains("\"uri\":\"wfs://resources/demo\""));
     }
 
     #[test]

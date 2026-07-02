@@ -41,16 +41,16 @@ Create `~/.openviking/ovcli.conf`:
 ov add-resource https://raw.githubusercontent.com/volcengine/OpenViking/refs/heads/main/docs/en/about/01-about-us.md --wait
 
 # List contents
-ov ls viking://resources
+ov ls wfs://resources
 
 # Semantic search
 ov find "what is openviking"
 
 # Get file tree
-ov tree viking://resources
+ov tree wfs://resources
 
 # Read content
-ov read viking://resources/...
+ov read wfs://resources/...
 ```
 
 ## Command Groups
@@ -129,13 +129,13 @@ ov add-resource ./dir \
 ov find "API authentication" --threshold 0.7 --limit 5
 
 # Recursive list
-ov ls viking://resources --recursive
+ov ls wfs://resources --recursive
 
 # Temporarily override identity from CLI flags
-ov --account acme --user alice --agent-id assistant-2 ls viking://
+ov --account acme --user alice --agent-id assistant-2 ls wfs://
 
 # Glob search
-ov glob "**/*.md" --uri viking://resources
+ov glob "**/*.md" --uri wfs://resources
 
 # Session workflow
 SESSION=$(ov -o json session new | jq -r '.result.session_id')

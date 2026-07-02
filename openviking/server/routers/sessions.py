@@ -406,7 +406,7 @@ async def add_message(
     2. Parts mode: provide `parts` array for full Part support
        Example: {"role": "assistant", "parts": [
            {"type": "text", "text": "Here's the answer"},
-           {"type": "context", "uri": "viking://resources/doc.md", "abstract": "..."}
+           {"type": "context", "uri": "wfs://resources/doc.md", "abstract": "..."}
        ]}
 
     If both `content` and `parts` are provided, `parts` takes precedence.

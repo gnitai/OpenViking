@@ -114,17 +114,17 @@ Once connected, OpenViking exposes 14 tools:
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `search` | Semantic search across memories, resources, and skills | `query`, `target_uri` (optional), `limit`, `min_score` |
-| `read` | Read one or more `viking://` URIs | `uris` (single string or array) |
-| `list` | List entries under a `viking://` directory | `uri`, `recursive` (optional) |
+| `read` | Read one or more `wfs://` URIs | `uris` (single string or array) |
+| `list` | List entries under a `wfs://` directory | `uri`, `recursive` (optional) |
 | `store` | Store messages into long-term memory (triggers extraction) | `messages` (list of `{role, content}`) |
-| `add_resource` | Add a local file or URL as a resource (local files trigger a progressive upload flow) | `path`, `temp_file_id` (optional), `description` (optional), `watch_interval` (optional, minutes — auto-refresh cadence for remote URLs), `to` (optional, target `viking://resources/...` URI; required when `watch_interval > 0`) |
+| `add_resource` | Add a local file or URL as a resource (local files trigger a progressive upload flow) | `path`, `temp_file_id` (optional), `description` (optional), `watch_interval` (optional, minutes — auto-refresh cadence for remote URLs), `to` (optional, target `wfs://resources/...` URI; required when `watch_interval > 0`) |
 | `list_watches` | List watch tasks (auto-refresh subscriptions) visible to the current agent. Each entry shows target URI, refresh interval (minutes), active/paused status, and next scheduled execution time | none |
-| `cancel_watch` | Cancel (delete) a watch task by its target URI. To change the cadence or pause temporarily, cancel and re-add with a new `watch_interval` | `to_uri` (must match the watch task's `to` value, e.g. `viking://resources/...`) |
-| `grep` | Regex content search across `viking://` files | `uri`, `pattern` (string), `case_insensitive` |
+| `cancel_watch` | Cancel (delete) a watch task by its target URI. To change the cadence or pause temporarily, cancel and re-add with a new `watch_interval` | `to_uri` (must match the watch task's `to` value, e.g. `wfs://resources/...`) |
+| `grep` | Regex content search across `wfs://` files | `uri`, `pattern` (string), `case_insensitive` |
 | `glob` | Find files matching a glob pattern | `pattern`, `uri` (optional scope) |
-| `forget` | Delete any `viking://` URI (use `search` to find it first; pass `recursive=true` to delete a directory) | `uri`, `recursive` (optional) |
-| `code_outline` | Show a file's symbol structure (classes, functions, methods, line ranges) without reading bodies. Survey a file before deciding what to `read`. | `uri` (must be a `viking://` **file** URI) |
-| `code_search` | Search symbol names (class / function / method) by substring across a `viking://` directory. Returns symbol type, class context, file URI, line range. Scans up to 200 source files. | `query`, `uri` (must be a `viking://` directory; narrow to subdir for deeper coverage) |
+| `forget` | Delete any `wfs://` URI (use `search` to find it first; pass `recursive=true` to delete a directory) | `uri`, `recursive` (optional) |
+| `code_outline` | Show a file's symbol structure (classes, functions, methods, line ranges) without reading bodies. Survey a file before deciding what to `read`. | `uri` (must be a `wfs://` **file** URI) |
+| `code_search` | Search symbol names (class / function / method) by substring across a `wfs://` directory. Returns symbol type, class context, file URI, line range. Scans up to 200 source files. | `query`, `uri` (must be a `wfs://` directory; narrow to subdir for deeper coverage) |
 | `code_expand` | Return the full source of a single named symbol, avoiding reading the entire file. | `uri` (file), `symbol` (`bar` for top-level or `Foo.bar` for a method) |
 | `health` | Check OpenViking service health | none |
 

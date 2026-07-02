@@ -54,12 +54,12 @@ async def test_find_works_without_rerank_config(monkeypatch) -> None:
                 query=typed_query,
                 matched_contexts=[
                     MatchedContext(
-                        uri="viking://resources/docs/guide.md",
+                        uri="wfs://resources/docs/guide.md",
                         context_type=ContextType.RESOURCE,
                         score=0.9,
                     )
                 ],
-                searched_directories=["viking://resources/docs"],
+                searched_directories=["wfs://resources/docs"],
             )
 
     monkeypatch.setattr(
@@ -69,7 +69,7 @@ async def test_find_works_without_rerank_config(monkeypatch) -> None:
 
     result = await fs.find(
         "guide",
-        target_uri="viking://resources/docs",
+        target_uri="wfs://resources/docs",
         limit=3,
         score_threshold=0.2,
         filter={"category": "doc"},
@@ -77,15 +77,15 @@ async def test_find_works_without_rerank_config(monkeypatch) -> None:
     )
 
     assert result.total == 1
-    assert [ctx.uri for ctx in result.resources] == ["viking://resources/docs/guide.md"]
+    assert [ctx.uri for ctx in result.resources] == ["wfs://resources/docs/guide.md"]
     assert captured["storage"] is fs.vector_store
     assert captured["embedder"] is fs.query_embedder
     assert captured["rerank_config"] is None
     assert captured["typed_query"].query == "guide"
     assert captured["typed_query"].context_type == ContextType.RESOURCE
-    assert captured["typed_query"].target_directories == ["viking://resources/docs"]
+    assert captured["typed_query"].target_directories == ["wfs://resources/docs"]
     assert captured["ctx"] == fs._ctx_or_default.return_value
     assert captured["limit"] == 3
     assert captured["score_threshold"] == 0.2
     assert captured["scope_dsl"] == {"category": "doc"}
-    fs._ensure_access.assert_called_once_with("viking://resources/docs", request_ctx)
+    fs._ensure_access.assert_called_once_with("wfs://resources/docs", request_ctx)

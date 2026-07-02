@@ -39,7 +39,7 @@ Version: 1.0
 """
         )
 
-        to_uri = "viking://resources/watched_resource"
+        to_uri = "wfs://resources/watched_resource"
 
         print("\nAdding resource with watch_interval=60.0 minutes...")
         result = await client.add_resource(
@@ -62,7 +62,7 @@ async def example_update_watch_interval():
 
     try:
         test_file = Path("./test_resource.md")
-        to_uri = "viking://resources/watched_resource"
+        to_uri = "wfs://resources/watched_resource"
 
         print("\nUpdating watch interval by canceling then re-creating...")
         await client.add_resource(
@@ -87,7 +87,7 @@ async def example_cancel_watch():
 
     try:
         test_file = Path("./test_resource.md")
-        to_uri = "viking://resources/watched_resource"
+        to_uri = "wfs://resources/watched_resource"
 
         print("\nCancelling watch by setting interval to 0...")
         await client.add_resource(
@@ -106,7 +106,7 @@ async def example_handle_conflict():
 
     try:
         test_file = Path("./test_resource.md")
-        to_uri = "viking://resources/conflict_example"
+        to_uri = "wfs://resources/conflict_example"
 
         print("\nCreating first watch task...")
         await client.add_resource(

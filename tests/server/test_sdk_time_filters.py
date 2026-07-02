@@ -49,15 +49,15 @@ async def _seed_find_time_filter_records(svc, query: str) -> dict[str, str]:
         query,
         {
             "recent_email": {
-                "uri": "viking://resources/email/recent-invoice.md",
-                "parent_uri": "viking://resources/email",
+                "uri": "wfs://resources/email/recent-invoice.md",
+                "parent_uri": "wfs://resources/email",
                 "abstract": "Recent invoice follow-up thread",
                 "created_at": format_iso8601(now - timedelta(hours=1)),
                 "updated_at": format_iso8601(now - timedelta(hours=1)),
             },
             "old_email": {
-                "uri": "viking://resources/email/old-invoice.md",
-                "parent_uri": "viking://resources/email",
+                "uri": "wfs://resources/email/old-invoice.md",
+                "parent_uri": "wfs://resources/email",
                 "abstract": "Older invoice follow-up thread",
                 "created_at": format_iso8601(now - timedelta(days=10)),
                 "updated_at": format_iso8601(now - timedelta(days=10)),
@@ -73,15 +73,15 @@ async def _seed_search_time_filter_records(svc, query: str) -> dict[str, str]:
         query,
         {
             "recent_note": {
-                "uri": "viking://resources/watch-schedule/recent-search-time-filter.md",
-                "parent_uri": "viking://resources/watch-schedule",
+                "uri": "wfs://resources/watch-schedule/recent-search-time-filter.md",
+                "parent_uri": "wfs://resources/watch-schedule",
                 "abstract": "Recent watch vs scheduled discussion",
                 "created_at": format_iso8601(now - timedelta(minutes=30)),
                 "updated_at": format_iso8601(now - timedelta(minutes=30)),
             },
             "old_note": {
-                "uri": "viking://resources/watch-schedule/old-search-time-filter.md",
-                "parent_uri": "viking://resources/watch-schedule",
+                "uri": "wfs://resources/watch-schedule/old-search-time-filter.md",
+                "parent_uri": "wfs://resources/watch-schedule",
                 "abstract": "Old watch vs scheduled discussion",
                 "created_at": format_iso8601(now - timedelta(days=30)),
                 "updated_at": format_iso8601(now - timedelta(days=30)),
@@ -96,7 +96,7 @@ async def test_sdk_find_respects_since_and_time_field(http_client):
 
     result = await client.find(
         query="invoice follow-up",
-        target_uri="viking://resources/email",
+        target_uri="wfs://resources/email",
         since="2d",
         time_field="created_at",
         limit=10,
@@ -113,13 +113,13 @@ async def test_sdk_search_respects_since_default_updated_at(http_client):
 
     recent_result = await client.search(
         query="watch vs scheduled",
-        target_uri="viking://resources/watch-schedule",
+        target_uri="wfs://resources/watch-schedule",
         since="2h",
         limit=10,
     )
     old_result = await client.search(
         query="watch vs scheduled",
-        target_uri="viking://resources/watch-schedule",
+        target_uri="wfs://resources/watch-schedule",
         until="7d",
         limit=10,
     )

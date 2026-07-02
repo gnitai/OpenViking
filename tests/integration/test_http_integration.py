@@ -33,7 +33,7 @@ class TestHTTPClientIntegration:
     @pytest.mark.asyncio
     async def test_ls_root(self, client):
         """Test ls on root."""
-        result = await client.ls("viking://")
+        result = await client.ls("wfs://")
         assert isinstance(result, list)
 
     @pytest.mark.asyncio
@@ -54,12 +54,12 @@ class TestHTTPClientIntegration:
     async def test_stat_not_found(self, client):
         """Test stat on non-existent path raises NotFoundError."""
         with pytest.raises(NotFoundError):
-            await client.stat("viking://nonexistent/path")
+            await client.stat("wfs://nonexistent/path")
 
     @pytest.mark.asyncio
     async def test_tree(self, client):
         """Test tree operation."""
-        result = await client.tree("viking://")
+        result = await client.tree("wfs://")
         assert result is not None
 
     @pytest.mark.asyncio
@@ -137,7 +137,7 @@ class TestAsyncHTTPClientIntegration:
     @pytest.mark.asyncio
     async def test_ls_via_client(self, client):
         """Test ls via AsyncHTTPClient."""
-        result = await client.ls("viking://")
+        result = await client.ls("wfs://")
         assert isinstance(result, list)
 
     @pytest.mark.asyncio

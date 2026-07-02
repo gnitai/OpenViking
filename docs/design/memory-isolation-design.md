@@ -209,9 +209,9 @@ def _calculate_target_for_role(
         if policy.isolate_user_scope_by_agent:
             # 需要额外 agent 维度，从 participants 中找 agent
             agent_id = self._get_default_agent_id()
-            base_uri = f"viking://user/{role_id}/agent/{agent_id}"
+            base_uri = f"wfs://user/{role_id}/agent/{agent_id}"
         else:
-            base_uri = f"viking://user/{role_id}"
+            base_uri = f"wfs://user/{role_id}"
 
         return MemoryTarget(
             uri=f"{base_uri}/memories/{memory_type}",
@@ -223,9 +223,9 @@ def _calculate_target_for_role(
         if policy.isolate_agent_scope_by_user:
             # 需要额外 user 维度，从 participants 中找 user
             user_id = self._get_default_user_id()
-            base_uri = f"viking://agent/{role_id}/user/{user_id}"
+            base_uri = f"wfs://agent/{role_id}/user/{user_id}"
         else:
-            base_uri = f"viking://agent/{role_id}"
+            base_uri = f"wfs://agent/{role_id}"
 
         return MemoryTarget(
             uri=f"{base_uri}/memories/{memory_type}",

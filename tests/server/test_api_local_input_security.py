@@ -42,7 +42,7 @@ description: temp uploaded skill
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["uri"].startswith("viking://agent/default/skills/")
+    assert body["result"]["uri"].startswith("wfs://agent/default/skills/")
 
 
 async def test_add_skill_rejects_direct_local_path(client: httpx.AsyncClient):
@@ -82,7 +82,7 @@ description: inline
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["uri"].startswith("viking://agent/default/skills/")
+    assert body["result"]["uri"].startswith("wfs://agent/default/skills/")
 
 
 @pytest.fixture
@@ -131,13 +131,13 @@ async def test_import_ovpack_accepts_temp_uploaded_file(
         "/api/v1/pack/import",
         json={
             "temp_file_id": ovpack_file.name,
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"]["uri"].startswith("viking://resources/imported/")
+    assert body["result"]["uri"].startswith("wfs://resources/imported/")
 
 
 async def test_import_ovpack_conflict_returns_structured_conflict(
@@ -152,7 +152,7 @@ async def test_import_ovpack_conflict_returns_structured_conflict(
         "/api/v1/pack/import",
         json={
             "temp_file_id": ovpack_file.name,
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
     assert first.status_code == 200
@@ -162,7 +162,7 @@ async def test_import_ovpack_conflict_returns_structured_conflict(
         "/api/v1/pack/import",
         json={
             "temp_file_id": ovpack_file.name,
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
 
@@ -171,7 +171,7 @@ async def test_import_ovpack_conflict_returns_structured_conflict(
     assert body["status"] == "error"
     assert body["error"]["code"] == "CONFLICT"
     assert "Use on_conflict='overwrite'" in body["error"]["message"]
-    assert body["error"]["details"]["resource"] == "viking://resources/imported/pkg"
+    assert body["error"]["details"]["resource"] == "wfs://resources/imported/pkg"
 
 
 async def test_import_ovpack_rejects_direct_file_path_field(client: httpx.AsyncClient):
@@ -179,7 +179,7 @@ async def test_import_ovpack_rejects_direct_file_path_field(client: httpx.AsyncC
         "/api/v1/pack/import",
         json={
             "file_path": "/tmp/demo.ovpack",
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
     assert resp.status_code == 400
@@ -192,7 +192,7 @@ async def test_import_ovpack_rejects_legacy_temp_path_field(client: httpx.AsyncC
         "/api/v1/pack/import",
         json={
             "temp_path": "upload_pack.ovpack",
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
     assert resp.status_code == 400
@@ -205,7 +205,7 @@ async def test_import_ovpack_rejects_removed_fields(client: httpx.AsyncClient):
         "/api/v1/pack/import",
         json={
             "temp_file_id": "demo.ovpack",
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
             "vectorize": False,
             "force": True,
         },
@@ -229,7 +229,7 @@ async def test_import_ovpack_rejects_forged_temp_file_id(
         "/api/v1/pack/import",
         json={
             "temp_file_id": "../outside.ovpack",
-            "parent": "viking://resources/imported",
+            "parent": "wfs://resources/imported",
         },
     )
     assert resp.status_code == 403

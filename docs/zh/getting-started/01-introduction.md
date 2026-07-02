@@ -20,10 +20,10 @@ OpenViking 正是为解决这些痛点而设计的上下文数据库。
 
 摒弃传统的扁平化数据库思维，将所有上下文组织为一套虚拟文件系统。Agent 不再仅是通过向量搜索来找数据，而是可以通过确定性的路径和标准文件系统指令来定位和浏览数据。
 
-**统一 URI 标识**：每个上下文分配唯一的 `viking://` URI，让系统能精准定位并访问存储在不同位置的资源。
+**统一 URI 标识**：每个上下文分配唯一的 `wfs://` URI，让系统能精准定位并访问存储在不同位置的资源。
 
 ```
-viking://
+wfs://
 ├── resources/              # 资源：项目文档、代码库、网页等
 │   └── my_project/
 ├── user/                   # 用户：个人偏好、习惯等
@@ -45,10 +45,10 @@ viking://
 
 ```python
 client.find("用户认证")              # 语义搜索
-client.ls("viking://resources/")     # 列出目录
-client.read("viking://resources/doc") # 读取内容
-client.abstract("viking://...")       # 获取 L0 摘要
-client.overview("viking://...")       # 获取 L1 概览
+client.ls("wfs://resources/")     # 列出目录
+client.read("wfs://resources/doc") # 读取内容
+client.abstract("wfs://...")       # 获取 L0 摘要
+client.overview("wfs://...")       # 获取 L1 概览
 ```
 
 ### 2. 分层上下文按需加载
@@ -62,7 +62,7 @@ client.overview("viking://...")       # 获取 L1 概览
 | **L2** | 详情 | 无限制 | 完整内容、按需加载 |
 
 ```
-viking://resources/my_project/
+wfs://resources/my_project/
 ├── .abstract.md               # L0 层：摘要
 ├── .overview.md               # L1 层：概览
 ├── docs/

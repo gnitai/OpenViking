@@ -312,16 +312,16 @@ def _find_file_in_pack(pack_uri, retries=10, interval=5):
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_resources_dir():
-    r = ov(["mkdir", "viking://resources", "-o", "json"], timeout=120)
+    r = ov(["mkdir", "wfs://resources", "-o", "json"], timeout=120)
     if r["exit_code"] != 0 and "already exists" not in r["stderr"].lower():
-        r2 = ov(["stat", "viking://resources", "-o", "json"])
+        r2 = ov(["stat", "wfs://resources", "-o", "json"])
         if r2["exit_code"] != 0:
             pass
 
 
 @pytest.fixture(scope="session")
 def test_dir_uri(ensure_resources_dir):
-    uri = f"viking://resources/cli_test_{uuid.uuid4().hex[:8]}"
+    uri = f"wfs://resources/cli_test_{uuid.uuid4().hex[:8]}"
     r = None
     for _attempt in range(5):
         r = ov(["mkdir", uri, "-o", "json"], timeout=120)

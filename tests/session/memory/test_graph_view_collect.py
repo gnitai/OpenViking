@@ -16,13 +16,13 @@ def _file_entry(uri: str, rel_path: str) -> dict:
 
 @pytest.mark.asyncio
 async def test_collect_graph_data_preserves_markdown_links_in_content_full():
-    content = """2023-08-22 (Tuesday) ChatLog:\n[Calvin]: I scored a deal with [Frank Ocean](../../../../entities/personal/calvin.md)!\n\n<!-- MEMORY_FIELDS\n{\"memory_type\": \"events\", \"links\": [{\"to_uri\": \"viking://user/Calvin/memories/entities/personal/calvin.md\", \"link_type\": \"related_to\", \"match_text\": \"Frank\"}]}\n-->"""
+    content = """2023-08-22 (Tuesday) ChatLog:\n[Calvin]: I scored a deal with [Frank Ocean](../../../../entities/personal/calvin.md)!\n\n<!-- MEMORY_FIELDS\n{\"memory_type\": \"events\", \"links\": [{\"to_uri\": \"wfs://user/Calvin/memories/entities/personal/calvin.md\", \"link_type\": \"related_to\", \"match_text\": \"Frank\"}]}\n-->"""
 
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
         return_value=[
             _file_entry(
-                "viking://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
+                "wfs://user/Calvin/memories/events/2023/08/22/collab_with_frank_ocean.md",
                 "events/2023/08/22/collab_with_frank_ocean.md",
             )
         ]
@@ -32,7 +32,7 @@ async def test_collect_graph_data_preserves_markdown_links_in_content_full():
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Calvin/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Calvin/memories"], ctx)
 
     assert len(nodes) == 1
     assert (
@@ -48,16 +48,16 @@ async def test_collect_graph_data_includes_root_level_profile_markdown():
 
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
-        return_value=[_file_entry("viking://user/Caroline/memories/profile.md", "profile.md")]
+        return_value=[_file_entry("wfs://user/Caroline/memories/profile.md", "profile.md")]
     )
     mock_fs.read_file = AsyncMock(return_value=content)
 
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Caroline/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Caroline/memories"], ctx)
 
-    assert [node["uri"] for node in nodes] == ["viking://user/Caroline/memories/profile.md"]
+    assert [node["uri"] for node in nodes] == ["wfs://user/Caroline/memories/profile.md"]
     assert nodes[0]["memory_type"] == "profile"
     assert nodes[0]["content_preview"] == "# Caroline\n- likes painting"
     assert edges == []
@@ -69,14 +69,14 @@ async def test_collect_graph_data_includes_content_preview():
 
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
-        return_value=[_file_entry("viking://agent/demo/memories/experiences/a.md", "experiences/a.md")]
+        return_value=[_file_entry("wfs://agent/demo/memories/experiences/a.md", "experiences/a.md")]
     )
     mock_fs.read_file = AsyncMock(return_value=content)
 
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://agent/demo/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://agent/demo/memories"], ctx)
 
     assert len(nodes) == 1
     assert nodes[0]["memory_type"] == "experiences"
@@ -91,14 +91,14 @@ async def test_collect_graph_data_keeps_profile_body_as_content_preview():
 
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
-        return_value=[_file_entry("viking://user/Caroline/memories/profile.md", "profile.md")]
+        return_value=[_file_entry("wfs://user/Caroline/memories/profile.md", "profile.md")]
     )
     mock_fs.read_file = AsyncMock(return_value=content)
 
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Caroline/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Caroline/memories"], ctx)
 
     assert len(nodes) == 1
     assert nodes[0]["memory_type"] == "profile"
@@ -113,14 +113,14 @@ async def test_collect_graph_data_infers_memory_type_from_parent_directory():
 
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
-        return_value=[_file_entry("viking://user/Caroline/memories/profile.md", "profile.md")]
+        return_value=[_file_entry("wfs://user/Caroline/memories/profile.md", "profile.md")]
     )
     mock_fs.read_file = AsyncMock(return_value=content)
 
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Caroline/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Caroline/memories"], ctx)
 
     assert len(nodes) == 1
     assert nodes[0]["memory_type"] == "profile"
@@ -130,8 +130,8 @@ async def test_collect_graph_data_infers_memory_type_from_parent_directory():
 
 @pytest.mark.asyncio
 async def test_collect_graph_data_reads_all_nodes_before_filling_edge_targets():
-    profile_uri = "viking://user/Caroline/memories/profile.md"
-    child_uri = "viking://user/Caroline/memories/preferences/color.md"
+    profile_uri = "wfs://user/Caroline/memories/profile.md"
+    child_uri = "wfs://user/Caroline/memories/preferences/color.md"
     profile_content = """# Caroline\n- likes painting\n\n<!-- MEMORY_FIELDS\n{\"memory_type\": \"profile\", \"links\": []}\n-->"""
     child_content = f"""Blue\n\n<!-- MEMORY_FIELDS\n{{\"memory_type\": \"preferences\", \"links\": [{{\"to_uri\": \"{profile_uri}\", \"link_type\": \"belongs_to\"}}]}}\n-->"""
 
@@ -147,7 +147,7 @@ async def test_collect_graph_data_reads_all_nodes_before_filling_edge_targets():
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Caroline/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Caroline/memories"], ctx)
 
     profile_node = next(node for node in nodes if node["uri"] == profile_uri)
     assert profile_node["memory_type"] == "profile"
@@ -166,7 +166,7 @@ async def test_collect_graph_data_reads_all_nodes_before_filling_edge_targets():
 async def test_collect_graph_data_raises_when_reading_memory_file_fails():
     mock_fs = MagicMock()
     mock_fs.tree = AsyncMock(
-        return_value=[_file_entry("viking://user/Caroline/memories/profile.md", "profile.md")]
+        return_value=[_file_entry("wfs://user/Caroline/memories/profile.md", "profile.md")]
     )
     mock_fs.read_file = AsyncMock(side_effect=RuntimeError("boom"))
 
@@ -174,13 +174,13 @@ async def test_collect_graph_data_raises_when_reading_memory_file_fails():
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
     with pytest.raises(RuntimeError, match="boom"):
-        await graph._collect_graph_data(["viking://user/Caroline/memories"], ctx)
+        await graph._collect_graph_data(["wfs://user/Caroline/memories"], ctx)
 
 
 @pytest.mark.asyncio
 async def test_collect_graph_data_drops_edges_to_unloaded_external_nodes():
-    external_profile_uri = "viking://user/Caroline/memories/profile.md"
-    child_uri = "viking://user/Melanie/memories/preferences/color.md"
+    external_profile_uri = "wfs://user/Caroline/memories/profile.md"
+    child_uri = "wfs://user/Melanie/memories/preferences/color.md"
     child_content = f"""Blue\n\n<!-- MEMORY_FIELDS\n{{\"memory_type\": \"preferences\", \"links\": [{{\"to_uri\": \"{external_profile_uri}\", \"link_type\": \"belongs_to\"}}]}}\n-->"""
 
     mock_fs = MagicMock()
@@ -192,7 +192,7 @@ async def test_collect_graph_data_drops_edges_to_unloaded_external_nodes():
     graph = MemoryGraph(viking_fs=mock_fs)
     ctx = RequestContext(user=UserIdentifier("acme", "alice", "bot"), role=Role.USER)
 
-    nodes, edges = await graph._collect_graph_data(["viking://user/Melanie/memories"], ctx)
+    nodes, edges = await graph._collect_graph_data(["wfs://user/Melanie/memories"], ctx)
 
     assert [node["uri"] for node in nodes] == [child_uri]
     assert edges == []

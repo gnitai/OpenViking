@@ -114,7 +114,7 @@ def validate_manifest_root_matches_zip(manifest: dict[str, Any], base_name: str)
         )
 
     root_uri = manifest_root_uri(manifest)
-    if root_uri and root_uri != "viking://" and uri_leaf_name(root_uri) != root_name:
+    if root_uri and root_uri != "wfs://" and uri_leaf_name(root_uri) != root_name:
         raise InvalidArgumentError(
             "ovpack manifest root name does not match root uri",
             details={"manifest_root_name": root_name, "root_uri": root_uri},

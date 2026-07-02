@@ -37,7 +37,7 @@ async def test_read_tool_strips_local_memory_links_from_llm_content():
 
     result = await MemoryReadTool().execute(
         tool_ctx,
-        uri="viking://user/default/memories/experiences/test.md",
+        uri="wfs://user/default/memories/experiences/test.md",
     )
 
     assert result["content"] == "1 | Gina values emotional support with Jon."
@@ -65,7 +65,7 @@ async def test_read_tool_uses_memory_file_plain_content(monkeypatch):
 
     result = await MemoryReadTool().execute(
         tool_ctx,
-        uri="viking://user/default/memories/experiences/test.md",
+        uri="wfs://user/default/memories/experiences/test.md",
     )
 
     assert called is True

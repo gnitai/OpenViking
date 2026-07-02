@@ -62,7 +62,7 @@ class OpenVikingStore(BaseStore):
         user_id: str | None = None,
         agent_id: str | None = None,
         path: str | None = None,
-        root_uri: str = "viking://user/memories/langgraph_store",
+        root_uri: str = "wfs://user/memories/langgraph_store",
         index: bool | list[str] | None = None,
         wait: bool = True,
         timeout: float | None = None,
@@ -506,7 +506,7 @@ def _extract_uris(value: Any) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
-        return [value] if value.startswith("viking://") else []
+        return [value] if value.startswith("wfs://") else []
     if isinstance(value, dict):
         if isinstance(value.get("uri"), str):
             return [value["uri"]]

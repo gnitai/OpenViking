@@ -3,7 +3,7 @@ import uuid
 
 class TestBoundaryConditions:
     def test_uri_with_special_characters(self, api_client):
-        uri = f"viking://resources/special-chars_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://resources/special-chars_{uuid.uuid4().hex[:8]}"
         mkdir_resp = api_client.fs_mkdir(uri)
         assert mkdir_resp.status_code == 200, (
             f"mkdir with hyphenated URI should return valid status, got {mkdir_resp.status_code}"
@@ -14,21 +14,21 @@ class TestBoundaryConditions:
 
     def test_uri_with_very_long_name(self, api_client):
         long_name = "a" * 200
-        uri = f"viking://resources/{long_name}"
+        uri = f"wfs://resources/{long_name}"
         mkdir_resp = api_client.fs_mkdir(uri)
         assert mkdir_resp.status_code == 200, (
             f"mkdir with very long URI should return valid status, got {mkdir_resp.status_code}"
         )
 
     def test_uri_with_unicode_characters(self, api_client):
-        uri = f"viking://resources/中文目录_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://resources/中文目录_{uuid.uuid4().hex[:8]}"
         mkdir_resp = api_client.fs_mkdir(uri)
         assert mkdir_resp.status_code == 200, (
             f"mkdir with unicode URI should return valid status, got {mkdir_resp.status_code}: {mkdir_resp.text[:200]}"
         )
 
     def test_uri_with_spaces(self, api_client):
-        uri = f"viking://resources/space name_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://resources/space name_{uuid.uuid4().hex[:8]}"
         mkdir_resp = api_client.fs_mkdir(uri)
         assert mkdir_resp.status_code == 200, (
             f"mkdir with space in URI should return valid status, got {mkdir_resp.status_code}"
@@ -48,7 +48,7 @@ class TestBoundaryConditions:
         )
 
     def test_grep_with_special_regex_chars(self, api_client):
-        grep_resp = api_client.grep(uri="viking://resources/", pattern=r"\d+\.\d+")
+        grep_resp = api_client.grep(uri="wfs://resources/", pattern=r"\d+\.\d+")
         assert grep_resp.status_code == 200, (
             f"grep with regex should return valid status, got {grep_resp.status_code}"
         )
@@ -91,7 +91,7 @@ class TestBoundaryConditions:
                 api_client.delete_session(session_id)
 
     def test_fs_mkdir_deeply_nested(self, api_client):
-        base = f"viking://resources/deep_{uuid.uuid4().hex[:8]}"
+        base = f"wfs://resources/deep_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(base)
             deep_uri = base + "/level1/level2/level3/level4/level5"
@@ -151,14 +151,14 @@ class TestBoundaryConditions:
         assert resp.status_code == 400, f"large limit should return 400, got {resp.status_code}"
 
     def test_viking_uri_non_resources_scope(self, api_client):
-        uri = f"viking://user/test_user_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://user/test_user_{uuid.uuid4().hex[:8]}"
         stat_resp = api_client.fs_stat(uri)
         assert stat_resp.status_code in (403, 404), (
             f"non-resources scope URI should return 403 or 404, got {stat_resp.status_code}"
         )
 
     def test_viking_uri_temp_scope(self, api_client):
-        uri = f"viking://temp/test_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://temp/test_{uuid.uuid4().hex[:8]}"
         stat_resp = api_client.fs_stat(uri)
         assert stat_resp.status_code == 400, (
             f"temp scope URI should return 400, got {stat_resp.status_code}"

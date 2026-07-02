@@ -161,7 +161,7 @@ function parseToolResultRef(value: unknown): ToolResultRef | null {
   if (!raw) {
     return null;
   }
-  const match = raw.match(/^viking:\/\/session\/([^/]+)\/tool-results\/([^/?#]+)(?:[?#].*)?$/);
+  const match = raw.match(/^wfs:\/\/session\/([^/]+)\/tool-results\/([^/?#]+)(?:[?#].*)?$/);
   if (!match) {
     return null;
   }
@@ -173,7 +173,7 @@ function parseToolResultRef(value: unknown): ToolResultRef | null {
   return {
     sessionId,
     toolResultId,
-    ref: `viking://session/${encodeURIComponent(sessionId)}/tool-results/${encodeURIComponent(toolResultId)}`,
+    ref: `wfs://session/${encodeURIComponent(sessionId)}/tool-results/${encodeURIComponent(toolResultId)}`,
   };
 }
 
@@ -828,8 +828,8 @@ const contextEnginePlugin = {
         result = await client.find(query, { targetUri: input.uri, limit }, agentId);
       } else {
         const [resourcesSettled, skillsSettled] = await Promise.allSettled([
-          client.find(query, { targetUri: "viking://resources", limit }, agentId),
-          client.find(query, { targetUri: "viking://agent/skills", limit }, agentId),
+          client.find(query, { targetUri: "wfs://resources", limit }, agentId),
+          client.find(query, { targetUri: "wfs://agent/skills", limit }, agentId),
         ]);
         const successful: FindResult[] = [];
         if (resourcesSettled.status === "fulfilled") {
@@ -878,8 +878,8 @@ const contextEnginePlugin = {
           "For a '[media attached: /path ...]' document, set source to that exact local media path. Do not invent OpenViking upload REST endpoints.",
         parameters: Type.Object({
           source: Type.String({ description: "Local path, OpenClaw media attachment path, directory path, public URL, or Git URL" }),
-          to: Type.Optional(Type.String({ description: "Exact target URI, e.g. viking://resources/project-docs" })),
-          parent: Type.Optional(Type.String({ description: "Parent URI under viking://resources" })),
+          to: Type.Optional(Type.String({ description: "Exact target URI, e.g. wfs://resources/project-docs" })),
+          parent: Type.Optional(Type.String({ description: "Parent URI under wfs://resources" })),
           reason: Type.Optional(Type.String({ description: "Reason or note for adding this resource" })),
           instruction: Type.Optional(Type.String({ description: "Processing instruction for semantic extraction" })),
           wait: Type.Optional(Type.Boolean({ description: "Wait for processing to complete" })),
@@ -1082,7 +1082,7 @@ const contextEnginePlugin = {
               recallClient.find(
                 query,
                 {
-                  targetUri: "viking://user/memories",
+                  targetUri: "wfs://user/memories",
                   limit: requestLimit,
                   scoreThreshold: 0,
                 },
@@ -1091,7 +1091,7 @@ const contextEnginePlugin = {
               recallClient.find(
                 query,
                 {
-                  targetUri: "viking://agent/memories",
+                  targetUri: "wfs://agent/memories",
                   limit: requestLimit,
                   scoreThreshold: 0,
                 },
@@ -1103,7 +1103,7 @@ const contextEnginePlugin = {
                 recallClient.find(
                   query,
                   {
-                    targetUri: "viking://resources",
+                    targetUri: "wfs://resources",
                     limit: requestLimit,
                     scoreThreshold: 0,
                   },
@@ -1605,14 +1605,14 @@ const contextEnginePlugin = {
         description:
           "Restore the full original content of a tool result that was externalized by OpenViking. " +
           "Use when a previous tool result was externalized and only a preview is visible — " +
-          "the preview contains a [tool-result-ref] or viking://session/.../tool-results/... URI. " +
+          "the preview contains a [tool-result-ref] or wfs://session/.../tool-results/... URI. " +
           "\"Read\" tool returns the same truncated preview; this tool returns the complete content. " +
           "To read all content: pass offset=0 and a limit large enough to cover the whole result " +
           "(e.g. limit=100000). Use offset/limit for paging only when you need a specific section.",
         parameters: Type.Object({
           tool_output_ref: Type.String({
             description:
-              "Exact OV URI from the preview, e.g. viking://session/<session_id>/tool-results/<tool_result_id>",
+              "Exact OV URI from the preview, e.g. wfs://session/<session_id>/tool-results/<tool_result_id>",
           }),
           offset: Type.Optional(Type.Number({ description: "Unicode character offset. Default: 0" })),
           limit: Type.Optional(Type.Number({ description: "Maximum Unicode characters to read. Default: 20000" })),
@@ -1632,7 +1632,7 @@ const contextEnginePlugin = {
           const parsed = parseToolResultRef(params.tool_output_ref ?? params.ref ?? params.uri);
           if (!parsed) {
             return {
-              content: [{ type: "text", text: "Error: tool_output_ref must be a viking://session/.../tool-results/... URI." }],
+              content: [{ type: "text", text: "Error: tool_output_ref must be a wfs://session/.../tool-results/... URI." }],
               details: { error: "invalid_tool_output_ref" },
             };
           }
@@ -1707,7 +1707,7 @@ const contextEnginePlugin = {
         parameters: Type.Object({
           tool_output_ref: Type.String({
             description:
-              "Exact OV URI from the preview, e.g. viking://session/<session_id>/tool-results/<tool_result_id>",
+              "Exact OV URI from the preview, e.g. wfs://session/<session_id>/tool-results/<tool_result_id>",
           }),
           query: Type.String({ description: "Keyword or exact text to search for" }),
           limit: Type.Optional(Type.Number({ description: "Maximum matches. Default: 20" })),
@@ -1728,7 +1728,7 @@ const contextEnginePlugin = {
           const parsed = parseToolResultRef(params.tool_output_ref ?? params.ref ?? params.uri);
           if (!parsed) {
             return {
-              content: [{ type: "text", text: "Error: tool_output_ref must be a viking://session/.../tool-results/... URI." }],
+              content: [{ type: "text", text: "Error: tool_output_ref must be a wfs://session/.../tool-results/... URI." }],
               details: { error: "invalid_tool_output_ref" },
             };
           }

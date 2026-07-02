@@ -181,12 +181,12 @@ export async function buildAutoRecallContext(params: {
       const candidateLimit = Math.max(cfg.recallLimit * 4, 20);
       const autoRecallPromises: Promise<FindResult>[] = [
         client.find(queryText, {
-          targetUri: "viking://user/memories",
+          targetUri: "wfs://user/memories",
           limit: candidateLimit,
           scoreThreshold: 0,
         }, agentId),
         client.find(queryText, {
-          targetUri: "viking://agent/memories",
+          targetUri: "wfs://agent/memories",
           limit: candidateLimit,
           scoreThreshold: 0,
         }, agentId),
@@ -194,7 +194,7 @@ export async function buildAutoRecallContext(params: {
       if (cfg.recallResources) {
         autoRecallPromises.push(
           client.find(queryText, {
-            targetUri: "viking://resources",
+            targetUri: "wfs://resources",
             limit: candidateLimit,
             scoreThreshold: 0,
           }, agentId),

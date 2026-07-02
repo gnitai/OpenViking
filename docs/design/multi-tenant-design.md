@@ -6,7 +6,7 @@ OpenViking 已定义了 `UserIdentifier(account_id, user_id, agent_id)` 三元�
 
 - **认证**：单一全局 `api_key`，HMAC 比较（`openviking/server/auth.py`）
 - **无 RBAC**：所有认证用户拥有完全访问权限
-- **无存储隔离**：`VikingFS._uri_to_path` 将 `viking://` 映射到 `/local/`，无 account_id 前缀
+- **无存储隔离**：`VikingFS._uri_to_path` 将 `wfs://` 映射到 `/local/`，无 account_id 前缀
 - **VectorDB**：单一 `context` collection，无租户过滤
 - **服务层**：`OpenVikingService` 持有单例 `_user`，不支持请求级用户上下文
 
@@ -96,7 +96,7 @@ Request
    → 创建工作区 + 注册 alice(role=admin) + 返回 alice 的 user key: YWNtZQ==.YWxpY2U=.OWFmZTEyMjc2YTU3Njkz...
 
 2. alice 用 key 访问 API
-   GET /api/v1/fs/ls?uri=viking://  -H "X-API-Key: YWNtZQ==.YWxpY2U=.OWFmZTEyMjc2YTU3Njkz..."   → 200 OK
+   GET /api/v1/fs/ls?uri=wfs://  -H "X-API-Key: YWNtZQ==.YWxpY2U=.OWFmZTEyMjc2YTU3Njkz..."   → 200 OK
    → 服务端直接从 key 解析出 account_id="acme", user_id="alice"，再验证 secret
 
 3. alice（admin）注册普通用户 bob
@@ -380,7 +380,7 @@ VikingFS 保持单例，不持有任何租户状态。多租户通过参数传�
 **URI → AGFS 路径转换**（加 account_id 前缀）：
 
 ```
-viking://user/{user_space}/memories/x + account_id="acme"
+wfs://user/{user_space}/memories/x + account_id="acme"
 → /local/acme/user/{user_space}/memories/x
 ```
 
@@ -388,7 +388,7 @@ viking://user/{user_space}/memories/x + account_id="acme"
 
 ```
 /local/acme/user/{user_space}/memories/x + account_id="acme"
-→ viking://user/{user_space}/memories/x
+→ wfs://user/{user_space}/memories/x
 ```
 
 返回给调用方的 URI 不含 account_id，对用户透明。account_id 只存在于 AGFS 物理路径层。
@@ -404,7 +404,7 @@ async def ls(self, uri: str, ctx: RequestContext) -> List[str]:
 
 # 内部方法：只接收 account_id，不依赖 ctx
 def _uri_to_path(self, uri: str, account_id: str = "") -> str:
-    remainder = uri[len("viking://") :].strip("/")
+    remainder = uri[len("wfs://") :].strip("/")
     if account_id:
         return f"/local/{account_id}/{remainder}" if remainder else f"/local/{account_id}"
     return f"/local/{remainder}" if remainder else "/local"
@@ -414,24 +414,24 @@ def _path_to_uri(self, path: str, account_id: str = "") -> str:
     inner = path[len("/local/") :]  # "acme/user/{space}/memories/x"
     if account_id and inner.startswith(account_id + "/"):
         inner = inner[len(account_id) + 1 :]  # "user/{space}/memories/x"
-    return f"viking://{inner}"
+    return f"wfs://{inner}"
 ```
 
 ### 5.4 逐层权限过滤（Phase2）
 
-user/agent 级隔离通过**逐层遍历时过滤**实现。用户可以从公共根目录（如 `viking://resources`）开始遍历，但每一层只能看到自己有权限的条目。
+user/agent 级隔离通过**逐层遍历时过滤**实现。用户可以从公共根目录（如 `wfs://resources`）开始遍历，但每一层只能看到自己有权限的条目。
 
 **示例**：
 
 ```
 # alice（USER 角色）
-ls viking://resources           → 看到 account 内共享的 resources（无 user 隔离）
-ls viking://agent/memories      → 只看到 alice 当前 agent 的 {agent_space}/
-ls viking://user/memories       → 只看到 {alice_user_space}/
+ls wfs://resources           → 看到 account 内共享的 resources（无 user 隔离）
+ls wfs://agent/memories      → 只看到 alice 当前 agent 的 {agent_space}/
+ls wfs://user/memories       → 只看到 {alice_user_space}/
 
 # admin（ADMIN 角色）
-ls viking://resources           → 同上，resources 在 account 内共享
-ls viking://user/memories       → 看到所有用户的 space 目录
+ls wfs://resources           → 同上，resources 在 account 内共享
+ls wfs://user/memories       → 看到所有用户的 space 目录
 ```
 
 **实现**：VikingFS 新增 `_is_accessible()` 方法：
@@ -442,7 +442,7 @@ def _is_accessible(self, uri: str, ctx: RequestContext) -> bool:
     if ctx.role in (Role.ROOT, Role.ADMIN):
         return True
 
-    # 结构性目录（不含 space，如 viking://user/memories）→ 允许遍历
+    # 结构性目录（不含 space，如 wfs://user/memories）→ 允许遍历
     space_in_uri = self._extract_space_from_uri(uri)
     if space_in_uri is None:
         return True
@@ -481,9 +481,9 @@ def _is_accessible(self, uri: str, ctx: RequestContext) -> bool:
 
 **改动文件**: `openviking/core/directories.py`
 
-- 创建新账户时，初始化 account 级预设目录结构（公共根：`viking://user`、`viking://agent`、`viking://resources` 等）
-- 用户首次访问时，懒初始化 user space 子目录（`viking://user/{user_space}/memories/preferences` 等）
-- agent 首次使用时，懒初始化 agent space 子目录（`viking://agent/{agent_space}/memories/cases` 等）
+- 创建新账户时，初始化 account 级预设目录结构（公共根：`wfs://user`、`wfs://agent`、`wfs://resources` 等）
+- 用户首次访问时，懒初始化 user space 子目录（`wfs://user/{user_space}/memories/preferences` 等）
+- agent 首次使用时，懒初始化 agent space 子目录（`wfs://agent/{agent_space}/memories/cases` 等）
 
 ### 5.7 未来 ACL 扩展方向（本版不实现）
 
@@ -495,7 +495,7 @@ def _is_accessible(self, uri: str, ctx: RequestContext) -> bool:
 
 ```
 # ACL 记录
-{ "grantee_space": "bob_user_space", "granted_uri_prefix": "viking://resources/{alice_space}/project-x" }
+{ "grantee_space": "bob_user_space", "granted_uri_prefix": "wfs://resources/{alice_space}/project-x" }
 
 # bob 查询时
 1. 解析可访问 space 列表：own spaces + 查 ACL 表得到被授权的 spaces
@@ -511,7 +511,7 @@ def _is_accessible(self, uri: str, ctx: RequestContext) -> bool:
 
 ```
 # 目录记录
-{ "uri": "viking://resources/{alice_space}/project-x", "owner_space": "alice_space", "shared_spaces": ["bob_space"] }
+{ "uri": "wfs://resources/{alice_space}/project-x", "owner_space": "alice_space", "shared_spaces": ["bob_space"] }
 
 # bob 遍历时
 _is_accessible 检查: owner_space 匹配 OR space in shared_spaces
@@ -1265,20 +1265,20 @@ VikingFS 有以下公开方法需要加 `ctx: RequestContext` 参数：
 
 ```python
 def _uri_to_path(self, uri: str, account_id: str = "") -> str:
-    remainder = uri[len("viking://") :].strip("/")
+    remainder = uri[len("wfs://") :].strip("/")
     if account_id:
         return f"/local/{account_id}/{remainder}" if remainder else f"/local/{account_id}"
     return f"/local/{remainder}" if remainder else "/local"
 
 
 def _path_to_uri(self, path: str, account_id: str = "") -> str:
-    if path.startswith("viking://"):
+    if path.startswith("wfs://"):
         return path
     elif path.startswith("/local/"):
         inner = path[7:]  # 去掉 /local/
         if account_id and inner.startswith(account_id + "/"):
             inner = inner[len(account_id) + 1 :]  # 去掉 account_id 前缀
-        return f"viking://{inner}"
+        return f"wfs://{inner}"
     ...
 ```
 
@@ -1393,12 +1393,12 @@ class XXXService:
 **SessionService**（`service/session_service.py`）：
 - 当前：`session(session_id)`, `sessions()`, `delete(session_id)`, `extract(session_id)` 使用 `self._user`
 - 改为：加 `ctx`，构造 Session 时从 ctx 获取 user，extract 时传 ctx.user 给 compressor
-- session 路径变为 `viking://session/{ctx.user.user_space_name()}/{session_id}`
+- session 路径变为 `wfs://session/{ctx.user.user_space_name()}/{session_id}`
 
 **ResourceService**（`service/resource_service.py`）：
 - 当前：`add_resource(...)`, `add_skill(...)` 使用 `self._user`
 - 改为：加 `ctx`，构造 Context 时填入 `account_id=ctx.account_id`, `owner_space=ctx.user.agent_space_name()`（agent scope）
-- 资源路径使用 `viking://resources/...`（account 内共享，无 user_space），技能路径使用 `viking://agent/skills/{ctx.user.agent_space_name()}/...`
+- 资源路径使用 `wfs://resources/...`（account 内共享，无 user_space），技能路径使用 `wfs://agent/skills/{ctx.user.agent_space_name()}/...`
 
 **RelationService**（`service/relation_service.py`）：
 - 当前：`relations(uri)`, `link(from, to)`, `unlink(from, to)`
@@ -1422,9 +1422,9 @@ class XXXService:
 
 `DirectoryInitializer` 当前在 `service.initialize()` 中调用，初始化全局预设目录。多租户后改为三种初始化时机：
 
-1. **创建新 account 时**（Admin API T11）→ 初始化该 account 的公共根目录（`viking://user`、`viking://agent`、`viking://resources` 等）
-2. **用户首次访问时** → 懒初始化 user space 子目录（`viking://user/{user_space}/memories/preferences` 等）
-3. **agent 首次使用时** → 懒初始化 agent space 子目录（`viking://agent/{agent_space}/memories/cases` 等）
+1. **创建新 account 时**（Admin API T11）→ 初始化该 account 的公共根目录（`wfs://user`、`wfs://agent`、`wfs://resources` 等）
+2. **用户首次访问时** → 懒初始化 user space 子目录（`wfs://user/{user_space}/memories/preferences` 等）
+3. **agent 首次使用时** → 懒初始化 agent space 子目录（`wfs://agent/{agent_space}/memories/cases` 等）
 
 方法签名改为接受 `ctx: RequestContext`：
 

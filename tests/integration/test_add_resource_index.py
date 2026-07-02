@@ -96,7 +96,7 @@ async def test_add_resource_indexing_logic(test_config, tmp_path):
     # Create mock context tree for Phase 2/3 (tree builder)
     mock_context_tree = MagicMock()
     mock_context_tree.root = MagicMock()
-    mock_context_tree.root.uri = "viking://resources/test_doc"
+    mock_context_tree.root.uri = "wfs://resources/test_doc"
     mock_context_tree.root.temp_uri = None
 
     # Patch the Summarizer and IndexBuilder to verify calls

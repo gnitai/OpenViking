@@ -116,7 +116,7 @@ class GlobRequest(BaseModel):
     """Request model for glob."""
 
     pattern: str
-    uri: str = "viking://"
+    uri: str = "wfs://"
     node_limit: Optional[int] = None
 
 

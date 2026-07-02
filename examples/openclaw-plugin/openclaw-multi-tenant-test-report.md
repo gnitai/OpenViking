@@ -5,7 +5,7 @@
 本轮测试围绕 `examples/openclaw-plugin` 的多租户与会话身份透传能力展开，重点验证以下目标：
 
 1. 验证插件在 `api_key` 与 `trusted` 两种服务认证模式下的请求头行为是否正确。
-2. 验证插件是否按照服务侧命名空间策略，将 `viking://user/memories` 与 `viking://agent/memories` 正确展开为 canonical URI。
+2. 验证插件是否按照服务侧命名空间策略，将 `wfs://user/memories` 与 `wfs://agent/memories` 正确展开为 canonical URI。
 3. 验证 `senderId` / `requesterSenderId` 是否能够稳定映射为会话消息的 `role_id`。
 4. 验证 `afterTurn` 与 `memory_store` 两条写会话路径的身份语义是否一致。
 5. 验证多租户场景下默认用户空间、按 agent 隔离空间、共享 agent 空间等路径的召回行为是否符合预期。
@@ -18,10 +18,10 @@
 
 - 使用 `curl` 调用 `/health`、`/api/v1/system/status`、`/api/v1/search/find`
 - 直接验证显式 URI，例如：
-  - `viking://user/default/memories`
-  - `viking://user/default/agent/main/memories`
-  - `viking://agent/main/memories`
-  - `viking://agent/main/user/default/memories`
+  - `wfs://user/default/memories`
+  - `wfs://user/default/agent/main/memories`
+  - `wfs://agent/main/memories`
+  - `wfs://agent/main/user/default/memories`
 - 通过结构化 seed 与分层 `reindex`，确保召回验证基线可用
 
 ### 2.2 插件端到端验证

@@ -170,13 +170,13 @@ export OPENVIKING_CLI_CONFIG_FILE=/path/to/ovcli.conf
 Then use the CLI:
 
 ```bash
-python -m openviking ls viking://resources/
+python -m openviking ls wfs://resources/
 ```
 
 ### curl
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-key"
 ```
 

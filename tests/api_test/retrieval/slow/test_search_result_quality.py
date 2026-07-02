@@ -51,8 +51,8 @@ class TestSearchResultQuality:
                 assert 0 <= item["score"] <= 1, (
                     f"score should be between 0 and 1, got {item['score']}"
                 )
-                assert item["uri"].startswith("viking://"), (
-                    f"uri should start with viking://, got {item['uri']}"
+                assert item["uri"].startswith("wfs://"), (
+                    f"uri should start with wfs://, got {item['uri']}"
                 )
 
     def test_find_memory_item_has_required_fields(self, api_client):
@@ -214,7 +214,7 @@ class TestSearchResultQuality:
                 assert match["line"] >= 1, f"line number should be >= 1, got {match['line']}"
 
     def test_glob_result_structure(self, api_client):
-        glob_resp = api_client.glob(pattern="*", uri="viking://resources/")
+        glob_resp = api_client.glob(pattern="*", uri="wfs://resources/")
         assert glob_resp.status_code == 200, f"glob should return 200, got {glob_resp.status_code}"
         data = glob_resp.json()
         assert data.get("status") == "ok"
@@ -229,7 +229,7 @@ class TestSearchResultQuality:
             assert isinstance(match, str), (
                 f"glob match should be a URI string, got {type(match)}: {match}"
             )
-            assert match.startswith("viking://"), f"glob match URI format invalid: {match}"
+            assert match.startswith("wfs://"), f"glob match URI format invalid: {match}"
 
     def test_glob_with_wildcard_pattern(self, api_client):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -242,7 +242,7 @@ class TestSearchResultQuality:
             if add_resp.status_code != 200:
                 return
 
-            glob_resp = api_client.glob(pattern=f"*{unique_name}*", uri="viking://resources/")
+            glob_resp = api_client.glob(pattern=f"*{unique_name}*", uri="wfs://resources/")
             if glob_resp.status_code == 200:
                 matches = glob_resp.json().get("result", {}).get("matches", [])
                 assert len(matches) >= 1, (
@@ -271,13 +271,13 @@ class TestSearchResultQuality:
         )
 
     def test_grep_nonexistent_uri(self, api_client):
-        grep_resp = api_client.grep(uri="viking://resources/nonexistent_grep_uri", pattern="test")
+        grep_resp = api_client.grep(uri="wfs://resources/nonexistent_grep_uri", pattern="test")
         assert grep_resp.status_code == 404, (
             f"grep on nonexistent URI should return 200/404/500, got {grep_resp.status_code}"
         )
 
     def test_glob_nonexistent_uri(self, api_client):
-        glob_resp = api_client.glob(pattern="*", uri="viking://resources/nonexistent_glob_uri")
+        glob_resp = api_client.glob(pattern="*", uri="wfs://resources/nonexistent_glob_uri")
         assert glob_resp.status_code == 404, (
             f"glob on nonexistent URI should return 200/404/500, got {glob_resp.status_code}"
         )

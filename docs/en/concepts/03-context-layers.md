@@ -28,7 +28,7 @@ API authentication guide covering OAuth 2.0, JWT tokens, and API keys for secure
 ### API
 
 ```python
-abstract = client.abstract("viking://resources/docs/auth")
+abstract = client.abstract("wfs://resources/docs/auth")
 ```
 
 ## L1: Overview
@@ -57,13 +57,13 @@ This guide covers three authentication methods for the API:
 - JWT for service-to-service communication
 
 ## Access
-Use `read("viking://resources/docs/auth/oauth.md")` for full documentation.
+Use `read("wfs://resources/docs/auth/oauth.md")` for full documentation.
 ```
 
 ### API
 
 ```python
-overview = client.overview("viking://resources/docs/auth")
+overview = client.overview("wfs://resources/docs/auth")
 ```
 
 ## L2: Detail
@@ -79,7 +79,7 @@ Complete original content, loaded only when needed.
 ### API
 
 ```python
-content = client.read("viking://resources/docs/auth/oauth.md")
+content = client.read("wfs://resources/docs/auth/oauth.md")
 ```
 
 ## Generation Mechanism
@@ -109,7 +109,7 @@ Child directory L0s are aggregated into parent L1, forming hierarchical navigati
 Each directory follows a unified file structure:
 
 ```
-viking://resources/docs/auth/
+wfs://resources/docs/auth/
 ├── .abstract.md          # L0: ~100 tokens
 ├── .overview.md          # L1: ~1k tokens
 ├── .relations.json       # Related resources

@@ -22,15 +22,15 @@ async def test_grep_preserves_dfs_order_and_node_limit(monkeypatch):
 
     async def fake_ls(uri, ctx=None, **kwargs):
         entries = {
-            "viking://resources": [
+            "wfs://resources": [
                 {"name": "dir_a", "isDir": True},
                 {"name": "dir_b", "isDir": True},
             ],
-            "viking://resources/dir_a": [
+            "wfs://resources/dir_a": [
                 {"name": "a1.md", "isDir": False},
                 {"name": "a2.md", "isDir": False},
             ],
-            "viking://resources/dir_b": [
+            "wfs://resources/dir_b": [
                 {"name": "b1.md", "isDir": False},
             ],
         }
@@ -49,28 +49,28 @@ async def test_grep_preserves_dfs_order_and_node_limit(monkeypatch):
     monkeypatch.setattr(
         fs,
         "_uri_to_path",
-        lambda uri, ctx=None: uri.replace("viking://", "/"),
+        lambda uri, ctx=None: uri.replace("wfs://", "/"),
     )
     monkeypatch.setattr(fs.agfs, "read", fake_agfs_read, raising=False)
 
-    result = await fs.grep("viking://resources", pattern="match", node_limit=3)
+    result = await fs.grep("wfs://resources", pattern="match", node_limit=3)
 
     assert result["count"] == 3
     assert result["files_scanned"] == 2
     assert result["matches"] == [
         {
             "line": 1,
-            "uri": "viking://resources/dir_a/a1.md",
+            "uri": "wfs://resources/dir_a/a1.md",
             "content": "match a1 line1",
         },
         {
             "line": 3,
-            "uri": "viking://resources/dir_a/a1.md",
+            "uri": "wfs://resources/dir_a/a1.md",
             "content": "match a1 line3",
         },
         {
             "line": 1,
-            "uri": "viking://resources/dir_a/a2.md",
+            "uri": "wfs://resources/dir_a/a2.md",
             "content": "match a2 line1",
         },
     ]
@@ -85,7 +85,7 @@ async def test_grep_parallel_reads_respect_concurrency_limit(monkeypatch):
 
     async def fake_ls(uri, ctx=None, **kwargs):
         entries = {
-            "viking://resources": [{"name": f"file{i}.md", "isDir": False} for i in range(12)]
+            "wfs://resources": [{"name": f"file{i}.md", "isDir": False} for i in range(12)]
         }
         return entries.get(uri, [])
 
@@ -105,11 +105,11 @@ async def test_grep_parallel_reads_respect_concurrency_limit(monkeypatch):
     monkeypatch.setattr(
         fs,
         "_uri_to_path",
-        lambda uri, ctx=None: uri.replace("viking://", "/"),
+        lambda uri, ctx=None: uri.replace("wfs://", "/"),
     )
     monkeypatch.setattr(fs.agfs, "read", fake_agfs_read, raising=False)
 
-    result = await fs.grep("viking://resources", pattern="match")
+    result = await fs.grep("wfs://resources", pattern="match")
 
     assert result["count"] == 12
     assert result["files_scanned"] == 12
@@ -125,7 +125,7 @@ async def test_grep_parallel_reads_work_with_blocking_agfs_read(monkeypatch):
         return {"isDir": True}
 
     async def fake_ls(uri, ctx=None, **kwargs):
-        if uri == "viking://resources":
+        if uri == "wfs://resources":
             return [{"name": f"file{i}.md", "isDir": False} for i in range(8)]
         return []
 
@@ -138,12 +138,12 @@ async def test_grep_parallel_reads_work_with_blocking_agfs_read(monkeypatch):
     monkeypatch.setattr(
         fs,
         "_uri_to_path",
-        lambda uri, ctx=None: uri.replace("viking://", "/"),
+        lambda uri, ctx=None: uri.replace("wfs://", "/"),
     )
     monkeypatch.setattr(fs.agfs, "read", fake_agfs_read, raising=False)
 
     started = time.perf_counter()
-    result = await fs.grep("viking://resources", pattern="match")
+    result = await fs.grep("wfs://resources", pattern="match")
     elapsed = time.perf_counter() - started
 
     assert result["count"] == 8
@@ -159,7 +159,7 @@ async def test_grep_stops_scheduling_later_batches_after_node_limit(monkeypatch)
         return {"isDir": True}
 
     async def fake_ls(uri, ctx=None, **kwargs):
-        if uri == "viking://resources":
+        if uri == "wfs://resources":
             return [{"name": f"file{i}.md", "isDir": False} for i in range(6)]
         return []
 
@@ -182,12 +182,12 @@ async def test_grep_stops_scheduling_later_batches_after_node_limit(monkeypatch)
     monkeypatch.setattr(
         fs,
         "_uri_to_path",
-        lambda uri, ctx=None: uri.replace("viking://", "/"),
+        lambda uri, ctx=None: uri.replace("wfs://", "/"),
     )
     monkeypatch.setattr(fs.agfs, "read", fake_agfs_read, raising=False)
     monkeypatch.setattr(viking_fs_module, "_DEFAULT_GREP_FILE_CONCURRENCY", 2)
 
-    result = await fs.grep("viking://resources", pattern="match", node_limit=2)
+    result = await fs.grep("wfs://resources", pattern="match", node_limit=2)
 
     assert result["count"] == 2
     assert result["files_scanned"] == 1

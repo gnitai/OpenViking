@@ -1,7 +1,7 @@
 // Watch management subcommand handlers (RFC #2104).
 //
 // Mirrors the REST `/watches` endpoints with full parity. Each handler
-// auto-detects whether `key` is a viking:// URI or a task_id and routes to
+// auto-detects whether `key` is a wfs:// URI or a task_id and routes to
 // the appropriate `*_by_uri` or `*_by_id` HTTP client method.
 
 use crate::client::HttpClient;
@@ -18,22 +18,22 @@ enum KeyKind {
     TaskId,
 }
 
-/// Classify a positional key. Case-insensitive `viking://` matches as a URI;
+/// Classify a positional key. Case-insensitive `wfs://` matches as a URI;
 /// any other `://`-bearing string is rejected as a likely typo (avoids the
 /// silent "task_id not found" experience when the user meant a URI but used
 /// the wrong scheme / capitalization / single-slash).
 fn classify_key(key: &str) -> Result<KeyKind> {
-    if key.starts_with("viking://") {
+    if key.starts_with("wfs://") {
         return Ok(KeyKind::Uri);
     }
-    if key.to_ascii_lowercase().starts_with("viking://") {
+    if key.to_ascii_lowercase().starts_with("wfs://") {
         return Err(Error::Parse(format!(
-            "URI scheme is case-sensitive — use lowercase `viking://` (got {key:?})"
+            "URI scheme is case-sensitive — use lowercase `wfs://` (got {key:?})"
         )));
     }
     if key.contains("://") {
         return Err(Error::Parse(format!(
-            "Key {key:?} looks like a URI but does not start with `viking://`. \
+            "Key {key:?} looks like a URI but does not start with `wfs://`. \
              If you meant a task_id, drop the scheme."
         )));
     }
@@ -193,10 +193,10 @@ mod tests {
     #[test]
     fn classify_viking_uri_as_uri() {
         assert_eq!(
-            classify_key("viking://resources/foo/bar").unwrap(),
+            classify_key("wfs://resources/foo/bar").unwrap(),
             KeyKind::Uri
         );
-        assert_eq!(classify_key("viking://resources").unwrap(), KeyKind::Uri);
+        assert_eq!(classify_key("wfs://resources").unwrap(), KeyKind::Uri);
     }
 
     #[test]

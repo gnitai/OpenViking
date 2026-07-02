@@ -13,10 +13,10 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
   return {
     memsearch: tool({
       description:
-        "Search OpenViking memories, indexed repositories, and skills. Use this for semantic or conceptual questions. Narrow `target_uri` whenever possible, for example viking://resources/project/ or viking://user/memories/.",
+        "Search OpenViking memories, indexed repositories, and skills. Use this for semantic or conceptual questions. Narrow `target_uri` whenever possible, for example wfs://resources/project/ or wfs://user/memories/.",
       args: {
         query: z.string().describe("Natural language query, question, or task description."),
-        target_uri: z.string().optional().describe("Optional Viking URI scope, e.g. viking://resources/ or viking://user/memories/."),
+        target_uri: z.string().optional().describe("Optional Viking URI scope, e.g. wfs://resources/ or wfs://user/memories/."),
         mode: z.enum(["auto", "fast", "deep"]).optional().describe("auto chooses based on query complexity; fast uses /find; deep uses /search with session context when available."),
         session_id: z.string().optional().describe("Optional explicit OpenViking session ID for context-aware search."),
         limit: z.number().optional().describe("Maximum number of results. Defaults to 10."),
@@ -54,7 +54,7 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
 
     memread: tool({
       description:
-        "Read a specific viking:// URI. Use after memsearch, membrowse, memgrep, or memglob returns a URI. `auto` chooses overview for directories and read for files.",
+        "Read a specific wfs:// URI. Use after memsearch, membrowse, memgrep, or memglob returns a URI. `auto` chooses overview for directories and read for files.",
       args: {
         uri: z.string().describe("Complete Viking URI to read."),
         level: z.enum(["auto", "abstract", "overview", "read"]).optional().describe("Read level. Defaults to auto."),
@@ -84,9 +84,9 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
 
     membrowse: tool({
       description:
-        "Browse OpenViking filesystem structure. Use list/tree/stat to discover exact URIs before reading. Scope to the narrowest useful viking:// path.",
+        "Browse OpenViking filesystem structure. Use list/tree/stat to discover exact URIs before reading. Scope to the narrowest useful wfs:// path.",
       args: {
-        uri: z.string().describe("Viking URI to inspect, e.g. viking://resources/ or viking://user/memories/."),
+        uri: z.string().describe("Viking URI to inspect, e.g. wfs://resources/ or wfs://user/memories/."),
         view: z.enum(["list", "tree", "stat"]).optional().describe("Browse view. Defaults to list."),
         recursive: z.boolean().optional().describe("For list view only, recursively list descendants."),
         simple: z.boolean().optional().describe("For list view only, return simpler URI-oriented output."),
@@ -142,13 +142,13 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
         "Search exact text or regex-like patterns in OpenViking content. Use this for symbols, function names, classes, error strings, or known keywords. Narrow `uri` to the smallest relevant repository or directory.",
       args: {
         pattern: z.string().describe("Pattern or exact keyword to search for."),
-        uri: z.string().optional().describe("Starting Viking URI. Defaults to viking://resources/."),
+        uri: z.string().optional().describe("Starting Viking URI. Defaults to wfs://resources/."),
         case_insensitive: z.boolean().optional().describe("Whether search should ignore case."),
         exclude_uri: z.string().optional().describe("Optional URI prefix to exclude from matches."),
         level_limit: z.number().optional().describe("Optional maximum traversal depth."),
       },
       async execute(args, context) {
-        const uri = args.uri ?? "viking://resources/"
+        const uri = args.uri ?? "wfs://resources/"
         const validationError = validateVikingUri(uri, "memgrep")
         if (validationError) return validationError
 
@@ -176,11 +176,11 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
         "List files by glob pattern in OpenViking. Use this to enumerate candidate files before memread. Narrow `uri` to the smallest relevant repository or directory.",
       args: {
         pattern: z.string().describe("Glob pattern, e.g. **/*.py or **/test_*.ts."),
-        uri: z.string().optional().describe("Starting Viking URI. Defaults to viking://resources/."),
+        uri: z.string().optional().describe("Starting Viking URI. Defaults to wfs://resources/."),
         node_limit: z.number().optional().describe("Optional maximum number of matches."),
       },
       async execute(args, context) {
-        const uri = args.uri ?? "viking://resources/"
+        const uri = args.uri ?? "wfs://resources/"
         const validationError = validateVikingUri(uri, "memglob")
         if (validationError) return validationError
 
@@ -203,11 +203,11 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
 
     memadd: tool({
       description:
-        "Add a remote URL or local file resource to OpenViking under viking://resources/. Local files are uploaded through OpenViking temp upload before indexing. After adding, this returns observer queue status so indexing progress is visible.",
+        "Add a remote URL or local file resource to OpenViking under wfs://resources/. Local files are uploaded through OpenViking temp upload before indexing. After adding, this returns observer queue status so indexing progress is visible.",
       args: {
         path: z.string().describe("Remote http(s) URL, local file path, or file:// URL to add. Relative local paths are resolved from the OpenCode project directory."),
-        to: z.string().optional().describe("Exact target URI under viking://resources/. Cannot be used with parent."),
-        parent: z.string().optional().describe("Parent URI under viking://resources/. Cannot be used with to."),
+        to: z.string().optional().describe("Exact target URI under wfs://resources/. Cannot be used with parent."),
+        parent: z.string().optional().describe("Parent URI under wfs://resources/. Cannot be used with to."),
         reason: z.string().optional().describe("Reason for adding this resource."),
         instruction: z.string().optional().describe("Optional processing instruction."),
         wait: z.boolean().optional().describe("Whether OpenViking should wait for semantic processing."),
@@ -216,8 +216,8 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
       },
       async execute(args, context) {
         if (args.to && args.parent) return "Error: Use either `to` or `parent`, not both."
-        if (args.to && !args.to.startsWith("viking://resources")) return "Error: `to` must be under viking://resources/."
-        if (args.parent && !args.parent.startsWith("viking://resources")) return "Error: `parent` must be under viking://resources/."
+        if (args.to && !args.to.startsWith("wfs://resources")) return "Error: `to` must be under wfs://resources/."
+        if (args.parent && !args.parent.startsWith("wfs://resources")) return "Error: `parent` must be under wfs://resources/."
 
         try {
           const result = await addMemaddResource(config, args, projectDirectory, context.abort)
@@ -233,7 +233,7 @@ export function createMemoryTools({ config, sessionManager, projectDirectory }) 
 
     memremove: tool({
       description:
-        "Remove a viking:// resource. The user must explicitly confirm deletion before this tool is called. Set confirm=true, otherwise deletion is refused.",
+        "Remove a wfs:// resource. The user must explicitly confirm deletion before this tool is called. Set confirm=true, otherwise deletion is refused.",
       args: {
         uri: z.string().describe("Viking URI to remove."),
         recursive: z.boolean().optional().describe("Recursively remove a directory."),

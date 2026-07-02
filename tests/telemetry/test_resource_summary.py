@@ -44,7 +44,7 @@ def test_record_resource_wait_metrics_collects_queue_and_dag_stats(monkeypatch):
         telemetry=telemetry,
         telemetry_id=telemetry_id,
         queue_status=queue_status,
-        root_uri="viking://resources/demo",
+        root_uri="wfs://resources/demo",
     )
 
     summary = telemetry.finish().summary

@@ -52,7 +52,7 @@ router = APIRouter(prefix="/api/v1/content", tags=["content"])
 
 def _validate_reindex_uri(uri: str) -> str:
     raw_uri = uri.strip() if isinstance(uri, str) else ""
-    if raw_uri.startswith("viking://"):
+    if raw_uri.startswith("wfs://"):
         return raw_uri
     return validate_viking_uri(raw_uri)
 

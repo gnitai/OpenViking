@@ -68,9 +68,9 @@ async def test_skill_read_restores_placeholder(service):
     )
 
     stored = await service.viking_fs.read_file(
-        "viking://agent/skills/restore-skill/SKILL.md", ctx=ctx
+        "wfs://agent/skills/restore-skill/SKILL.md", ctx=ctx
     )
-    restored = await service.fs.read("viking://agent/skills/restore-skill/SKILL.md", ctx=ctx)
+    restored = await service.fs.read("wfs://agent/skills/restore-skill/SKILL.md", ctx=ctx)
 
     assert "secret-xyz" not in stored
     assert "{{ov_privacy:skill:restore-skill:api_key}}" in stored
@@ -97,7 +97,7 @@ async def test_skill_read_restores_placeholder_with_agent_segment(service):
     )
 
     restored = await service.fs.read(
-        "viking://agent/default/skills/restore-skill-agent-segment/SKILL.md",
+        "wfs://agent/default/skills/restore-skill-agent-segment/SKILL.md",
         ctx=ctx,
     )
 
@@ -136,7 +136,7 @@ async def test_skill_read_appends_notice_for_unreplaced_placeholders(service):
     await service.initialize_user_directories(ctx)
     await service.initialize_agent_directories(ctx)
 
-    skill_uri = "viking://agent/skills/partial-restore-skill"
+    skill_uri = "wfs://agent/skills/partial-restore-skill"
     await service.viking_fs.mkdir(skill_uri, exist_ok=True, ctx=ctx)
     await service.viking_fs.write_file(
         f"{skill_uri}/SKILL.md",
@@ -171,7 +171,7 @@ async def test_skill_read_appends_notice_for_extra_configured_keys(service):
     await service.initialize_user_directories(ctx)
     await service.initialize_agent_directories(ctx)
 
-    skill_uri = "viking://agent/skills/extra-config-skill"
+    skill_uri = "wfs://agent/skills/extra-config-skill"
     await service.viking_fs.mkdir(skill_uri, exist_ok=True, ctx=ctx)
     await service.viking_fs.write_file(
         f"{skill_uri}/SKILL.md",

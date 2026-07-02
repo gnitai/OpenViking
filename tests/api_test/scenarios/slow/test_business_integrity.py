@@ -127,18 +127,18 @@ class TestCrossAPIConsistency:
             assert stat_result.get("size", 0) >= 0, "size should be non-negative"
 
     def test_deleted_resource_not_in_ls(self, api_client):
-        dir_uri = f"viking://resources/del_ls_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/del_ls_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(dir_uri)
 
-            ls_before = api_client.fs_ls("viking://resources/")
+            ls_before = api_client.fs_ls("wfs://resources/")
             assert ls_before.status_code == 200
             uris_before = [item["uri"] for item in ls_before.json().get("result", [])]
             assert dir_uri in uris_before, "directory should appear in ls before deletion"
 
             api_client.fs_rm(dir_uri, recursive=True)
 
-            ls_after = api_client.fs_ls("viking://resources/")
+            ls_after = api_client.fs_ls("wfs://resources/")
             assert ls_after.status_code == 200
             uris_after = [item["uri"] for item in ls_after.json().get("result", [])]
             assert dir_uri not in uris_after, "directory should NOT appear in ls after deletion"

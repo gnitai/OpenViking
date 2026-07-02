@@ -14,7 +14,7 @@ import type { FindResultItem } from "../../client.js";
 
 function mem(overrides?: Partial<FindResultItem>): FindResultItem {
   return {
-    uri: "viking://user/default/memories/m1",
+    uri: "wfs://user/default/memories/m1",
     level: 2,
     abstract: "User prefers Python",
     category: "preferences",
@@ -115,9 +115,9 @@ describe("formatMemoryLines", () => {
   });
 
   it("uses uri when both abstract and overview are empty", () => {
-    const item = mem({ abstract: "", overview: "", uri: "viking://test/uri", score: 0.5 });
+    const item = mem({ abstract: "", overview: "", uri: "wfs://test/uri", score: 0.5 });
     const output = formatMemoryLines([item]);
-    expect(output).toContain("viking://test/uri");
+    expect(output).toContain("wfs://test/uri");
   });
 });
 

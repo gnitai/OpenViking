@@ -393,7 +393,7 @@ datasets/{dataset_name}/viking_store_index_dir
   "evidence": ["D7:5", "D7:9"],
   "retrieval": {
     "latency_sec": 0.288,
-    "uris": ["viking://resources/...", "viking://resources/..."]
+    "uris": ["wfs://resources/...", "wfs://resources/..."]
   },
   "llm": {
     "final_answer": "Not mentioned"

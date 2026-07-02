@@ -24,14 +24,14 @@ class TestResolveOperations:
         schema = MemoryTypeSchema(
             memory_type="entities",
             description="entity memory",
-            directory="viking://user/{{ user_space }}/memories/entities",
+            directory="wfs://user/{{ user_space }}/memories/entities",
             filename_template="{{ name }}.md",
             fields=[
                 MemoryField(name="name", field_type=FieldType.STRING, merge_op=MergeOp.REPLACE),
                 MemoryField(name="content", field_type=FieldType.STRING, merge_op=MergeOp.PATCH),
             ],
         )
-        existing_uri = "viking://user/alice/memories/entities/Melanie.md"
+        existing_uri = "wfs://user/alice/memories/entities/Melanie.md"
         old_file = MemoryFile(
             uri=existing_uri,
             content="old content",
@@ -77,10 +77,10 @@ class TestResolveOperations:
         loop._extract_context = Mock()
         loop._extract_context.page_id_map = Mock()
         loop._extract_context.page_id_map._id_to_uri = {
-            100: "viking://agent/agent_sample_0/memories/trajectories/a.md"
+            100: "wfs://agent/agent_sample_0/memories/trajectories/a.md"
         }
         loop._extract_context.page_id_map.resolve.side_effect = lambda page_id: {
-            100: "viking://agent/agent_sample_0/memories/trajectories/a.md"
+            100: "wfs://agent/agent_sample_0/memories/trajectories/a.md"
         }.get(page_id)
         loop._extract_context.page_id_map.register_new_page_id = Mock()
 
@@ -95,7 +95,7 @@ class TestResolveOperations:
         mock_error.assert_not_called()
         mock_info.assert_any_call(
             "Skipping link with unresolved page_ids: f=100, t=102, "
-            "from_uri=viking://agent/agent_sample_0/memories/trajectories/a.md, to_uri=None, "
+            "from_uri=wfs://agent/agent_sample_0/memories/trajectories/a.md, to_uri=None, "
             "op_page_map_keys=[]"
         )
 
@@ -115,8 +115,8 @@ class TestResolveLinksMultiUri:
                 memory_fields={},
                 memory_type="experiences",
                 uris=[
-                    "viking://user/a/memories/experiences/source.md",
-                    "viking://user/b/memories/experiences/source.md",
+                    "wfs://user/a/memories/experiences/source.md",
+                    "wfs://user/b/memories/experiences/source.md",
                 ],
                 page_id=100,
             ),
@@ -124,8 +124,8 @@ class TestResolveLinksMultiUri:
                 memory_fields={},
                 memory_type="experiences",
                 uris=[
-                    "viking://user/a/memories/experiences/target.md",
-                    "viking://user/b/memories/experiences/target.md",
+                    "wfs://user/a/memories/experiences/target.md",
+                    "wfs://user/b/memories/experiences/target.md",
                 ],
                 page_id=101,
             ),
@@ -135,12 +135,12 @@ class TestResolveLinksMultiUri:
 
         assert {(link.from_uri, link.to_uri) for link in resolved} == {
             (
-                "viking://user/a/memories/experiences/source.md",
-                "viking://user/a/memories/experiences/target.md",
+                "wfs://user/a/memories/experiences/source.md",
+                "wfs://user/a/memories/experiences/target.md",
             ),
             (
-                "viking://user/b/memories/experiences/source.md",
-                "viking://user/b/memories/experiences/target.md",
+                "wfs://user/b/memories/experiences/source.md",
+                "wfs://user/b/memories/experiences/target.md",
             ),
         }
 
@@ -164,7 +164,7 @@ class TestPageIdInstruction:
         isolation_handler.get_read_scope.return_value = None
         isolation_handler.fill_role_ids.side_effect = lambda item, role_scope=None: item
         isolation_handler.calculate_memory_uris.return_value = [
-            "viking://user/alice/memories/experiences/chat.md"
+            "wfs://user/alice/memories/experiences/chat.md"
         ]
 
         loop = ExtractLoop(
@@ -235,7 +235,7 @@ class TestPageIdInstruction:
         isolation_handler.get_read_scope.return_value = None
         isolation_handler.fill_role_ids.side_effect = lambda item, role_scope=None: item
         isolation_handler.calculate_memory_uris.return_value = [
-            "viking://user/alice/memories/experiences/chat.md"
+            "wfs://user/alice/memories/experiences/chat.md"
         ]
 
         loop = ExtractLoop(
@@ -289,7 +289,7 @@ class TestPageIdInstruction:
 class TestFinalOperationsHydration:
     @pytest.mark.asyncio
     async def test_run_logs_final_operations_after_old_memory_file_is_hydrated(self):
-        old_file = MemoryFile(uri="viking://user/Caroline/memories/experiences/chat.md", content="old")
+        old_file = MemoryFile(uri="wfs://user/Caroline/memories/experiences/chat.md", content="old")
 
         context_provider = Mock()
         schema = SimpleNamespace(memory_type="experiences", fields=[])

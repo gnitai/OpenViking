@@ -5,7 +5,7 @@ Viking URI 是 OpenViking 中所有内容的统一资源标识符。
 ## 格式
 
 ```
-viking://{scope}/{path}
+wfs://{scope}/{path}
 ```
 
 - **scheme**: 始终为 `viking`
@@ -24,15 +24,15 @@ viking://{scope}/{path}
 | **temp** | 临时文件 | 解析期间 | 内部 |
 
 公开 API 和 CLI 的文件系统/内容操作只接受公开作用域：
-`resources`、`user`、`agent`、`session`，以及根 URI `viking://`。
+`resources`、`user`、`agent`、`session`，以及根 URI `wfs://`。
 `temp` 和 `queue` 是内部实现作用域，不能通过公开 API 的 URI 参数直接访问。
 
 ## 初始目录
 
-摒弃传统的扁平化数据库思维，将所有上下文组织为一套文件系统。Agent 不再仅是通过向量搜索来找数据，而是可以通过确定性的路径和标准文件系统指令来定位和浏览数据。每个上下文或目录分配唯一的 URI 标识字符串，格式为 viking://{scope}/{path}，让系统能精准定位并访问存储在不同位置的资源。
+摒弃传统的扁平化数据库思维，将所有上下文组织为一套文件系统。Agent 不再仅是通过向量搜索来找数据，而是可以通过确定性的路径和标准文件系统指令来定位和浏览数据。每个上下文或目录分配唯一的 URI 标识字符串，格式为 wfs://{scope}/{path}，让系统能精准定位并访问存储在不同位置的资源。
 
 ```
-viking://
+wfs://
 ├── session/{session_id}/
 │   ├── .abstract.md          # L0: 会话一句话摘要
 │   ├── .overview.md          # L1: 会话概览
@@ -69,46 +69,46 @@ viking://
 ### 资源
 
 ```
-viking://resources/                           # 所有资源
-viking://resources/my-project/                # 项目根目录
-viking://resources/my-project/docs/           # 文档目录
-viking://resources/my-project/docs/api.md     # 具体文件
+wfs://resources/                           # 所有资源
+wfs://resources/my-project/                # 项目根目录
+wfs://resources/my-project/docs/           # 文档目录
+wfs://resources/my-project/docs/api.md     # 具体文件
 ```
 
 ### 用户数据
 
 ```
-viking://user/                                # 用户根目录
-viking://user/memories/                       # 所有用户记忆
-viking://user/memories/preferences/           # 用户偏好
-viking://user/memories/preferences/coding     # 具体偏好
-viking://user/memories/entities/              # 实体记忆
-viking://user/memories/events/                # 事件记忆
+wfs://user/                                # 用户根目录
+wfs://user/memories/                       # 所有用户记忆
+wfs://user/memories/preferences/           # 用户偏好
+wfs://user/memories/preferences/coding     # 具体偏好
+wfs://user/memories/entities/              # 实体记忆
+wfs://user/memories/events/                # 事件记忆
 ```
 
 ### Agent 数据
 
 ```
-viking://agent/                               # Agent 根目录
-viking://agent/skills/                        # 所有技能
-viking://agent/skills/search-web              # 具体技能
-viking://agent/memories/                      # Agent 记忆
-viking://agent/memories/cases/                # 学习的案例
-viking://agent/memories/patterns/             # 学习的模式
-viking://agent/instructions/                  # Agent 指令
+wfs://agent/                               # Agent 根目录
+wfs://agent/skills/                        # 所有技能
+wfs://agent/skills/search-web              # 具体技能
+wfs://agent/memories/                      # Agent 记忆
+wfs://agent/memories/cases/                # 学习的案例
+wfs://agent/memories/patterns/             # 学习的模式
+wfs://agent/instructions/                  # Agent 指令
 ```
 
-上面的 `viking://user/...` 和 `viking://agent/...` 短路径会按当前请求身份解析。
+上面的 `wfs://user/...` 和 `wfs://agent/...` 短路径会按当前请求身份解析。
 OpenViking 会在存储和检索前将它们展开为显式命名空间路径，例如
-`viking://user/{user_id}/...` 和 `viking://agent/{agent_id}/...`。
+`wfs://user/{user_id}/...` 和 `wfs://agent/{agent_id}/...`。
 
 ### 会话数据
 
 ```
-viking://session/{session_id}/                # 会话根目录
-viking://session/{session_id}/messages/       # 会话消息
-viking://session/{session_id}/tools/          # 工具执行
-viking://session/{session_id}/history/        # 归档历史
+wfs://session/{session_id}/                # 会话根目录
+wfs://session/{session_id}/messages/       # 会话消息
+wfs://session/{session_id}/tools/          # 工具执行
+wfs://session/{session_id}/history/        # 归档历史
 ```
 
 ## 路径变量
@@ -146,24 +146,24 @@ Viking URI 支持路径变量用于动态路径生成。这对于按时间序列
 
 ```python
 # 按日期组织邮件
-viking://resources/emails/{calendar:today}/inbox
-# 渲染为：viking://resources/emails/2026/05/07/inbox
+wfs://resources/emails/{calendar:today}/inbox
+# 渲染为：wfs://resources/emails/2026/05/07/inbox
 
 # 查看昨天的日志
-viking://resources/logs/{calendar:yesterday}/app.log
-# 渲染为：viking://resources/logs/2026/05/06/app.log
+wfs://resources/logs/{calendar:yesterday}/app.log
+# 渲染为：wfs://resources/logs/2026/05/06/app.log
 
 # 预上传明天的任务
-viking://resources/tasks/{calendar:tomorrow}/todo.md
-# 渲染为：viking://resources/tasks/2026/05/08/todo.md
+wfs://resources/tasks/{calendar:tomorrow}/todo.md
+# 渲染为：wfs://resources/tasks/2026/05/08/todo.md
 
 # 月度日志
-viking://resources/logs/{calendar:year}/{calendar:month}/app.log
-# 渲染为：viking://resources/logs/2026/05/app.log
+wfs://resources/logs/{calendar:year}/{calendar:month}/app.log
+# 渲染为：wfs://resources/logs/2026/05/app.log
 
 # 每日快照
-viking://resources/snapshots/{calendar:today}/
-# 渲染为：viking://resources/snapshots/2026/05/07/
+wfs://resources/snapshots/{calendar:today}/
+# 渲染为：wfs://resources/snapshots/2026/05/07/
 ```
 
 ### 解析过程
@@ -174,22 +174,22 @@ viking://resources/snapshots/{calendar:today}/
 
 ```bash
 # 添加今天的邮件 --parent-auto-create 可以简写为 -p
-ov add-resource --parent-auto-create "viking://resources/emails/{calendar:today}/inbox" ./emails/*.eml
+ov add-resource --parent-auto-create "wfs://resources/emails/{calendar:today}/inbox" ./emails/*.eml
 
 # 读取昨天的日志
-ov read "viking://resources/logs/{calendar:yesterday}/app.log"
+ov read "wfs://resources/logs/{calendar:yesterday}/app.log"
 
 # 准备明天的任务
-ov write --uri "viking://resources/tasks/{calendar:tomorrow}/todo.md" --content "规划一天"
+ov write --uri "wfs://resources/tasks/{calendar:tomorrow}/todo.md" --content "规划一天"
 
 # 上传月度报告 --parent-auto-create 可以简写为 -p
-ov add-resource --parent-auto-create "viking://resources/reports/{calendar:ym}" ./report.pdf
+ov add-resource --parent-auto-create "wfs://resources/reports/{calendar:ym}" ./report.pdf
 ```
 
 ## 目录结构
 
 ```
-viking://
+wfs://
 ├── resources/                    # 独立资源
 │   └── {project}/
 │       ├── .abstract.md          # 摘要
@@ -223,8 +223,8 @@ viking://
 
 其中 agent 命名空间形状由 account 级 namespace policy 决定：
 
-- `isolate_agent_scope_by_user = false`：`viking://agent/{agent_id}/...`
-- `isolate_agent_scope_by_user = true`：`viking://agent/{agent_id}/user/{user_id}/...`
+- `isolate_agent_scope_by_user = false`：`wfs://agent/{agent_id}/...`
+- `isolate_agent_scope_by_user = true`：`wfs://agent/{agent_id}/user/{user_id}/...`
 
 `memory.agent_scope_mode` 已废弃且被忽略。
 
@@ -235,7 +235,7 @@ viking://
 ```python
 from openviking_cli.utils.uri import VikingURI
 
-uri = VikingURI("viking://resources/docs/api")
+uri = VikingURI("wfs://resources/docs/api")
 print(uri.scope)      # "resources"
 print(uri.full_path)  # "resources/docs/api"
 ```
@@ -244,12 +244,12 @@ print(uri.full_path)  # "resources/docs/api"
 
 ```python
 # 拼接路径
-base = "viking://resources/docs/"
-full = VikingURI(base).join("api.md").uri  # viking://resources/docs/api.md
+base = "wfs://resources/docs/"
+full = VikingURI(base).join("api.md").uri  # wfs://resources/docs/api.md
 
 # 父目录
-uri = "viking://resources/docs/api.md"
-parent = VikingURI(uri).parent.uri  # viking://resources/docs
+uri = "wfs://resources/docs/api.md"
+parent = VikingURI(uri).parent.uri  # wfs://resources/docs
 ```
 
 ## API 使用
@@ -260,19 +260,19 @@ parent = VikingURI(uri).parent.uri  # viking://resources/docs
 # 仅在资源中搜索
 results = client.find(
     "认证",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # 仅在用户记忆中搜索
 results = client.find(
     "编码偏好",
-    target_uri="viking://user/memories/"
+    target_uri="wfs://user/memories/"
 )
 
 # 仅在技能中搜索
 results = client.find(
     "网络搜索",
-    target_uri="viking://agent/skills/"
+    target_uri="wfs://agent/skills/"
 )
 ```
 
@@ -280,16 +280,16 @@ results = client.find(
 
 ```python
 # 列出目录
-entries = await client.ls("viking://resources/")
+entries = await client.ls("wfs://resources/")
 
 # 读取文件
-content = await client.read("viking://resources/docs/api.md")
+content = await client.read("wfs://resources/docs/api.md")
 
 # 获取摘要
-abstract = await client.abstract("viking://resources/docs/")
+abstract = await client.abstract("wfs://resources/docs/")
 
 # 获取概览
-overview = await client.overview("viking://resources/docs/")
+overview = await client.overview("wfs://resources/docs/")
 ```
 
 ## 特殊文件
@@ -309,20 +309,20 @@ overview = await client.overview("viking://resources/docs/")
 
 ```python
 # 目录
-"viking://resources/docs/"
+"wfs://resources/docs/"
 
 # 文件
-"viking://resources/docs/api.md"
+"wfs://resources/docs/api.md"
 ```
 
 ### 作用域特定操作
 
 ```python
 # 资源只添加到 resources 作用域
-await client.add_resource(url, to="viking://resources/project/")
+await client.add_resource(url, to="wfs://resources/project/")
 
 # 技能添加到 agent 作用域
-await client.add_skill(skill)  # 自动到 viking://agent/skills/
+await client.add_skill(skill)  # 自动到 wfs://agent/skills/
 ```
 
 ## 相关文档

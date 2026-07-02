@@ -200,7 +200,7 @@ def _memory_corpus_dir(config: dict[str, Any], configured_run_id: str, corpus_ke
 
 
 def _search_uri(agent_id: str, search_memory_type: str) -> str:
-    return f"viking://agent/{agent_id}/memories/{search_memory_type}"
+    return f"wfs://agent/{agent_id}/memories/{search_memory_type}"
 
 
 def _train_transcript_format(strategy: dict[str, Any]) -> str:

@@ -26,7 +26,7 @@ class TestStatAbstractOverviewDeep:
                 )
 
     def test_stat_directory_isDir_true(self, api_client):
-        dir_uri = f"viking://resources/stat_dir_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/stat_dir_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(dir_uri)
             stat_resp = api_client.fs_stat(dir_uri)
@@ -55,7 +55,7 @@ class TestStatAbstractOverviewDeep:
             )
 
     def test_abstract_nonexistent_uri(self, api_client):
-        fake_uri = f"viking://resources/abstract_nonexist_{uuid.uuid4().hex[:8]}"
+        fake_uri = f"wfs://resources/abstract_nonexist_{uuid.uuid4().hex[:8]}"
         abstract_resp = api_client.get_abstract(fake_uri)
         assert abstract_resp.status_code == 404, (
             f"abstract nonexistent should return 200/404/500, got {abstract_resp.status_code}"
@@ -124,7 +124,7 @@ class TestStatAbstractOverviewDeep:
                 assert isinstance(abstract, str), "abstract after reindex should be string"
 
     def test_stat_nonexistent_uri(self, api_client):
-        fake_uri = f"viking://resources/stat_nonexist_{uuid.uuid4().hex[:8]}"
+        fake_uri = f"wfs://resources/stat_nonexist_{uuid.uuid4().hex[:8]}"
         stat_resp = api_client.fs_stat(fake_uri)
         assert stat_resp.status_code == 404, (
             f"stat nonexistent should return 404/500, got {stat_resp.status_code}"

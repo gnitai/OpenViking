@@ -6,7 +6,7 @@ import pytest
 class TestFsReadWrite:
     def test_fs_read(self, api_client):
         """Test fs_read API by creating a test file and reading it back."""
-        test_file_uri = "viking://resources/test_fs_read_write_test.txt"
+        test_file_uri = "wfs://resources/test_fs_read_write_test.txt"
         test_content = "This is a test file created for fs_read test."
 
         try:

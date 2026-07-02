@@ -20,7 +20,7 @@ async def test_memory_semantic_enqueue_deduped_within_window():
         named_enqueue.return_value = "queued-id"
         q = SemanticQueue(mock_agfs, "/queue", "semantic")
         msg = SemanticMsg(
-            uri="viking://user/default/memories/entities",
+            uri="wfs://user/default/memories/entities",
             context_type="memory",
             account_id="acc",
             user_id="u1",
@@ -29,7 +29,7 @@ async def test_memory_semantic_enqueue_deduped_within_window():
         r1 = await q.enqueue(msg)
         r2 = await q.enqueue(
             SemanticMsg(
-                uri="viking://user/default/memories/entities",
+                uri="wfs://user/default/memories/entities",
                 context_type="memory",
                 account_id="acc",
                 user_id="u1",
@@ -49,13 +49,13 @@ async def test_memory_semantic_enqueue_different_uri_not_deduped():
         q = SemanticQueue(mock_agfs, "/queue", "semantic")
         await q.enqueue(
             SemanticMsg(
-                uri="viking://user/default/memories/entities",
+                uri="wfs://user/default/memories/entities",
                 context_type="memory",
             )
         )
         await q.enqueue(
             SemanticMsg(
-                uri="viking://user/default/memories/patterns",
+                uri="wfs://user/default/memories/patterns",
                 context_type="memory",
             )
         )
@@ -68,7 +68,7 @@ async def test_non_memory_context_not_deduped():
     with patch.object(NamedQueue, "enqueue", new_callable=AsyncMock) as named_enqueue:
         named_enqueue.return_value = "queued-id"
         q = SemanticQueue(mock_agfs, "/queue", "semantic")
-        uri = "viking://resources/docs"
+        uri = "wfs://resources/docs"
         await q.enqueue(SemanticMsg(uri=uri, context_type="resource"))
         await q.enqueue(SemanticMsg(uri=uri, context_type="resource"))
         assert named_enqueue.call_count == 2
@@ -80,14 +80,14 @@ async def test_coalesced_semantic_messages_mark_old_version_stale():
     with patch.object(NamedQueue, "enqueue", new_callable=AsyncMock) as named_enqueue:
         named_enqueue.return_value = "queued-id"
         q = SemanticQueue(mock_agfs, "/queue", "semantic")
-        coalesce_key = f"resource|acc|u|a|viking://resources/docs/{uuid4().hex}"
+        coalesce_key = f"resource|acc|u|a|wfs://resources/docs/{uuid4().hex}"
         first = SemanticMsg(
-            uri="viking://resources/docs",
+            uri="wfs://resources/docs",
             context_type="resource",
             coalesce_key=coalesce_key,
         )
         second = SemanticMsg(
-            uri="viking://resources/docs",
+            uri="wfs://resources/docs",
             context_type="resource",
             coalesce_key=first.coalesce_key,
         )
@@ -158,17 +158,17 @@ async def test_stale_memory_semantic_write_is_skipped(monkeypatch):
     lock_manager = _FakeLockManager()
     viking_fs = _FakeVikingFS()
     processor = SemanticProcessor()
-    coalesce_key = f"memory|acc|u|a|viking://user/default/memories/preferences/{uuid4().hex}"
+    coalesce_key = f"memory|acc|u|a|wfs://user/default/memories/preferences/{uuid4().hex}"
 
     with patch.object(NamedQueue, "enqueue", new_callable=AsyncMock):
         q = SemanticQueue(MagicMock(), "/queue", "semantic")
         first = SemanticMsg(
-            uri="viking://user/default/memories/preferences",
+            uri="wfs://user/default/memories/preferences",
             context_type="memory",
             coalesce_key=coalesce_key,
         )
         latest = SemanticMsg(
-            uri="viking://user/default/memories/preferences",
+            uri="wfs://user/default/memories/preferences",
             context_type="memory",
             coalesce_key=coalesce_key,
         )
@@ -198,13 +198,13 @@ async def test_stale_memory_semantic_write_is_skipped(monkeypatch):
     assert wrote_latest
     assert lock_manager.acquired_batches == [
         [
-            "/fake/viking/user/default/memories/preferences/.overview.md",
-            "/fake/viking/user/default/memories/preferences/.abstract.md",
+            "/fake/wfs/user/default/memories/preferences/.overview.md",
+            "/fake/wfs/user/default/memories/preferences/.abstract.md",
         ]
     ]
     assert viking_fs.writes == [
-        ("viking://user/default/memories/preferences/.overview.md", "latest overview"),
-        ("viking://user/default/memories/preferences/.abstract.md", "latest abstract"),
+        ("wfs://user/default/memories/preferences/.overview.md", "latest overview"),
+        ("wfs://user/default/memories/preferences/.abstract.md", "latest abstract"),
     ]
 
 
@@ -243,7 +243,7 @@ async def test_memory_directory_summarizes_all_uncached_files(monkeypatch):
 
     await processor._process_memory_directory(
         SemanticMsg(
-            uri="viking://user/default/memories/preferences",
+            uri="wfs://user/default/memories/preferences",
             context_type="memory",
             skip_vectorization=True,
         )
@@ -255,7 +255,7 @@ async def test_memory_directory_summarizes_all_uncached_files(monkeypatch):
 @pytest.mark.asyncio
 async def test_memory_directory_vectorizes_changed_files_with_generated_summary(monkeypatch):
     processor = SemanticProcessor(max_concurrent_llm=4)
-    dir_uri = "viking://user/default/memories/preferences"
+    dir_uri = "wfs://user/default/memories/preferences"
     changed_uri = f"{dir_uri}/first.md"
     captured_file_vectorize = []
     captured_directory_vectorize = []

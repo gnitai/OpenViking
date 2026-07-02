@@ -15,7 +15,7 @@ from openviking.integrations.langchain import (
 def build_app(client: InMemoryOpenVikingClient | None = None):
     client = client or InMemoryOpenVikingClient(
         {
-            "viking://resources/runbooks/context-backend.md": (
+            "wfs://resources/runbooks/context-backend.md": (
                 "OpenViking context backend examples should answer with azure."
             )
         }
@@ -30,7 +30,7 @@ def build_app(client: InMemoryOpenVikingClient | None = None):
         RunnableLambda(answer),
         client=client,
         session_id="langchain-context-backend-demo",
-        target_uri="viking://resources",
+        target_uri="wfs://resources",
         commit_policy=OpenVikingCommitPolicy(
             mode="pending_tokens",
             pending_token_threshold=1_000,

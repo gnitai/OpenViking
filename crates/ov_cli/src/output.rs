@@ -934,7 +934,7 @@ mod tests {
         let obj = json!({
             "id": "123",
             "name": "Test Resource",
-            "uri": "viking://resources/test",
+            "uri": "wfs://resources/test",
             "type": "document"
         });
 
@@ -948,7 +948,7 @@ mod tests {
         // Test that long URIs are handled correctly
         let obj = json!({
             "id": "456",
-            "uri": "viking://resources/very/long/path/that/exceeds/normal/width/limits/and/should/not/be/truncated/because/it/is/a/uri"
+            "uri": "wfs://resources/very/long/path/that/exceeds/normal/width/limits/and/should/not/be/truncated/because/it/is/a/uri"
         });
 
         print_table(obj, true);

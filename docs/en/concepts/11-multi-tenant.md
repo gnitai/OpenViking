@@ -42,8 +42,8 @@ With multi-tenancy enabled, you can:
 `agent_id` separates agent-level space.
 
 - Agent URI shape is controlled by per-account namespace policy
-- `isolate_agent_scope_by_user = false` means `viking://agent/{agent_id}/...`
-- `isolate_agent_scope_by_user = true` means `viking://agent/{agent_id}/user/{user_id}/...`
+- `isolate_agent_scope_by_user = false` means `wfs://agent/{agent_id}/...`
+- `isolate_agent_scope_by_user = true` means `wfs://agent/{agent_id}/user/{user_id}/...`
 
 ### Roles
 
@@ -89,12 +89,12 @@ If `auth_mode = "api_key"` and `root_api_key` is not configured, the server runs
 
 ### Storage Layer
 
-For users, URIs still look like normal `viking://...` paths:
+For users, URIs still look like normal `wfs://...` paths:
 
 ```text
-viking://resources/project-a/
-viking://user/alice/memories/
-viking://agent/91f3ab12cd34/memories/
+wfs://resources/project-a/
+wfs://user/alice/memories/
+wfs://agent/91f3ab12cd34/memories/
 ```
 
 But the underlying storage automatically gains an account prefix:
@@ -159,7 +159,7 @@ curl -X POST http://localhost:1933/api/v1/admin/accounts/acme/users \
 For normal reads, writes, searches, and session commits, prefer a user key:
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <bob-user-key>" \
   -H "X-OpenViking-Agent: coding-agent"
 ```
@@ -171,7 +171,7 @@ This lets the server resolve identity directly from the key, without extra tenan
 ROOT does not need tenant headers for Admin APIs, but it does need them for tenant-scoped data APIs such as `ls`, `find`, and `sessions`:
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <root-key>" \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice" \

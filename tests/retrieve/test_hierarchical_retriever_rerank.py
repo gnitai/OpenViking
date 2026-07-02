@@ -55,14 +55,14 @@ class DummyStorage:
         )
         return [
             {
-                "uri": "viking://resources/root-a",
+                "uri": "wfs://resources/root-a",
                 "abstract": "root A",
                 "_score": 0.2,
                 "level": 1,
                 "context_type": "resource",
             },
             {
-                "uri": "viking://resources/root-b",
+                "uri": "wfs://resources/root-b",
                 "abstract": "root B",
                 "_score": 0.8,
                 "level": 1,
@@ -93,10 +93,10 @@ class DummyStorage:
                 "limit": limit,
             }
         )
-        if parent_uri == "viking://resources":
+        if parent_uri == "wfs://resources":
             return [
                 {
-                    "uri": "viking://resources/file-a",
+                    "uri": "wfs://resources/file-a",
                     "abstract": "child A",
                     "_score": 0.2,
                     "level": 2,
@@ -104,7 +104,7 @@ class DummyStorage:
                     "category": "doc",
                 },
                 {
-                    "uri": "viking://resources/file-b",
+                    "uri": "wfs://resources/file-b",
                     "abstract": "child B",
                     "_score": 0.8,
                     "level": 2,
@@ -139,7 +139,7 @@ class LevelTwoGlobalStorage(DummyStorage):
         )
         return [
             {
-                "uri": "viking://resources/file-a",
+                "uri": "wfs://resources/file-a",
                 "abstract": "child A",
                 "_score": 0.2,
                 "level": 2,
@@ -147,7 +147,7 @@ class LevelTwoGlobalStorage(DummyStorage):
                 "category": "doc",
             },
             {
-                "uri": "viking://resources/file-b",
+                "uri": "wfs://resources/file-b",
                 "abstract": "child B",
                 "_score": 0.8,
                 "level": 2,
@@ -274,16 +274,16 @@ def test_merge_starting_points_prefers_rerank_scores_in_thinking_mode(monkeypatc
 
     starting_points = retriever._merge_starting_points(
         "hello",
-        ["viking://resources"],
+        ["wfs://resources"],
         [
             {
-                "uri": "viking://resources/root-a",
+                "uri": "wfs://resources/root-a",
                 "abstract": "root A",
                 "_score": 0.2,
                 "level": 1,
             },
             {
-                "uri": "viking://resources/root-b",
+                "uri": "wfs://resources/root-b",
                 "abstract": "root B",
                 "_score": 0.8,
                 "level": 1,
@@ -293,8 +293,8 @@ def test_merge_starting_points_prefers_rerank_scores_in_thinking_mode(monkeypatc
     )
 
     assert starting_points[:2] == [
-        ("viking://resources/root-a", 0.95),
-        ("viking://resources/root-b", 0.05),
+        ("wfs://resources/root-a", 0.95),
+        ("wfs://resources/root-b", 0.05),
     ]
     assert fake_client.calls == [("hello", ["root A", "root B"])]
 
@@ -316,8 +316,8 @@ async def test_retrieve_uses_rerank_scores_in_thinking_mode(monkeypatch):
     result = await retriever.retrieve(_query(), ctx=_ctx(), limit=2, mode=RetrieverMode.THINKING)
 
     assert [ctx.uri for ctx in result.matched_contexts] == [
-        "viking://resources/file-b",
-        "viking://resources/file-a",
+        "wfs://resources/file-b",
+        "wfs://resources/file-a",
     ]
     assert fake_client.calls[0] == ("hello", ["root A", "root B"])
     assert fake_client.calls[1] == ("hello", ["child A", "child B"])
@@ -340,8 +340,8 @@ async def test_retrieve_reranks_level_two_initial_candidates_in_thinking_mode(mo
     result = await retriever.retrieve(_query(), ctx=_ctx(), limit=2, mode=RetrieverMode.THINKING)
 
     assert [ctx.uri for ctx in result.matched_contexts] == [
-        "viking://resources/file-b",
-        "viking://resources/file-a",
+        "wfs://resources/file-b",
+        "wfs://resources/file-a",
     ]
     assert fake_client.calls == [("hello", ["child A", "child B"])]
 
@@ -368,8 +368,8 @@ async def test_retrieve_falls_back_to_vector_scores_when_rerank_returns_none(mon
     result = await retriever.retrieve(_query(), ctx=_ctx(), limit=2, mode=RetrieverMode.THINKING)
 
     assert [ctx.uri for ctx in result.matched_contexts] == [
-        "viking://resources/file-b",
-        "viking://resources/file-a",
+        "wfs://resources/file-b",
+        "wfs://resources/file-a",
     ]
     assert fake_client.calls
 
@@ -391,8 +391,8 @@ async def test_quick_mode_skips_rerank(monkeypatch):
     result = await retriever.retrieve(_query(), ctx=_ctx(), limit=2, mode=RetrieverMode.QUICK)
 
     assert [ctx.uri for ctx in result.matched_contexts] == [
-        "viking://resources/file-b",
-        "viking://resources/file-a",
+        "wfs://resources/file-b",
+        "wfs://resources/file-a",
     ]
     assert fake_client.calls == []
 
@@ -411,12 +411,12 @@ async def test_score_propagation_alpha_uses_configured_weight():
         query="hello",
         query_vector=None,
         sparse_query_vector=None,
-        starting_points=[("viking://resources", 0.4)],
+        starting_points=[("wfs://resources", 0.4)],
         limit=1,
         mode=RetrieverMode.QUICK,
     )
 
-    assert candidates[0]["uri"] == "viking://resources/file-b"
+    assert candidates[0]["uri"] == "wfs://resources/file-b"
     assert candidates[0]["_final_score"] == pytest.approx(0.8)
 
 
@@ -435,7 +435,7 @@ async def test_default_retrieval_config_uses_semantic_score_without_hotness(monk
     result = await retriever._convert_to_matched_contexts(
         [
             {
-                "uri": "viking://resources/file-a",
+                "uri": "wfs://resources/file-a",
                 "abstract": "child A",
                 "_score": 1.0,
                 "level": 2,
@@ -464,7 +464,7 @@ async def test_retrieval_hotness_alpha_blends_when_configured(monkeypatch):
     result = await retriever._convert_to_matched_contexts(
         [
             {
-                "uri": "viking://resources/file-a",
+                "uri": "wfs://resources/file-a",
                 "abstract": "child A",
                 "_score": 1.0,
                 "level": 2,

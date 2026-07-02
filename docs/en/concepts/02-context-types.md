@@ -38,7 +38,7 @@ client.add_resource(
 # Search resources
 results = client.find(
     "authentication methods",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 ```
 
@@ -77,7 +77,7 @@ task = await client.get_task(commit["task_id"])  # Poll until task["status"] == 
 # Search memories
 results = await client.find(
     "UI preferences",
-    target_uri="viking://user/memories/"
+    target_uri="wfs://user/memories/"
 )
 ```
 
@@ -94,7 +94,7 @@ Skills are capabilities that Agents can invoke, such as current Skills, MCP, etc
 ### Storage Location
 
 ```
-viking://agent/skills/{skill-name}/
+wfs://agent/skills/{skill-name}/
 ├── .abstract.md          # L0: Short description
 ├── SKILL.md              # L1: Detailed overview
 └── scripts               # L2: Full definition
@@ -113,7 +113,7 @@ await client.add_skill({
 # Search skills
 results = await client.find(
     "web search",
-    target_uri="viking://agent/skills/"
+    target_uri="wfs://agent/skills/"
 )
 ```
 

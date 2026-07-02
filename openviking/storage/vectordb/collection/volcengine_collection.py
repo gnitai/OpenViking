@@ -165,14 +165,14 @@ class VolcengineCollection(ICollection):
 
     @staticmethod
     def _sanitize_uri_value(v: Any) -> Any:
-        """Remove viking:// prefix and normalize to /... format; return None for empty values"""
+        """Remove wfs:// prefix and normalize to /... format; return None for empty values"""
         if not isinstance(v, str):
             return v
         s = v.strip()
-        if s in {"/", "viking://"}:
+        if s in {"/", "wfs://"}:
             return "/"
-        if s.startswith("viking://"):
-            s = s[len("viking://") :]
+        if s.startswith("wfs://"):
+            s = s[len("wfs://") :]
         s = s.strip("/")
         if not s:
             return None

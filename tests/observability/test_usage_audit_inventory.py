@@ -28,10 +28,10 @@ class FakeFSService:
     async def stat(self, uri, *, ctx):
         self.calls.append((uri, ctx))
         return {
-            "viking://resources": {"count": 2},
-            "viking://agent/agent-1/skills": {"count": 3},
-            "viking://user/user-1/memories": {"count": 5},
-            "viking://agent/agent-1/memories": {"count": 7},
+            "wfs://resources": {"count": 2},
+            "wfs://agent/agent-1/skills": {"count": 3},
+            "wfs://user/user-1/memories": {"count": 5},
+            "wfs://agent/agent-1/memories": {"count": 7},
         }[uri]
 
 
@@ -59,10 +59,10 @@ async def test_context_inventory_counts_from_stat():
     assert counts == {"files": 2, "skills": 3, "memories": 12, "total": 17}
     assert len(fs.calls) == 4
     assert {uri for uri, call_ctx in fs.calls if call_ctx is ctx} == {
-        "viking://resources",
-        "viking://agent/agent-1/skills",
-        "viking://user/user-1/memories",
-        "viking://agent/agent-1/memories",
+        "wfs://resources",
+        "wfs://agent/agent-1/skills",
+        "wfs://user/user-1/memories",
+        "wfs://agent/agent-1/memories",
     }
 
 

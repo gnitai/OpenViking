@@ -76,7 +76,7 @@ def _ensure_exposed_path(resource_path: str) -> None:
 
 
 def _resource_uri(resource_path: str) -> str:
-    return "viking://resources" if not resource_path else f"viking://resources/{resource_path}"
+    return "wfs://resources" if not resource_path else f"wfs://resources/{resource_path}"
 
 
 def _href_for_path(request: Request, resource_path: str, *, is_dir: bool) -> str:

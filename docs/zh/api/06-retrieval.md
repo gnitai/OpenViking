@@ -120,7 +120,7 @@ curl -X POST http://localhost:1933/api/v1/search/find \
     -H "X-API-Key: your-key" \
     -d '{
         "query": "authentication",
-        "target_uri": "viking://resources",
+        "target_uri": "wfs://resources",
         "since": "7d",
         "time_field": "created_at"
     }'
@@ -140,7 +140,7 @@ results = client.find("how to authenticate users")
 # 带过滤和时间范围的搜索
 recent_emails = client.find(
     "invoice",
-    target_uri="viking://resources/email",
+    target_uri="wfs://resources/email",
     since="7d",
     time_field="created_at",
 )
@@ -160,25 +160,25 @@ for ctx in results.resources:
 # 仅在资源中搜索
 results = client.find(
     "authentication",
-    target_uri="viking://resources"
+    target_uri="wfs://resources"
 )
 
 # 仅在用户记忆中搜索
 results = client.find(
     "preferences",
-    target_uri="viking://user/memories"
+    target_uri="wfs://user/memories"
 )
 
 # 仅在技能中搜索
 results = client.find(
     "web search",
-    target_uri="viking://agent/skills"
+    target_uri="wfs://agent/skills"
 )
 
 # 在特定项目中搜索
 results = client.find(
     "API endpoints",
-    target_uri="viking://resources/my-project"
+    target_uri="wfs://resources/my-project"
 )
 ```
 
@@ -189,7 +189,7 @@ results = client.find(
 openviking find "how to authenticate users"
 
 # 指定 URI 范围
-openviking find "how to authenticate users" --uri "viking://resources"
+openviking find "how to authenticate users" --uri "wfs://resources"
 
 # 带时间过滤
 openviking find "invoice" --after 7d
@@ -214,7 +214,7 @@ openviking find "how to authenticate users" -L 1,2
         "resources": [
             {
                 "context_type": "resource",
-                "uri": "viking://resources/01-overview/API_Overview/Documentation_Reading_P_2c6ae38b.md",
+                "uri": "wfs://resources/01-overview/API_Overview/Documentation_Reading_P_2c6ae38b.md",
                 "level": 2,
                 "score": 0.12808319406977778,
                 "category": "",
@@ -225,7 +225,7 @@ openviking find "how to authenticate users" -L 1,2
             },
             {
                 "context_type": "resource",
-                "uri": "viking://resources/01-overview/API_Overview/API_Endpoints/.abstract.md",
+                "uri": "wfs://resources/01-overview/API_Overview/API_Endpoints/.abstract.md",
                 "level": 0,
                 "score": 0.12054087276495282,
                 "category": "",
@@ -389,7 +389,7 @@ openviking search "how to implement OAuth" -L 1,2
         "resources": [
             {
                 "context_type": "resource",
-                "uri": "viking://resources/docs/oauth-best-practices",
+                "uri": "wfs://resources/docs/oauth-best-practices",
                 "level": 1,
                 "score": 0.95,
                 "category": "",
@@ -469,7 +469,7 @@ curl -X POST http://localhost:1933/api/v1/search/grep \
     -H "Content-Type: application/json" \
     -H "X-API-Key: your-key" \
     -d '{
-        "uri": "viking://resources",
+        "uri": "wfs://resources",
         "pattern": "authentication",
         "case_insensitive": true
     }'
@@ -484,7 +484,7 @@ client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
 client.initialize()
 
 results = client.grep(
-    "viking://resources",
+    "wfs://resources",
     "authentication",
     case_insensitive=True
 )
@@ -499,13 +499,13 @@ for match in results['matches']:
 
 ```bash
 # 基础搜索
-openviking grep viking://resources "authentication"
+openviking grep wfs://resources "authentication"
 
 # 忽略大小写
-openviking grep viking://resources "authentication" --ignore-case
+openviking grep wfs://resources "authentication" --ignore-case
 
 # 指定深度限制
-openviking grep viking://resources "TODO" --level-limit 3
+openviking grep wfs://resources "TODO" --level-limit 3
 ```
 
 **响应示例**
@@ -516,7 +516,7 @@ openviking grep viking://resources "TODO" --level-limit 3
     "result": {
         "matches": [
             {
-                "uri": "viking://resources/docs/auth.md",
+                "uri": "wfs://resources/docs/auth.md",
                 "line": 15,
                 "content": "User authentication is handled by..."
             }
@@ -555,7 +555,7 @@ openviking grep viking://resources "TODO" --level-limit 3
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | pattern | str | 是 | - | Glob 模式（例如 `**/*.md`）|
-| uri | str | 否 | "viking://" | 起始 URI |
+| uri | str | 否 | "wfs://" | 起始 URI |
 | node_limit | int | 否 | None | 最大返回匹配数 |
 
 #### 3. 使用示例
@@ -572,7 +572,7 @@ curl -X POST http://localhost:1933/api/v1/search/glob \
     -H "X-API-Key: your-key" \
     -d '{
         "pattern": "**/*.md",
-        "uri": "viking://resources"
+        "uri": "wfs://resources"
     }'
 ```
 
@@ -585,13 +585,13 @@ client = ov.SyncHTTPClient(url="http://localhost:1933", api_key="your-key")
 client.initialize()
 
 # 查找所有 markdown 文件
-results = client.glob("**/*.md", "viking://resources")
+results = client.glob("**/*.md", "wfs://resources")
 print(f"Found {results['count']} markdown files:")
 for uri in results['matches']:
     print(f"  {uri}")
 
 # 查找所有 Python 文件
-results = client.glob("**/*.py", "viking://resources")
+results = client.glob("**/*.py", "wfs://resources")
 print(f"Found {results['count']} Python files")
 ```
 
@@ -599,7 +599,7 @@ print(f"Found {results['count']} Python files")
 
 ```bash
 # 查找所有 markdown 文件
-openviking glob "**/*.md" --uri viking://resources
+openviking glob "**/*.md" --uri wfs://resources
 
 # 查找所有 Python 文件
 openviking glob "**/*.py"
@@ -612,8 +612,8 @@ openviking glob "**/*.py"
     "status": "ok",
     "result": {
         "matches": [
-            "viking://resources/docs/api.md",
-            "viking://resources/docs/guide.md"
+            "wfs://resources/docs/api.md",
+            "wfs://resources/docs/guide.md"
         ],
         "count": 2
     },
@@ -663,11 +663,11 @@ curl -X POST http://localhost:1933/api/v1/search/find \
     -d '{"query": "authentication"}'
 
 # 步骤 2：读取目录结果的概览
-curl -X GET "http://localhost:1933/api/v1/content/overview?uri=viking://resources/docs/auth" \
+curl -X GET "http://localhost:1933/api/v1/content/overview?uri=wfs://resources/docs/auth" \
     -H "X-API-Key: your-key"
 
 # 步骤 3：读取文件结果的完整内容
-curl -X GET "http://localhost:1933/api/v1/content/read?uri=viking://resources/docs/auth.md" \
+curl -X GET "http://localhost:1933/api/v1/content/read?uri=wfs://resources/docs/auth.md" \
     -H "X-API-Key: your-key"
 ```
 
@@ -696,7 +696,7 @@ for ctx in results.resources:
 
 ```bash
 # 获取资源的关联关系
-curl -X GET "http://localhost:1933/api/v1/relations?uri=viking://resources/docs/auth" \
+curl -X GET "http://localhost:1933/api/v1/relations?uri=wfs://resources/docs/auth" \
     -H "X-API-Key: your-key"
 ```
 
@@ -728,7 +728,7 @@ client.initialize()
 # 在相关范围内搜索以获得更好的结果
 results = client.find(
     "error handling",
-    target_uri="viking://resources/my-project"
+    target_uri="wfs://resources/my-project"
 )
 ```
 

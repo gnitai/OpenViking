@@ -16,19 +16,19 @@ class _FakeVikingFS:
 class _SyncVikingFS:
     def __init__(self):
         self.contents = {
-            "viking://temp/import/a.md": "new",
-            "viking://temp/import/b.md": "same",
-            "viking://resources/root/a.md": "old",
-            "viking://resources/root/b.md": "same",
-            "viking://resources/root/.overview.md": "FILES:\n- b.md: old summary",
-            "viking://resources/root/.abstract.md": "old abstract",
+            "wfs://temp/import/a.md": "new",
+            "wfs://temp/import/b.md": "same",
+            "wfs://resources/root/a.md": "old",
+            "wfs://resources/root/b.md": "same",
+            "wfs://resources/root/.overview.md": "FILES:\n- b.md: old summary",
+            "wfs://resources/root/.abstract.md": "old abstract",
         }
         self.entries = {
-            "viking://temp/import": [
+            "wfs://temp/import": [
                 {"name": "a.md", "isDir": False},
                 {"name": "b.md", "isDir": False},
             ],
-            "viking://resources/root": [
+            "wfs://resources/root": [
                 {"name": "a.md", "isDir": False},
                 {"name": "b.md", "isDir": False},
                 {"name": ".overview.md", "isDir": False},
@@ -102,12 +102,12 @@ async def test_target_source_syncs_before_semantic_dag(monkeypatch):
     processor._enqueue_parent_refresh = AsyncMock()
     processor._sync_topdown_recursive = AsyncMock(
         return_value=DiffResult(
-            updated_files=["viking://resources/org/repo/a.md"],
+            updated_files=["wfs://resources/org/repo/a.md"],
         )
     )
     msg = SemanticMsg(
-        uri="viking://temp/import_root/repository",
-        target_uri="viking://resources/org/repo",
+        uri="wfs://temp/import_root/repository",
+        target_uri="wfs://resources/org/repo",
         context_type="resource",
         target_preexisting=True,
     )
@@ -115,13 +115,13 @@ async def test_target_source_syncs_before_semantic_dag(monkeypatch):
     await processor.on_dequeue(msg.to_dict())
 
     assert _FakeDagExecutor.calls[0]["incremental_update"] is True
-    assert _FakeDagExecutor.calls[0]["target_uri"] == "viking://resources/org/repo"
+    assert _FakeDagExecutor.calls[0]["target_uri"] == "wfs://resources/org/repo"
     assert _FakeDagExecutor.calls[0]["changes"] == {
         "added": [],
-        "modified": ["viking://resources/org/repo/a.md"],
+        "modified": ["wfs://resources/org/repo/a.md"],
         "deleted": [],
     }
-    assert _FakeDagExecutor.runs == ["viking://resources/org/repo"]
+    assert _FakeDagExecutor.runs == ["wfs://resources/org/repo"]
 
 
 @pytest.mark.asyncio
@@ -133,19 +133,19 @@ async def test_sync_diff_reports_target_uris_and_preserves_sidecars(monkeypatch)
     )
 
     diff = await SemanticProcessor()._sync_topdown_recursive(
-        "viking://temp/import",
-        "viking://resources/root",
+        "wfs://temp/import",
+        "wfs://resources/root",
         lock=NO_LOCK,
     )
 
     assert diff.to_changes() == {
         "added": [],
-        "modified": ["viking://resources/root/a.md"],
+        "modified": ["wfs://resources/root/a.md"],
         "deleted": [],
     }
-    assert fake_fs.contents["viking://resources/root/a.md"] == "new"
-    assert fake_fs.contents["viking://resources/root/.overview.md"] == (
+    assert fake_fs.contents["wfs://resources/root/a.md"] == "new"
+    assert fake_fs.contents["wfs://resources/root/.overview.md"] == (
         "FILES:\n- b.md: old summary"
     )
-    assert fake_fs.contents["viking://resources/root/.abstract.md"] == "old abstract"
-    assert fake_fs.deleted_temp == ["viking://temp/import"]
+    assert fake_fs.contents["wfs://resources/root/.abstract.md"] == "old abstract"
+    assert fake_fs.deleted_temp == ["wfs://temp/import"]

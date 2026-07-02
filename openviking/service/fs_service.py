@@ -260,7 +260,7 @@ class FSService:
         self,
         pattern: str,
         ctx: RequestContext,
-        uri: str = "viking://",
+        uri: str = "wfs://",
         node_limit: Optional[int] = None,
     ) -> Dict:
         """File pattern matching."""

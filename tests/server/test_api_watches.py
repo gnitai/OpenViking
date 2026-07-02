@@ -19,7 +19,7 @@ def watch_manager(service):
 async def _seed(
     wm,
     *,
-    to_uri="viking://resources/test/foo",
+    to_uri="wfs://resources/test/foo",
     account="default",
     user="default",
     agent="default",
@@ -119,7 +119,7 @@ async def test_full_lifecycle(client: httpx.AsyncClient, watch_manager, monkeypa
 
 
 async def test_get_by_uri_returns_single_object(client: httpx.AsyncClient, watch_manager):
-    task = await _seed(watch_manager, to_uri="viking://resources/test/uri-keyed")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/uri-keyed")
     resp = await client.get("/api/v1/watches", params={"to_uri": task.to_uri})
     assert resp.status_code == 200
     body = resp.json()
@@ -129,8 +129,8 @@ async def test_get_by_uri_returns_single_object(client: httpx.AsyncClient, watch
 
 
 async def test_active_only_filter(client: httpx.AsyncClient, watch_manager):
-    active = await _seed(watch_manager, to_uri="viking://resources/test/active")
-    paused = await _seed(watch_manager, to_uri="viking://resources/test/paused")
+    active = await _seed(watch_manager, to_uri="wfs://resources/test/active")
+    paused = await _seed(watch_manager, to_uri="wfs://resources/test/paused")
     await watch_manager.update_task(paused.task_id, "default", "default", "root", is_active=False)
 
     resp = await client.get("/api/v1/watches", params={"active_only": "true"})
@@ -148,7 +148,7 @@ async def test_dual_key_matching_accepted(client: httpx.AsyncClient, watch_manag
     """When both {task_id} and ?to_uri= are supplied and resolve to the SAME task,
     the request succeeds (useful as a cross-key sanity check from clients that
     have both pieces of information)."""
-    task = await _seed(watch_manager, to_uri="viking://resources/test/dual-ok")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/dual-ok")
     resp = await client.get(f"/api/v1/watches/{task.task_id}", params={"to_uri": task.to_uri})
     assert resp.status_code == 200
     assert resp.json()["result"]["task_id"] == task.task_id
@@ -156,8 +156,8 @@ async def test_dual_key_matching_accepted(client: httpx.AsyncClient, watch_manag
 
 async def test_dual_key_mismatch_returns_400(client: httpx.AsyncClient, watch_manager):
     """When {task_id} and ?to_uri= refer to DIFFERENT tasks, return 400."""
-    a = await _seed(watch_manager, to_uri="viking://resources/test/dual-a")
-    b = await _seed(watch_manager, to_uri="viking://resources/test/dual-b")
+    a = await _seed(watch_manager, to_uri="wfs://resources/test/dual-a")
+    b = await _seed(watch_manager, to_uri="wfs://resources/test/dual-b")
     # Use a's task_id but b's to_uri — they disagree.
     resp = await client.get(f"/api/v1/watches/{a.task_id}", params={"to_uri": b.to_uri})
     assert resp.status_code == 400
@@ -188,7 +188,7 @@ async def test_patch_rejects_non_positive_watch_interval(client: httpx.AsyncClie
     update_task with ValueError → 404, misleading callers about the root
     cause. Reject upfront with 422 instead, matching CLI/MCP semantics.
     """
-    task = await _seed(watch_manager, to_uri="viking://resources/test/nonpos")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/nonpos")
     for bad in [-1, 0, -42.5]:
         resp = await client.patch(
             f"/api/v1/watches/{task.task_id}",
@@ -208,16 +208,16 @@ async def test_patch_rejects_unknown_field(client: httpx.AsyncClient, watch_mana
     raise ConflictError on the watch side), but we want to-uri assignment to
     be a delete-and-recreate operation for clarity, not an in-place mutation.
     """
-    task = await _seed(watch_manager, to_uri="viking://resources/test/forbid")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/forbid")
     resp = await client.patch(
         f"/api/v1/watches/{task.task_id}",
-        json={"to_uri": "viking://resources/test/other"},
+        json={"to_uri": "wfs://resources/test/other"},
     )
     assert resp.status_code == 422
 
 
 async def test_trigger_by_uri(client: httpx.AsyncClient, watch_manager, monkeypatch):
-    task = await _seed(watch_manager, to_uri="viking://resources/test/trig")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/trig")
 
     triggered = []
     schedule_started = asyncio.Event()
@@ -238,7 +238,7 @@ async def test_trigger_by_uri(client: httpx.AsyncClient, watch_manager, monkeypa
 
 
 async def test_patch_partial_preserves_unset_fields(client: httpx.AsyncClient, watch_manager):
-    task = await _seed(watch_manager, to_uri="viking://resources/test/partial")
+    task = await _seed(watch_manager, to_uri="wfs://resources/test/partial")
     original_interval = task.watch_interval
 
     # PATCH only is_active — interval should not change

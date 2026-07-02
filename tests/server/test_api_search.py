@@ -320,7 +320,7 @@ async def test_find_with_inaccessible_target_uri_returns_permission_denied(
     try:
         resp = await client.post(
             "/api/v1/search/find",
-            json={"query": "sample", "target_uri": "viking://agent/foreign-agent", "limit": 5},
+            json={"query": "sample", "target_uri": "wfs://agent/foreign-agent", "limit": 5},
         )
     finally:
         app.dependency_overrides.pop(get_request_context, None)
@@ -673,7 +673,7 @@ async def test_grep_missing_uri_returns_not_found(client: httpx.AsyncClient):
     resp = await client.post(
         "/api/v1/search/grep",
         json={
-            "uri": "viking://resources/nonexistent_grep_test_xyz",
+            "uri": "wfs://resources/nonexistent_grep_test_xyz",
             "pattern": "test",
         },
     )
@@ -695,7 +695,7 @@ async def test_grep_level_limit_filters_by_relative_match_path(
         "/api/v1/resources",
         json={
             "temp_file_id": root_file.name,
-            "to": "viking://resources/level-limit/root_level.md",
+            "to": "wfs://resources/level-limit/root_level.md",
             "reason": "test",
         },
     )
@@ -703,7 +703,7 @@ async def test_grep_level_limit_filters_by_relative_match_path(
         "/api/v1/resources",
         json={
             "temp_file_id": deep_file.name,
-            "to": "viking://resources/level-limit/nested/deeper/deep_level.md",
+            "to": "wfs://resources/level-limit/nested/deeper/deep_level.md",
             "reason": "test",
         },
     )
@@ -711,7 +711,7 @@ async def test_grep_level_limit_filters_by_relative_match_path(
     resp = await client.post(
         "/api/v1/search/grep",
         json={
-            "uri": "viking://resources/level-limit",
+            "uri": "wfs://resources/level-limit",
             "pattern": "OpenViking",
             "level_limit": 2,
         },
@@ -721,8 +721,8 @@ async def test_grep_level_limit_filters_by_relative_match_path(
     body = resp.json()
     assert body["status"] == "ok"
     uris = {m["uri"] for m in body["result"]["matches"]}
-    assert "viking://resources/level-limit/root_level.md/root_level.md" in uris
-    assert "viking://resources/level-limit/nested/deeper/deep_level.md/deep_level.md" not in uris
+    assert "wfs://resources/level-limit/root_level.md/root_level.md" in uris
+    assert "wfs://resources/level-limit/nested/deeper/deep_level.md/deep_level.md" not in uris
 
 
 async def test_grep_exclude_uri_excludes_specific_uri_range(
@@ -743,8 +743,8 @@ async def test_grep_exclude_uri_excludes_specific_uri_range(
         json={"temp_file_id": exclude_file.name, "reason": "exclude"},
     )
 
-    root_uri = "viking://resources"
-    exclude_uri = "viking://resources/exclude.md"
+    root_uri = "wfs://resources"
+    exclude_uri = "wfs://resources/exclude.md"
     resp = await client.post(
         "/api/v1/search/grep",
         json={
@@ -775,7 +775,7 @@ async def test_grep_exclude_uri_does_not_exclude_same_named_sibling_dirs(
         "/api/v1/resources",
         json={
             "temp_file_id": group_a_file.name,
-            "to": "viking://resources/group_a/cache/a.md",
+            "to": "wfs://resources/group_a/cache/a.md",
             "reason": "test",
         },
     )
@@ -783,7 +783,7 @@ async def test_grep_exclude_uri_does_not_exclude_same_named_sibling_dirs(
         "/api/v1/resources",
         json={
             "temp_file_id": group_b_file.name,
-            "to": "viking://resources/group_b/cache/b.md",
+            "to": "wfs://resources/group_b/cache/b.md",
             "reason": "test",
         },
     )
@@ -791,17 +791,17 @@ async def test_grep_exclude_uri_does_not_exclude_same_named_sibling_dirs(
     resp = await client.post(
         "/api/v1/search/grep",
         json={
-            "uri": "viking://resources",
+            "uri": "wfs://resources",
             "pattern": "OpenViking",
-            "exclude_uri": "viking://resources/group_a/cache",
+            "exclude_uri": "wfs://resources/group_a/cache",
         },
     )
 
     assert resp.status_code == 200
     matches = resp.json()["result"]["matches"]
     uris = {m["uri"] for m in matches}
-    assert any(uri.startswith("viking://resources/group_b/cache/") for uri in uris)
-    assert all(not uri.startswith("viking://resources/group_a/cache/") for uri in uris)
+    assert any(uri.startswith("wfs://resources/group_b/cache/") for uri in uris)
+    assert all(not uri.startswith("wfs://resources/group_a/cache/") for uri in uris)
 
 
 async def test_glob(client_with_resource):

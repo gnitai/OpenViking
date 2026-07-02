@@ -131,15 +131,15 @@ class TestResourceSearchConsistency:
                     )
 
     def test_glob_star_pattern(self, api_client):
-        glob_resp = api_client.glob("viking://resources/*")
+        glob_resp = api_client.glob("wfs://resources/*")
         assert glob_resp.status_code == 200
         matches = glob_resp.json().get("result", {}).get("matches", [])
         assert isinstance(matches, list)
 
     def test_glob_double_star_pattern(self, api_client):
-        glob_resp = api_client.glob("viking://resources/**/*.md")
+        glob_resp = api_client.glob("wfs://resources/**/*.md")
         assert glob_resp.status_code == 200
         matches = glob_resp.json().get("result", {}).get("matches", [])
         for m in matches:
             if isinstance(m, str):
-                assert m.startswith("viking://"), f"glob match should be viking URI, got {m}"
+                assert m.startswith("wfs://"), f"glob match should be viking URI, got {m}"

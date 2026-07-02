@@ -110,7 +110,7 @@ class FakeVikingFS:
 
     def create_temp_uri(self) -> str:
         self._temp_counter += 1
-        return f"viking://temp/dir_{self._temp_counter}"
+        return f"wfs://temp/dir_{self._temp_counter}"
 
 
 # ---------------------------------------------------------------------------
@@ -638,7 +638,7 @@ class TestPDFConversion:
 
         # Mock PDFParser.parse to return a ParseResult with fake content
         # in VikingFS (simulating conversion).
-        mock_temp = fake_fs.create_temp_uri()  # e.g. viking://temp/dir_2
+        mock_temp = fake_fs.create_temp_uri()  # e.g. wfs://temp/dir_2
         doc_dir = f"{mock_temp}/document"
         await fake_fs.mkdir(mock_temp)
         await fake_fs.mkdir(doc_dir)

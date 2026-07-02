@@ -34,11 +34,11 @@ class _PeakFS:
 async def test_write_sidecars_issues_both_writes_concurrently():
     fs = _PeakFS()
 
-    await _write_sidecars(fs, "viking://x/dir", "OV", "AB", None)
+    await _write_sidecars(fs, "wfs://x/dir", "OV", "AB", None)
 
     assert fs.writes == {
-        "viking://x/dir/.overview.md": "OV",
-        "viking://x/dir/.abstract.md": "AB",
+        "wfs://x/dir/.overview.md": "OV",
+        "wfs://x/dir/.abstract.md": "AB",
     }
     assert fs.peak == 2, (
         f"expected both sidecar writes in flight at once, peak was {fs.peak} "

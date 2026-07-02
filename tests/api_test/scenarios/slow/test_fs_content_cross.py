@@ -5,7 +5,7 @@ import uuid
 
 class TestFsContentCrossValidation:
     def test_write_then_stat_size_nonzero(self, api_client):
-        file_uri = f"viking://resources/cross_size_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/cross_size_{uuid.uuid4().hex[:8]}.md"
         content = "A" * 500
         try:
             write_resp = api_client.fs_write(file_uri, content, mode="create", wait=True)
@@ -25,8 +25,8 @@ class TestFsContentCrossValidation:
                 pass
 
     def test_mv_file_then_read_from_new_uri(self, api_client):
-        src_uri = f"viking://resources/cross_mv_src_{uuid.uuid4().hex[:8]}.md"
-        dst_uri = f"viking://resources/cross_mv_dst_{uuid.uuid4().hex[:8]}.md"
+        src_uri = f"wfs://resources/cross_mv_src_{uuid.uuid4().hex[:8]}.md"
+        dst_uri = f"wfs://resources/cross_mv_dst_{uuid.uuid4().hex[:8]}.md"
         try:
             write_resp = api_client.fs_write(
                 src_uri, "Content before mv operation", mode="create", wait=True
@@ -59,7 +59,7 @@ class TestFsContentCrossValidation:
                 pass
 
     def test_write_then_overview_readable(self, api_client):
-        dir_uri = f"viking://resources/cross_ov_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/cross_ov_{uuid.uuid4().hex[:8]}"
         file_uri = f"{dir_uri}/doc.md"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
@@ -91,7 +91,7 @@ class TestFsContentCrossValidation:
                 pass
 
     def test_rm_directory_then_stat_returns_404(self, api_client):
-        dir_uri = f"viking://resources/cross_rm_dir_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/cross_rm_dir_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             if mkdir_resp.status_code != 200:
@@ -149,8 +149,8 @@ class TestFsContentCrossValidation:
                             break
 
     def test_mv_directory_then_children_readable(self, api_client):
-        src_dir = f"viking://resources/cross_mvdir_s_{uuid.uuid4().hex[:8]}"
-        dst_dir = f"viking://resources/cross_mvdir_d_{uuid.uuid4().hex[:8]}"
+        src_dir = f"wfs://resources/cross_mvdir_s_{uuid.uuid4().hex[:8]}"
+        dst_dir = f"wfs://resources/cross_mvdir_d_{uuid.uuid4().hex[:8]}"
         file_uri = f"{src_dir}/inner.md"
         try:
             mkdir_resp = api_client.fs_mkdir(src_dir)
@@ -207,7 +207,7 @@ class TestFsContentCrossValidation:
             )
 
     def test_multiple_writes_same_uri_last_wins(self, api_client):
-        file_uri = f"viking://resources/cross_multi_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/cross_multi_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(file_uri, "First write content", mode="create", wait=True)
             api_client.fs_write(file_uri, "Second write replaces first", mode="replace", wait=True)

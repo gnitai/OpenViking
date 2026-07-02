@@ -8,7 +8,7 @@ description: |
   Store different topics as separate memory files, do NOT mix unrelated preferences.
   Each topic should stay small and should not become a second profile.
   Keep each topic to roughly 3-8 bullets; if it grows beyond that or past 800 characters, split it into semantic subtopics.
-directory: "viking://user/{{ user_space }}/memories/preferences"
+directory: "wfs://user/{{ user_space }}/memories/preferences"
 filename_template: "{{ user }}/{{ topic }}.md"
 enabled: true
 embedding_template: |-

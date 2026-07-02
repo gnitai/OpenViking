@@ -14,59 +14,59 @@ class TestSummarizerContextType:
 
     def test_user_memory_uri(self):
         """User memory URIs should classify as 'memory'."""
-        uri = "viking://user/default/memories/entities/mem_abc123.md"
+        uri = "wfs://user/default/memories/entities/mem_abc123.md"
         assert context_type_for_uri(uri) == "memory"
 
     def test_agent_memory_uri(self):
         """Agent memory URIs should classify as 'memory'."""
-        uri = "viking://agent/default/memories/cases/mem_xyz789.md"
+        uri = "wfs://agent/default/memories/cases/mem_xyz789.md"
         assert context_type_for_uri(uri) == "memory"
 
     def test_memory_profile_uri(self):
         """Profile memory URI should classify as 'memory'."""
-        uri = "viking://user/default/memories/profile.md"
+        uri = "wfs://user/default/memories/profile.md"
         assert context_type_for_uri(uri) == "memory"
 
     def test_memory_preferences_uri(self):
         """Preferences memory URI should classify as 'memory'."""
-        uri = "viking://user/default/memories/preferences/coding-style.md"
+        uri = "wfs://user/default/memories/preferences/coding-style.md"
         assert context_type_for_uri(uri) == "memory"
 
     def test_skill_uri(self):
         """Skill URIs should classify as 'skill'."""
-        uri = "viking://agent/default/skills/search.md"
+        uri = "wfs://agent/default/skills/search.md"
         assert context_type_for_uri(uri) == "skill"
 
     def test_resource_uri(self):
         """Resource URIs should classify as 'resource'."""
-        uri = "viking://resources/docs/readme.md"
+        uri = "wfs://resources/docs/readme.md"
         assert context_type_for_uri(uri) == "resource"
 
     def test_session_uri_defaults_to_resource(self):
         """Session URIs should not be treated as memory-specific content."""
-        uri = "viking://session/default/sess_001/history/archive_001"
+        uri = "wfs://session/default/sess_001/history/archive_001"
         assert context_type_for_uri(uri) == "resource"
 
     def test_resource_named_memories_does_not_classify_as_memory(self):
         """String containment alone should not classify a resource as memory."""
-        uri = "viking://resources/memories-report.md"
+        uri = "wfs://resources/memories-report.md"
         assert context_type_for_uri(uri) == "resource"
 
     def test_unknown_uri_defaults_to_resource(self):
         """Unknown URIs should default to 'resource'."""
-        uri = "viking://unknown/something"
+        uri = "wfs://unknown/something"
         assert context_type_for_uri(uri) == "resource"
 
     def test_old_broken_prefix_would_fail(self):
-        """Regression: the old startswith('viking://memory/') check would miss real URIs."""
-        # These real memory URIs do NOT start with "viking://memory/"
+        """Regression: the old startswith('wfs://memory/') check would miss real URIs."""
+        # These real memory URIs do NOT start with "wfs://memory/"
         real_uris = [
-            "viking://user/default/memories/entities/mem_001.md",
-            "viking://agent/default/memories/patterns/mem_002.md",
-            "viking://user/john/memories/events/mem_003.md",
+            "wfs://user/default/memories/entities/mem_001.md",
+            "wfs://agent/default/memories/patterns/mem_002.md",
+            "wfs://user/john/memories/events/mem_003.md",
         ]
         for uri in real_uris:
-            assert not uri.startswith("viking://memory/"), (
+            assert not uri.startswith("wfs://memory/"), (
                 f"URI unexpectedly matches old prefix: {uri}"
             )
             assert context_type_for_uri(uri) == "memory", f"URI should classify as memory: {uri}"

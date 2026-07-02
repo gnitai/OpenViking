@@ -79,7 +79,7 @@ if FUSE_AVAILABLE:
             if not path:
                 return self.mount._get_scope_root_uri()
 
-            return f"viking://{path}"
+            return f"wfs://{path}"
 
         def getattr(self, path: str, fh: int = None) -> Dict[str, Any]:
             """

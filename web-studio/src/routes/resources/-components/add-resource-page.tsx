@@ -77,7 +77,7 @@ export function AddResourceForm({
   const [mode, setMode] = useState<Mode>('upload')
   const [remoteUrl, setRemoteUrl] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<SelectedUploadFile[]>([])
-  const [targetUri, setTargetUri] = useState('viking://resources/')
+  const [targetUri, setTargetUri] = useState('wfs://resources/')
   const [strict, setStrict] = useState(false)
   const [directlyUploadMedia, setDirectlyUploadMedia] = useState(true)
   const [reason, setReason] = useState('')

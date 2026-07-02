@@ -91,7 +91,7 @@ OpenViking 的所有重要变更都将记录在此文件中。
 - **用户级隐私配置**：新增 `/api/v1/privacy-configs` API 和 `openviking privacy` CLI，按 `category + target_key` 保存、轮换、回滚 skill 等敏感配置。
 - **可观测性升级**：统一 `server.observability` 配置，支持 Prometheus `/metrics` 和 OpenTelemetry metrics/traces/logs 导出。
 - **检索调优**：新增 `embedding.text_source`、`embedding.max_input_tokens`、`retrieval.hotness_alpha`、`retrieval.score_propagation_alpha` 等配置。
-- **API 语义收敛**：搜索空 query 提前拒绝；公开 `viking://` URI 校验更严格；错误统一进入标准 error envelope。
+- **API 语义收敛**：搜索空 query 提前拒绝；公开 `wfs://` URI 校验更严格；错误统一进入标准 error envelope。
 - **Docker 体验**：持久化状态收敛到 `/app/.openviking`；缺少 `ov.conf` 时容器存活并返回 503 初始化指引。
 - **安全**：bot 图片工具禁止读取沙箱外文件；health check 无凭证时跳过身份解析；API key 字段哈希拆分为独立开关。
 

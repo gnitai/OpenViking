@@ -7,7 +7,7 @@ import requests
 class TestFsLs:
     def test_fs_ls_root(self, api_client):
         try:
-            response = api_client.fs_ls("viking://")
+            response = api_client.fs_ls("wfs://")
         except requests.exceptions.ConnectionError:
             pytest.fail("Could not connect to server service - service is not running")
 

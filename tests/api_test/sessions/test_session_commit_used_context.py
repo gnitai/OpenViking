@@ -75,7 +75,7 @@ class TestSessionCommitUsedContext:
 
             used_resp = api_client.session_used(
                 session_id,
-                contexts=["viking://resources/some_context"],
+                contexts=["wfs://resources/some_context"],
                 skill={"name": "test-skill"},
             )
             assert used_resp.status_code == 200
@@ -108,11 +108,11 @@ class TestSessionCommitUsedContext:
             used_resp = api_client.session_used(
                 session_id,
                 contexts=[
-                    "viking://resources/context1",
-                    "viking://resources/context2",
-                    "viking://agent/skills/skill1",
+                    "wfs://resources/context1",
+                    "wfs://resources/context2",
+                    "wfs://agent/skills/skill1",
                 ],
-                skill={"name": "multi-context-skill", "uri": "viking://agent/skills/multi"},
+                skill={"name": "multi-context-skill", "uri": "wfs://agent/skills/multi"},
             )
             assert used_resp.status_code == 200
             data = used_resp.json()

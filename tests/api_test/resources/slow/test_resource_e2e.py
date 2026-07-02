@@ -53,8 +53,8 @@ class TestResourceEndToEnd:
 
             add_resp = api_client.add_resource(
                 path=test_file,
-                to="viking://resources/to_conflict",
-                parent="viking://resources/parent_conflict",
+                to="wfs://resources/to_conflict",
+                parent="wfs://resources/parent_conflict",
                 wait=False,
             )
             assert add_resp.status_code == 400, (
@@ -86,7 +86,7 @@ class TestResourceEndToEnd:
                 )
 
     def test_add_resource_with_to_creates_at_target(self, api_client):
-        target_uri = f"viking://resources/target_{uuid.uuid4().hex[:8]}"
+        target_uri = f"wfs://resources/target_{uuid.uuid4().hex[:8]}"
         with tempfile.TemporaryDirectory() as temp_dir:
             test_file = os.path.join(temp_dir, "targeted.txt")
             with open(test_file, "w") as f:

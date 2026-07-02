@@ -59,7 +59,7 @@ class TestMemoryTools:
 
         result = await MemoryReadTool().execute(
             tool_ctx,
-            uri="viking://user/default/memories/experiences/test.md",
+            uri="wfs://user/default/memories/experiences/test.md",
         )
 
         assert result["content"] == "1\tGina values emotional support with Jon."
@@ -100,7 +100,7 @@ class TestMemoryTools:
 
         result = await MemoryReadTool().execute(
             tool_ctx,
-            uri="viking://user/default/memories/experiences/test.md",
+            uri="wfs://user/default/memories/experiences/test.md",
         )
 
         assert called is True
@@ -126,7 +126,7 @@ class TestMemoryTools:
 
         result = await MemoryReadTool().execute(
             tool_ctx,
-            uri="viking://user/default/memories/experiences/test.md",
+            uri="wfs://user/default/memories/experiences/test.md",
             offset=1,
             limit=1,
         )
@@ -154,7 +154,7 @@ class TestMemoryTools:
 
         result = await MemoryReadTool().execute(
             tool_ctx,
-            uri="viking://user/default/memories/experiences/test.md",
+            uri="wfs://user/default/memories/experiences/test.md",
             offset=5,
         )
 
@@ -181,7 +181,7 @@ class TestMemoryTools:
                 return {
                     "memories": [
                         {
-                            "uri": "viking://user/test-account/test-user/memories/profile.md",
+                            "uri": "wfs://user/test-account/test-user/memories/profile.md",
                             "score": 0.9,
                         }
                     ],
@@ -215,7 +215,7 @@ class TestMemoryTools:
         tool_ctx = ToolContext(
             viking_fs=viking_fs,
             request_ctx=request_ctx,
-            default_search_uris=["viking://user/test-account/test-user/memories"],
+            default_search_uris=["wfs://user/test-account/test-user/memories"],
             read_file_contents={},
         )
 
@@ -226,7 +226,7 @@ class TestMemoryTools:
         )
 
         assert result == [
-            {"uri": "viking://user/test-account/test-user/memories/profile.md", "score": 0.9}
+            {"uri": "wfs://user/test-account/test-user/memories/profile.md", "score": 0.9}
         ]
         assert viking_fs.received_ctx is request_ctx
         assert viking_fs.received_target_uri == tool_ctx.default_search_uris

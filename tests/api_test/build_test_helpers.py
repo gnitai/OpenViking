@@ -59,8 +59,8 @@ def cleanup_temp_dir(temp_dir):
 
 def assert_root_uri_valid(root_uri):
     assert root_uri, "add_resource 必须返回 root_uri"
-    assert root_uri.startswith("viking://resources/"), (
-        f"root_uri 应以 viking://resources/ 开头, 实际: {root_uri}"
+    assert root_uri.startswith("wfs://resources/"), (
+        f"root_uri 应以 wfs://resources/ 开头, 实际: {root_uri}"
     )
 
 

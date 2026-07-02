@@ -46,7 +46,7 @@ Agent 会自动完成安装 → 配置 → 重启 → 验证。详见 [INSTALL-A
 
 - **发送内容**：每轮 user/assistant 消息文本（已剥离注入的记忆块和元数据噪音）。
 - **发送去向**：仅发往你配置的 OpenViking 服务（`baseUrl`）。插件本身只与该服务通信；服务端对 embedding、VLM 等模型的调用取决于服务端配置。
-- **存储位置**：所有数据存储在你的 OpenViking 服务上，路径为 `viking://user/*`、`viking://agent/*`、`viking://session/*`。
+- **存储位置**：所有数据存储在你的 OpenViking 服务上，路径为 `wfs://user/*`、`wfs://agent/*`、`wfs://session/*`。
 - **API Key**：通过 `X-OpenViking-Key` header 发送，不会被日志记录或转发。
 - **多租户隔离**：支持 `accountId`、`userId`、`agent_prefix` 三级租户隔离。
 
@@ -96,7 +96,7 @@ openclaw config get plugins.slots.contextEngine  # 应输出：openviking
 - OpenClaw 在左侧，仍然是主运行时；插件并不接管 agent 执行本身。
 - 插件中间层把 Hook、Context Engine、Tools、Runtime Manager 四部分合并在一个注册单元里。
 - 所有 HTTP 调用最终都走 `OpenVikingClient`，由 client 层统一补 `X-OpenViking-*` 头和路由日志。
-- OpenViking 服务端承接 session、memory、archive 和 Phase 2 抽取，底层存储落在 `viking://user/*`、`viking://agent/*`、`viking://session/*`。
+- OpenViking 服务端承接 session、memory、archive 和 Phase 2 抽取，底层存储落在 `wfs://user/*`、`wfs://agent/*`、`wfs://session/*`。
 
 这套拆分的意义，是让 OpenClaw 继续专注推理与编排，让 OpenViking 成为长期上下文的事实源。
 
@@ -134,12 +134,12 @@ openclaw config get plugins.slots.contextEngine  # 应输出：openviking
 
 对于包含 PR #1356 的 OpenViking 服务端，插件不再在本地计算 user 或 agent scope hash，而是根据配置的 namespace policy 将别名 URI 展开为 canonical URI：
 
-- `viking://user/memories`
-  - `isolateUserScopeByAgent=false` 时展开为 `viking://user/<user_id>/memories`
-  - `isolateUserScopeByAgent=true` 时展开为 `viking://user/<user_id>/agent/<agent_id>/memories`
-- `viking://agent/memories`
-  - `isolateAgentScopeByUser=false` 时展开为 `viking://agent/<agent_id>/memories`
-  - `isolateAgentScopeByUser=true` 时展开为 `viking://agent/<agent_id>/user/<user_id>/memories`
+- `wfs://user/memories`
+  - `isolateUserScopeByAgent=false` 时展开为 `wfs://user/<user_id>/memories`
+  - `isolateUserScopeByAgent=true` 时展开为 `wfs://user/<user_id>/agent/<agent_id>/memories`
+- `wfs://agent/memories`
+  - `isolateAgentScopeByUser=false` 时展开为 `wfs://agent/<agent_id>/memories`
+  - `isolateAgentScopeByUser=true` 时展开为 `wfs://agent/<agent_id>/user/<user_id>/memories`
 
 插件当前无法从 `/api/v1/system/status` 自动发现这两个 policy，因此需要显式配置，使其与服务端 account policy 保持一致。
 
@@ -157,7 +157,7 @@ openclaw config get plugins.slots.contextEngine  # 应输出：openviking
 1. 从最后一条 user message 提取查询文本。
 2. 基于当前 `sessionId/sessionKey` 解析本轮的 agent 路由。
 3. 先做一次快速可用性检查，避免在 OpenViking 不可用时拖慢模型请求。
-4. 并行检索 `viking://user/memories` 和 `viking://agent/memories`。
+4. 并行检索 `wfs://user/memories` 和 `wfs://agent/memories`。
 5. 在插件侧做去重、阈值筛选、重排和 token budget 裁剪。
 6. 把最终记忆块以 `<relevant-memories>` 形式 prepend 到当前 user message；不会追加独立 synthetic user message。
 
@@ -242,16 +242,16 @@ preflight 阶段的 `assemble()` 并不是简单地把旧聊天记录塞回来�
 
 Resource 和 skill 保持两个入口，因为它们落在不同 OpenViking 命名空间，并使用不同服务端 API：
 
-- resource 走 `/api/v1/resources`，落到 `viking://resources/...`
-- skill 走 `/api/v1/skills`，落到 `viking://agent/skills/...`
+- resource 走 `/api/v1/resources`，落到 `wfs://resources/...`
+- skill 走 `/api/v1/skills`，落到 `wfs://agent/skills/...`
 
 插件也提供显式 slash command，方便手动导入：
 
 ```text
-/add-resource ./README.md --to viking://resources/openviking-readme --wait
+/add-resource ./README.md --to wfs://resources/openviking-readme --wait
 /add-skill ./skills/install-openviking-memory --wait
-/ov-search "OpenViking install" --uri viking://resources/openviking-readme
-/ov-search "memory install skill" --uri viking://agent/skills
+/ov-search "OpenViking install" --uri wfs://resources/openviking-readme
+/ov-search "memory install skill" --uri wfs://agent/skills
 ```
 
 Resource 导入支持远程 URL、Git URL、本地文件、本地目录和 zip。OpenViking 内置 parser 覆盖常见文档和媒体类型，例如 Markdown、纯文本、PDF、HTML、Word、PowerPoint、Excel、EPUB、图片、音频和视频。目录导入还支持常见代码、文档和配置扩展名，例如 `.py`、`.js`、`.ts`、`.go`、`.rs`、`.java`、`.cpp`、`.json`、`.yaml`、`.toml`、`.csv`、`.rst`、`.proto`、`.tf`、`.vue`。

@@ -109,14 +109,14 @@ OpenViking 支持两种方式传递 API Key：
 **X-API-Key 请求头**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: <user-key>"
 ```
 
 **Authorization: Bearer 请求头**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "Authorization: Bearer <user-key>"
 ```
 
@@ -149,7 +149,7 @@ client = ov.SyncHTTPClient(
 **CLI 覆盖参数**
 
 ```bash
-openviking --account acme --user alice --agent-id my-agent ls viking://
+openviking --account acme --user alice --agent-id my-agent ls wfs://
 ```
 
 ### 使用 --sudo 和 Root API Key
@@ -174,7 +174,7 @@ CLI 支持在 `ovcli.conf` 中同时配置 `api_key`（用于普通用户操作�
 ov --sudo admin list-accounts
 
 # 重新索引内容
-ov --sudo reindex viking://
+ov --sudo reindex wfs://
 
 # 系统命令
 ov --sudo system status
@@ -193,7 +193,7 @@ ov --sudo system status
 **curl**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-secret-root-key" \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice"
@@ -260,7 +260,7 @@ Trusted 模式规则：
 **curl**
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-OpenViking-Account: acme" \
   -H "X-OpenViking-User: alice" \
   -H "X-OpenViking-Agent: my-agent"

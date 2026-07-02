@@ -141,7 +141,7 @@ client.initialize()
 Direct HTTP (curl) call example:
 
 ```bash
-curl http://localhost:1933/api/v1/fs/ls?uri=viking:// \
+curl http://localhost:1933/api/v1/fs/ls?uri=wfs:// \
   -H "X-API-Key: your-key"
 ```
 
@@ -165,7 +165,7 @@ Global options (must be placed before the command name):
 Example:
 
 ```bash
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 ```
 
 ## Lifecycle
@@ -199,7 +199,7 @@ client.close()
 The CLI is called directly via the command line, requiring the `ovcli.conf` file to be configured first, with no additional client initialization needed:
 
 ```
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 ```
 
 ## Authentication
@@ -234,7 +234,7 @@ The top-level `status` describes whether the HTTP API request succeeded. Some su
   "status": "error",
   "error": {
     "code": "NOT_FOUND",
-    "message": "Resource not found: viking://resources/nonexistent/"
+    "message": "Resource not found: wfs://resources/nonexistent/"
   },
   "time": 0.01
 }
@@ -253,9 +253,9 @@ Python HTTP SDKs (`SyncHTTPClient` and `AsyncHTTPClient`) raise the correspondin
 List data is rendered as tables; non-list data falls back to formatted JSON:
 
 ```bash
-openviking ls viking://resources/
+openviking ls wfs://resources/
 # name          size  mode  isDir  uri
-# .abstract.md  100   420   False  viking://resources/.abstract.md
+# .abstract.md  100   420   False  wfs://resources/.abstract.md
 ```
 
 ### JSON Mode (`--output json`)
@@ -263,7 +263,7 @@ openviking ls viking://resources/
 All commands output formatted JSON, matching the `result` structure of API responses:
 
 ```bash
-openviking -o json ls viking://resources/
+openviking -o json ls wfs://resources/
 # [{ "name": "...", "size": 100, ... }, ...]
 ```
 

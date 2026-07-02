@@ -14,7 +14,7 @@ def _dav_display_names(xml_bytes: bytes) -> list[str]:
 
 
 def _webdav_path_from_uri(uri: str) -> str:
-    prefix = "viking://resources"
+    prefix = "wfs://resources"
     assert uri.startswith(prefix)
     return uri[len(prefix) :].lstrip("/")
 
@@ -127,8 +127,8 @@ async def test_webdav_put_replace_reuses_direct_write_path(
 
     assert replace_resp.status_code == 204
     assert calls == [
-        ("write_file", "viking://resources/replace-space/notes.md", "second version"),
-        ("summarize", ("viking://resources/replace-space/notes.md",)),
+        ("write_file", "wfs://resources/replace-space/notes.md", "second version"),
+        ("summarize", ("wfs://resources/replace-space/notes.md",)),
     ]
 
 

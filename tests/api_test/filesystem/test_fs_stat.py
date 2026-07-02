@@ -7,7 +7,7 @@ import requests
 class TestFsStat:
     def test_fs_stat(self, api_client):
         try:
-            response = api_client.fs_stat("viking://")
+            response = api_client.fs_stat("wfs://")
         except requests.exceptions.ConnectionError:
             pytest.fail("Could not connect to server service - service is not running")
 

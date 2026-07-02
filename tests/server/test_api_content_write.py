@@ -145,7 +145,7 @@ async def test_api_create_mode_new_file_success(client):
     resp = await client.post(
         "/api/v1/content/write",
         json={
-            "uri": "viking://user/default/memories/new_file.md",
+            "uri": "wfs://user/default/memories/new_file.md",
             "content": "new content",
             "mode": "create",
             "wait": True,
@@ -159,7 +159,7 @@ async def test_api_create_mode_new_file_success(client):
 
 async def test_api_create_mode_write_then_read(client):
     """Create a new file then read it back — verify content roundtrips."""
-    uri = "viking://user/default/memories/create_readback_test.md"
+    uri = "wfs://user/default/memories/create_readback_test.md"
 
     write_resp = await client.post(
         "/api/v1/content/write",
@@ -202,7 +202,7 @@ async def test_api_create_mode_invalid_extension_400(client):
     resp = await client.post(
         "/api/v1/content/write",
         json={
-            "uri": "viking://user/default/memories/test.exe",
+            "uri": "wfs://user/default/memories/test.exe",
             "content": "malicious content",
             "mode": "create",
             "wait": True,
@@ -219,7 +219,7 @@ async def test_api_create_mode_empty_content_success(client):
     resp = await client.post(
         "/api/v1/content/write",
         json={
-            "uri": "viking://user/default/memories/empty.md",
+            "uri": "wfs://user/default/memories/empty.md",
             "content": "",
             "mode": "create",
             "wait": True,

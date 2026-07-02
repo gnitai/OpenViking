@@ -89,7 +89,7 @@ async def test_add_resource_wait_uses_request_tracker(service, monkeypatch):
 
     async def _fake_process_resource(**kwargs):
         del kwargs
-        return {"status": "success", "root_uri": "viking://resources/demo"}
+        return {"status": "success", "root_uri": "wfs://resources/demo"}
 
     monkeypatch.setattr(
         service.resources._resource_processor, "process_resource", _fake_process_resource
@@ -133,7 +133,7 @@ async def test_add_resource_wait_uses_request_tracker_when_telemetry_disabled(se
 
     async def _fake_process_resource(**kwargs):
         del kwargs
-        return {"status": "success", "root_uri": "viking://resources/demo"}
+        return {"status": "success", "root_uri": "wfs://resources/demo"}
 
     monkeypatch.setattr(
         service.resources._resource_processor, "process_resource", _fake_process_resource
@@ -177,7 +177,7 @@ async def test_add_skill_wait_uses_request_tracker(service, monkeypatch):
 
     async def _fake_process_skill(**kwargs):
         del kwargs
-        return {"status": "success", "uri": "viking://agent/skills/demo", "name": "demo"}
+        return {"status": "success", "uri": "wfs://agent/skills/demo", "name": "demo"}
 
     monkeypatch.setattr(service.resources._skill_processor, "process_skill", _fake_process_skill)
     monkeypatch.setattr(
@@ -218,7 +218,7 @@ async def test_add_skill_wait_uses_request_tracker_when_telemetry_disabled(servi
 
     async def _fake_process_skill(**kwargs):
         del kwargs
-        return {"status": "success", "uri": "viking://agent/skills/demo", "name": "demo"}
+        return {"status": "success", "uri": "wfs://agent/skills/demo", "name": "demo"}
 
     monkeypatch.setattr(service.resources._skill_processor, "process_skill", _fake_process_skill)
     monkeypatch.setattr(
@@ -239,7 +239,7 @@ async def test_add_skill_wait_uses_request_tracker_when_telemetry_disabled(servi
             timeout=9.0,
         )
 
-    assert result["root_uri"] == "viking://agent/skills/demo"
+    assert result["root_uri"] == "wfs://agent/skills/demo"
     assert result["queue_status"] == tracker.queue_status
     assert tracker.registered_requests == [telemetry.telemetry_id]
     assert tracker.wait_calls == [(telemetry.telemetry_id, 9.0)]
@@ -249,8 +249,8 @@ async def test_add_skill_wait_uses_request_tracker_when_telemetry_disabled(servi
 
 @pytest.mark.asyncio
 async def test_content_write_wait_uses_request_tracker(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     telemetry = OperationTelemetry(operation="content.write", enabled=True)
     tracker = _FakeRequestWaitTracker(
@@ -309,8 +309,8 @@ async def test_content_write_wait_uses_request_tracker(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_content_write_wait_uses_request_tracker_when_telemetry_disabled(monkeypatch):
-    file_uri = "viking://resources/demo/doc.md"
-    root_uri = "viking://resources/demo"
+    file_uri = "wfs://resources/demo/doc.md"
+    root_uri = "wfs://resources/demo"
     ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
     telemetry = OperationTelemetry(operation="content.write", enabled=False)
     tracker = _FakeRequestWaitTracker(

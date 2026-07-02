@@ -65,7 +65,7 @@ describe("plugin normal flow with healthy backend", () => {
           result: {
             memories: [
               {
-                uri: "viking://user/default/memories/rust-pref",
+                uri: "wfs://user/default/memories/rust-pref",
                 level: 2,
                 abstract: "User prefers Rust for backend tasks.",
                 score: 0.91,

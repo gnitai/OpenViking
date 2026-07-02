@@ -1,7 +1,7 @@
 # 基础使用示例：OpenViking Python SDK
 
 这个示例的目标很明确：用最短路径带你理解 OpenViking Python SDK 的核心工作流。
-你会从初始化客户端开始，完成资源导入、`viking://` 文件系统浏览、上下文检索，
+你会从初始化客户端开始，完成资源导入、`wfs://` 文件系统浏览、上下文检索，
 以及创建一个后续可以提交为长期记忆的会话。
 
 它是一个典型的 SDK 入门示例。如果你要做生产部署、共享服务或者 MCP 集成，
@@ -12,7 +12,7 @@
 - 本地快速试用时的嵌入式 SDK 用法
 - 服务端模式下的 HTTP 客户端用法
 - 从远程 URL 导入资源
-- 使用 `ls`、`tree`、`read` 浏览 `viking://` 文件系统
+- 使用 `ls`、`tree`、`read` 浏览 `wfs://` 文件系统
 - 使用 `find`、`abstract`、`overview`、`grep` 做检索和加载
 - 创建 session 并追加消息，为后续记忆提取做准备
 
@@ -76,7 +76,7 @@ client.initialize()
 
 1. 初始化客户端并检查健康状态。
 2. 从 URL 添加一个资源。
-3. 查看生成的 `viking://resources/...` 树。
+3. 查看生成的 `wfs://resources/...` 树。
 4. 等待语义处理完成。
 5. 用 `abstract`、`overview`、`read` 加载 L0/L1/L2 上下文。
 6. 用 `find` 做语义检索。
@@ -146,17 +146,17 @@ result = client.add_resource(
 OpenViking 的上下文统一组织在虚拟文件系统里：
 
 ```python
-files = client.ls("viking://resources/")
-tree = client.tree("viking://resources/my-project", level_limit=3)
-content = client.read("viking://resources/my-project/README.md")
+files = client.ls("wfs://resources/")
+tree = client.tree("wfs://resources/my-project", level_limit=3)
+content = client.read("wfs://resources/my-project/README.md")
 ```
 
 同样的 URI 模型也适用于记忆和技能：
 
-- `viking://resources/`
-- `viking://user/memories/`
-- `viking://agent/memories/`
-- `viking://agent/skills/`
+- `wfs://resources/`
+- `wfs://user/memories/`
+- `wfs://agent/memories/`
+- `wfs://agent/skills/`
 
 ### 检索
 
@@ -165,13 +165,13 @@ content = client.read("viking://resources/my-project/README.md")
 ```python
 results = client.find(
     query="认证逻辑是怎么做的",
-    target_uri="viking://resources/my-project",
+    target_uri="wfs://resources/my-project",
     limit=5,
 )
 
 results = client.search(
     query="数据库配置和故障处理",
-    target_uri="viking://resources/",
+    target_uri="wfs://resources/",
     limit=10,
 )
 ```
@@ -179,7 +179,7 @@ results = client.search(
 检索命中后，再按需做分层加载：
 
 ```python
-uri = "viking://resources/my-project/docs/api.md"
+uri = "wfs://resources/my-project/docs/api.md"
 
 abstract = client.abstract(uri)
 overview = client.overview(uri)
@@ -189,7 +189,7 @@ content = client.read(uri)
 如果你要的是字面匹配而不是语义检索，用 `grep`：
 
 ```python
-result = client.grep("viking://resources/my-project", "Agent", case_insensitive=True)
+result = client.grep("wfs://resources/my-project", "Agent", case_insensitive=True)
 matches = result.get("matches", [])
 ```
 
@@ -216,7 +216,7 @@ client.commit_session(session_id)
 ```python
 memories = client.find(
     query="用户编程偏好",
-    target_uri="viking://user/memories/",
+    target_uri="wfs://user/memories/",
 )
 ```
 

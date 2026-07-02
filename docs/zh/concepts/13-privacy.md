@@ -24,7 +24,7 @@
 用户空间下的存储路径：
 
 ```
-viking://user/{user_space}/privacy/{category}/{target_key}/
+wfs://user/{user_space}/privacy/{category}/{target_key}/
 ├── .meta.json                 # 元信息（active_version/latest_version/labels 等）
 ├── current.json               # 当前生效版本快照
 └── history/
@@ -93,8 +93,8 @@ fs.read(uri)
 
 当前支持通过后缀识别 Skill：`/skills/{name}/SKILL.md`，可兼容：
 
-- `viking://agent/skills/{name}/SKILL.md`
-- `viking://agent/{agent_id}/skills/{name}/SKILL.md`
+- `wfs://agent/skills/{name}/SKILL.md`
+- `wfs://agent/{agent_id}/skills/{name}/SKILL.md`
 
 ### restore 规则
 
@@ -133,7 +133,7 @@ openviking privacy list skill
 openviking privacy skill <target_key>
 openviking privacy upsert skill <target_key> --values-json '{"api_key":"..."}'
 openviking privacy activate skill <target_key> <version>
-openviking read viking://agent/default/skills/<target_key>/SKILL.md
+openviking read wfs://agent/default/skills/<target_key>/SKILL.md
 ```
 
 ---

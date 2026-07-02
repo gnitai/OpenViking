@@ -23,7 +23,7 @@ class _Resources:
 
     async def add_resource(self, **kwargs):
         self.calls.append(kwargs)
-        return {"status": "success", "root_uri": "viking://resources/r"}
+        return {"status": "success", "root_uri": "wfs://resources/r"}
 
 
 class _Service:

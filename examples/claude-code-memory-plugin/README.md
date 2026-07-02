@@ -381,13 +381,13 @@ The plugin's `.mcp.json` connects to the OpenViking server's native HTTP MCP end
 | Tool           | Description                                                 |
 |----------------|-------------------------------------------------------------|
 | `search`       | Semantic search across memories, resources, and skills      |
-| `read`         | Read one or more `viking://` URIs                           |
-| `list`         | List entries under a `viking://` directory                  |
+| `read`         | Read one or more `wfs://` URIs                           |
+| `list`         | List entries under a `wfs://` directory                  |
 | `store`        | Store messages into long-term memory (triggers extraction)  |
 | `add_resource` | Add a local file or URL as a resource                       |
-| `grep`         | Regex content search across `viking://` files               |
+| `grep`         | Regex content search across `wfs://` files               |
 | `glob`         | Find files matching a glob pattern                          |
-| `forget`       | Delete any `viking://` URI                                  |
+| `forget`       | Delete any `wfs://` URI                                  |
 | `health`       | Check OpenViking server health                              |
 
 See the [MCP integration guide](../../docs/en/guides/06-mcp-integration.md) for tool parameters.

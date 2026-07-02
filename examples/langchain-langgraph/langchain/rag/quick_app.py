@@ -13,17 +13,17 @@ from openviking.integrations.langchain import InMemoryOpenVikingClient, OpenViki
 def build_app(client: InMemoryOpenVikingClient | None = None):
     client = client or InMemoryOpenVikingClient(
         {
-            "viking://user/memories/preferences/deploy_color.md": (
+            "wfs://user/memories/preferences/deploy_color.md": (
                 "The user prefers azure as the deployment color for LangChain examples."
             ),
-            "viking://resources/runbooks/langchain.md": (
+            "wfs://resources/runbooks/langchain.md": (
                 "LangChain RAG apps should pass OpenViking recall into the prompt context."
             ),
         }
     )
     retriever = OpenVikingRetriever(
         client=client,
-        target_uri=["viking://user/memories", "viking://resources"],
+        target_uri=["wfs://user/memories", "wfs://resources"],
         limit=4,
         content_mode="auto",
     )

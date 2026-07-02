@@ -4,7 +4,7 @@
 URI utilities for OpenViking.
 
 All context objects in OpenViking are identified by URIs in the format:
-viking://<scope>/<path>
+wfs://<scope>/<path>
 """
 
 import re
@@ -15,23 +15,23 @@ class VikingURI:
     """
     Viking URI handler.
 
-    URI Format: viking://<scope>/<path>
+    URI Format: wfs://<scope>/<path>
 
     Scopes:
-    - resources: Independent resource scope (viking://resources/{project}/...)
-    - user: User scope (viking://user/...)
-    - agent: Agent scope (viking://agent/...)
-    - session: Session scope (viking://session/{session_id}/...)
-    - queue: Queue scope (viking://queue/...)
+    - resources: Independent resource scope (wfs://resources/{project}/...)
+    - user: User scope (wfs://user/...)
+    - agent: Agent scope (wfs://agent/...)
+    - session: Session scope (wfs://session/{session_id}/...)
+    - queue: Queue scope (wfs://queue/...)
 
     Examples:
-    - viking://resources/my_project/docs/api
-    - viking://user/memories/preferences/code_style
-    - viking://agent/skills/pdf
-    - viking://session/session123/messages
+    - wfs://resources/my_project/docs/api
+    - wfs://user/memories/preferences/code_style
+    - wfs://agent/skills/pdf
+    - wfs://session/session123/messages
     """
 
-    SCHEME = "viking"
+    SCHEME = "wfs"
     # SCOPES that can be listed in root directory (ov ls)
     LISTABLE_SCOPES = {
         "resources",
@@ -49,7 +49,7 @@ class VikingURI:
         """
         Initialize URI handler.
 
-        Accepts both full-format (viking://...) and short-format (/resources, resources)
+        Accepts both full-format (wfs://...) and short-format (/resources, resources)
         URIs. Short-format URIs are automatically normalized to full format.
 
         Args:
@@ -71,7 +71,7 @@ class VikingURI:
         # Remove scheme
         path = self.uri[len(f"{self.SCHEME}://") :]
 
-        # Root URI: viking://
+        # Root URI: wfs://
         if not path.strip("/"):
             return {
                 "scheme": self.SCHEME,
@@ -106,7 +106,7 @@ class VikingURI:
         Get resource name for resources scope.
 
         Returns:
-            Resource name (e.g., 'my_project' from viking://resources/my_project/...)
+            Resource name (e.g., 'my_project' from wfs://resources/my_project/...)
             or None for non-resources scopes.
         """
         if self.scope != "resources":
@@ -274,23 +274,23 @@ class VikingURI:
     @staticmethod
     def normalize(uri: str) -> str:
         """
-        Normalize URI by ensuring it has the viking:// scheme.
+        Normalize URI by ensuring it has the wfs:// scheme.
 
-        If the input already starts with viking://, returns it as-is.
-        If it starts with /, prepends viking:// (resulting in viking:///... which is invalid,
+        If the input already starts with wfs://, returns it as-is.
+        If it starts with /, prepends wfs:// (resulting in wfs:///... which is invalid,
         so we strip leading / first).
-        Otherwise, prepends viking://.
+        Otherwise, prepends wfs://.
 
         Examples:
-            "/resources/images" -> "viking://resources/images"
-            "resources/images" -> "viking://resources/images"
-            "viking://resources/images" -> "viking://resources/images"
+            "/resources/images" -> "wfs://resources/images"
+            "resources/images" -> "wfs://resources/images"
+            "wfs://resources/images" -> "wfs://resources/images"
 
         Args:
             uri: Input URI string
 
         Returns:
-            Normalized URI with viking:// scheme
+            Normalized URI with wfs:// scheme
         """
         if uri.startswith(f"{VikingURI.SCHEME}://"):
             return uri
@@ -303,12 +303,12 @@ class VikingURI:
         """Create temp directory URI.
 
         When ``space`` is provided, generate a user-scoped temp URI like
-        ``viking://temp/<space>/MMDDHHMM_XXXXXX``. This preserves isolation
+        ``wfs://temp/<space>/MMDDHHMM_XXXXXX``. This preserves isolation
         between users sharing the same account while keeping temp data in the
         temp scope.
 
         When ``space`` is omitted, fall back to the legacy shape
-        ``viking://temp/MMDDHHMM_XXXXXX`` for compatibility with callers that
+        ``wfs://temp/MMDDHHMM_XXXXXX`` for compatibility with callers that
         do not have a user context.
         """
         import datetime
@@ -317,5 +317,5 @@ class VikingURI:
         temp_id = uuid.uuid4().hex[:6]
         temp_leaf = f"{datetime.datetime.now().strftime('%m%d%H%M')}_{temp_id}"
         if space:
-            return f"viking://temp/{space}/{temp_leaf}"
-        return f"viking://temp/{temp_leaf}"
+            return f"wfs://temp/{space}/{temp_leaf}"
+        return f"wfs://temp/{temp_leaf}"

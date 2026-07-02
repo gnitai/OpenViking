@@ -403,7 +403,7 @@ def is_invalid_uri_error(exc: Exception) -> bool:
         for marker in (
             "invalid uri",
             "invalid viking uri",
-            "invalid viking://",
+            "invalid wfs://",
         )
     )
 

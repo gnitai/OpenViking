@@ -126,7 +126,7 @@ class TestBuildErrorHandlingSlow:
         """TC-E13 同to增量更新：验证同一 to 二次添加后 root_uri 不变且不报错"""
         random_id = str(uuid.uuid4())[:8]
         unique_keyword = f"incr_keyword_{random_id}"
-        target_uri = f"viking://resources/incr_test_{random_id}"
+        target_uri = f"wfs://resources/incr_test_{random_id}"
 
         content1 = f"增量更新测试1 {random_id}\n包含唯一关键词：{unique_keyword}_v1"
         content2 = f"增量更新测试2 {random_id}\n包含唯一关键词：{unique_keyword}_v2"

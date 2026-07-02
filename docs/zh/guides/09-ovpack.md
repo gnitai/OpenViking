@@ -1,6 +1,6 @@
 # OVPack 导入导出
 
-OVPack 是 OpenViking 的可恢复内容包格式，用来迁移或备份 `viking://` 下的公开内容树。
+OVPack 是 OpenViking 的可恢复内容包格式，用来迁移或备份 `wfs://` 下的公开内容树。
 它保存文件内容、语义侧边文件、可迁移的索引标量，以及可选的 dense 向量快照。
 
 OVPack 不是裸 ZIP 拷贝，也不是可信发布格式。导入会校验 manifest、文件列表、目录列表和
@@ -11,17 +11,17 @@ checksum，保证包内容没有偏离 manifest；如果攻击者能同时篡改
 
 普通 `export/import` 处理一个包根：
 
-- `viking://resources/...`
-- `viking://user/...`
-- `viking://agent/...`
-- `viking://session/...`
+- `wfs://resources/...`
+- `wfs://user/...`
+- `wfs://agent/...`
+- `wfs://session/...`
 
 全量迁移使用单独的 `backup/restore`，它会把公开 scope root 一起打进备份包：
 
-- `viking://resources`
-- `viking://user`
-- `viking://agent`
-- `viking://session`
+- `wfs://resources`
+- `wfs://user`
+- `wfs://agent`
+- `wfs://session`
 
 `temp`、`queue`、`upload`、锁文件、watch control 文件、`.relations.json` 等内部或运行态数据
 不属于 OVPack 迁移范围。
@@ -31,20 +31,20 @@ checksum，保证包内容没有偏离 manifest；如果攻击者能同时篡改
 ### 导出和导入资源目录
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack
-ov import ./exports/my-project.ovpack viking://resources/imported/
+ov export wfs://resources/my-project ./exports/my-project.ovpack
+ov import ./exports/my-project.ovpack wfs://resources/imported/
 ```
 
 导入参数是目标父目录，不是最终 root。假设包根名是 `my-project`，上面的导入结果是：
 
 ```text
-viking://resources/imported/my-project
+wfs://resources/imported/my-project
 ```
 
 覆盖已有 root：
 
 ```bash
-ov import ./exports/my-project.ovpack viking://resources/imported/ --on-conflict overwrite
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --on-conflict overwrite
 ```
 
 ### 导出向量快照
@@ -52,15 +52,15 @@ ov import ./exports/my-project.ovpack viking://resources/imported/ --on-conflict
 默认导出不保存 dense 向量，导入后由目标环境重新向量化：
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack
-ov import ./exports/my-project.ovpack viking://resources/imported/
+ov export wfs://resources/my-project ./exports/my-project.ovpack
+ov import ./exports/my-project.ovpack wfs://resources/imported/
 ```
 
 如果确认导出环境和导入环境使用同一 embedding 配置，可以显式导出 dense 向量快照：
 
 ```bash
-ov export viking://resources/my-project ./exports/my-project.ovpack --include-vectors
-ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode auto
+ov export wfs://resources/my-project ./exports/my-project.ovpack --include-vectors
+ov import ./exports/my-project.ovpack wfs://resources/imported/ --vector-mode auto
 ```
 
 `--vector-mode` 控制导入时如何处理包内向量：
@@ -81,7 +81,7 @@ ov import ./exports/my-project.ovpack viking://resources/imported/ --vector-mode
 可以单独调用一致性检查来调试当前数据状态：
 
 ```bash
-ov system consistency viking://resources/my-project
+ov system consistency wfs://resources/my-project
 ```
 
 接口只返回摘要和最多 20 条缺失记录，不返回完整 expected 列表。`--include-vectors`
@@ -90,7 +90,7 @@ ov system consistency viking://resources/my-project
 Python SDK：
 
 ```python
-report = await client.check_consistency("viking://resources/my-project")
+report = await client.check_consistency("wfs://resources/my-project")
 print(report["ok"], report["missing_records"])
 ```
 
@@ -100,12 +100,12 @@ HTTP API：
 curl -X POST http://localhost:1933/api/v1/system/consistency \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-admin-key" \
-  -d '{"uri":"viking://resources/my-project"}'
+  -d '{"uri":"wfs://resources/my-project"}'
 ```
 
 ### 全量备份和恢复
 
-全量迁移不要用 `export viking://`；使用专门的备份包：
+全量迁移不要用 `export wfs://`；使用专门的备份包：
 
 ```bash
 ov backup ./backups/openviking.ovpack
@@ -125,14 +125,14 @@ async def migrate_project():
     await client.initialize()
     try:
         await client.export_ovpack(
-            uri="viking://resources/my-project",
+            uri="wfs://resources/my-project",
             to="./exports/my-project.ovpack",
             include_vectors=False,
         )
 
         imported_uri = await client.import_ovpack(
             file_path="./exports/my-project.ovpack",
-            parent="viking://resources/imported/",
+            parent="wfs://resources/imported/",
             on_conflict="overwrite",
             vector_mode="auto",
         )
@@ -164,7 +164,7 @@ HTTP 导出接口直接返回文件流；HTTP 导入和恢复必须先上传本�
 curl -X POST http://localhost:1933/api/v1/pack/export \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-admin-key" \
-  -d '{"uri":"viking://resources/my-project","include_vectors":false}' \
+  -d '{"uri":"wfs://resources/my-project","include_vectors":false}' \
   --output my-project.ovpack
 ```
 
@@ -183,7 +183,7 @@ curl -X POST http://localhost:1933/api/v1/pack/import \
   -H "X-API-Key: your-admin-key" \
   -d "{
     \"temp_file_id\": \"$TEMP_FILE_ID\",
-    \"parent\": \"viking://resources/imported/\",
+    \"parent\": \"wfs://resources/imported/\",
     \"on_conflict\": \"overwrite\",
     \"vector_mode\": \"auto\"
   }"
@@ -238,7 +238,7 @@ manifest 只保存包结构、文件 checksum 和内部索引文件的 checksum�
   "format_version": 2,
   "root": {
     "name": "my-project",
-    "uri": "viking://resources/my-project",
+    "uri": "wfs://resources/my-project",
     "scope": "resources"
   },
   "entries": [
@@ -345,34 +345,34 @@ INVALID_ARGUMENT: ovpack package does not contain a dense vector snapshot
 普通子树包导入到同 scope 的父目录，并保留包根：
 
 ```bash
-ov export viking://resources/a ./exports/a.ovpack
-ov import ./exports/a.ovpack viking://resources/imported/
+ov export wfs://resources/a ./exports/a.ovpack
+ov import ./exports/a.ovpack wfs://resources/imported/
 ```
 
 结果：
 
 ```text
-viking://resources/imported/a
+wfs://resources/imported/a
 ```
 
-顶级 scope 包只能导入到 `viking://`：
+顶级 scope 包只能导入到 `wfs://`：
 
 ```bash
-ov export viking://resources ./exports/resources.ovpack
-ov import ./exports/resources.ovpack viking:// --on-conflict overwrite
+ov export wfs://resources ./exports/resources.ovpack
+ov import ./exports/resources.ovpack wfs:// --on-conflict overwrite
 ```
 
 以下导入会被拒绝：
 
 ```bash
 # resources 包不能导入 session
-ov import ./exports/a.ovpack viking://session/
+ov import ./exports/a.ovpack wfs://session/
 
 # session 子树不能导入 resources
-ov import ./exports/sess_123.ovpack viking://resources/
+ov import ./exports/sess_123.ovpack wfs://resources/
 
 # session 子树不能把自身路径当父目录，否则会变成 session/sess_123/sess_123
-ov import ./exports/sess_123.ovpack viking://session/sess_123/
+ov import ./exports/sess_123.ovpack wfs://session/sess_123/
 ```
 
 ## 记忆和 Session
@@ -382,28 +382,28 @@ ov import ./exports/sess_123.ovpack viking://session/sess_123/
 用户记忆：
 
 ```bash
-ov export viking://user/default/memories ./exports/user-memories.ovpack
-ov import ./exports/user-memories.ovpack viking://user/default/ --on-conflict overwrite
+ov export wfs://user/default/memories ./exports/user-memories.ovpack
+ov import ./exports/user-memories.ovpack wfs://user/default/ --on-conflict overwrite
 ```
 
 Agent 记忆：
 
 ```bash
-ov export viking://agent/default/memories ./exports/agent-memories.ovpack
-ov import ./exports/agent-memories.ovpack viking://agent/default/ --on-conflict overwrite
+ov export wfs://agent/default/memories ./exports/agent-memories.ovpack
+ov import ./exports/agent-memories.ovpack wfs://agent/default/ --on-conflict overwrite
 ```
 
 Session 只恢复文件状态，不触发向量化：
 
 ```bash
-ov export viking://session/sess_123 ./exports/sess_123.ovpack
-ov import ./exports/sess_123.ovpack viking://session/ --on-conflict overwrite
+ov export wfs://session/sess_123 ./exports/sess_123.ovpack
+ov import ./exports/sess_123.ovpack wfs://session/ --on-conflict overwrite
 ```
 
 结果：
 
 ```text
-viking://session/sess_123
+wfs://session/sess_123
 ```
 
 ## 旧包和未来版本
@@ -425,7 +425,7 @@ viking://session/sess_123
 | `ovpack entries do not match manifest` | ZIP 中缺文件/目录，或混入额外文件/目录 | 丢弃该包，或重新导出。 |
 | `source scope does not match target scope` | 跨 scope 导入，例如 session 导入 resources | 导入到同 scope 的父目录。 |
 | `source path is incompatible with target path` | 结构化 scope 的 root 层级会改变 | 导入到正确系统父目录。 |
-| `Top-level scope ovpack packages must be imported to viking://` | 将顶级 scope 包导入了非根父目录 | 改为导入 `viking://`。 |
+| `Top-level scope ovpack packages must be imported to wfs://` | 将顶级 scope 包导入了非根父目录 | 改为导入 `wfs://`。 |
 | `Backup ovpack packages must be restored` | 用普通 import 导入 backup 包 | 使用 `ov restore`。 |
 | `Resource already exists` | 目标 root 已存在 | 使用 `--on-conflict overwrite` 或 `--on-conflict skip`。 |
 | `incomplete OpenViking vector index snapshot` | 使用 `--include-vectors` 时，导出范围内应索引内容缺少索引记录 | 先执行 `ov system consistency <uri>` 定位问题，再等待处理完成或重新 reindex。 |

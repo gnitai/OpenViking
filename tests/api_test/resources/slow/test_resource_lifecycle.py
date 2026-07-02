@@ -20,7 +20,7 @@ class TestResourceLifecycle:
             assert stat_resp.status_code == 200, "resource should exist in fs even without index"
 
     def test_resource_add_with_to_and_verify_fs(self, api_client):
-        target_uri = f"viking://resources/to_lifecycle_{uuid.uuid4().hex[:8]}"
+        target_uri = f"wfs://resources/to_lifecycle_{uuid.uuid4().hex[:8]}"
         with tempfile.TemporaryDirectory() as temp_dir:
             test_file = os.path.join(temp_dir, "to_lifecycle.txt")
             with open(test_file, "w") as f:
@@ -72,8 +72,8 @@ class TestResourceLifecycle:
             with open(test_file, "w") as f:
                 f.write("Same content different target")
 
-            to1 = f"viking://resources/dup_to1_{uuid.uuid4().hex[:8]}"
-            to2 = f"viking://resources/dup_to2_{uuid.uuid4().hex[:8]}"
+            to1 = f"wfs://resources/dup_to1_{uuid.uuid4().hex[:8]}"
+            to2 = f"wfs://resources/dup_to2_{uuid.uuid4().hex[:8]}"
 
             add1 = api_client.add_resource(path=test_file, to=to1, wait=True)
             add2 = api_client.add_resource(path=test_file, to=to2, wait=True)

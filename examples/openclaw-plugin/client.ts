@@ -195,8 +195,8 @@ function sleep(ms: number): Promise<void> {
 }
 
 const MEMORY_URI_PATTERNS = [
-  /^viking:\/\/user\/(?:[^/]+(?:\/agent\/[^/]+)?\/)?memories(?:\/|$)/,
-  /^viking:\/\/agent\/(?:[^/]+(?:\/user\/[^/]+)?\/)?memories(?:\/|$)/,
+  /^wfs:\/\/user\/(?:[^/]+(?:\/agent\/[^/]+)?\/)?memories(?:\/|$)/,
+  /^wfs:\/\/agent\/(?:[^/]+(?:\/user\/[^/]+)?\/)?memories(?:\/|$)/,
 ];
 const USER_STRUCTURE_DIRS = new Set(["memories", "profile.md", ".abstract.md", ".overview.md"]);
 const AGENT_STRUCTURE_DIRS = new Set([
@@ -304,7 +304,7 @@ export class OpenVikingClient {
           X_OpenViking_User: tenantHeaders.userId ?? null,
           resolved_user_id: identity.userId,
           session_vfs_hint: detail.sessionId
-            ? `viking://session/${String(detail.sessionId)}`
+            ? `wfs://session/${String(detail.sessionId)}`
             : undefined,
         }),
     );
@@ -390,19 +390,19 @@ export class OpenVikingClient {
     const identity = await this.getRuntimeIdentity(agentId);
     if (scope === "user") {
       const root = this.isolateUserScopeByAgent
-        ? `viking://user/${identity.userId}/agent/${identity.agentId}`
-        : `viking://user/${identity.userId}`;
+        ? `wfs://user/${identity.userId}/agent/${identity.agentId}`
+        : `wfs://user/${identity.userId}`;
       return root;
     }
     const root = this.isolateAgentScopeByUser
-      ? `viking://agent/${identity.agentId}/user/${identity.userId}`
-      : `viking://agent/${identity.agentId}`;
+      ? `wfs://agent/${identity.agentId}/user/${identity.userId}`
+      : `wfs://agent/${identity.agentId}`;
     return root;
   }
 
   private async normalizeTargetUri(targetUri: string, agentId?: string): Promise<string> {
     const trimmed = targetUri.trim().replace(/\/+$/, "");
-    const match = trimmed.match(/^viking:\/\/(user|agent)(?:\/(.*))?$/);
+    const match = trimmed.match(/^wfs:\/\/(user|agent)(?:\/(.*))?$/);
     if (!match) {
       return trimmed;
     }
@@ -910,7 +910,7 @@ export class OpenVikingClient {
     match_count?: number;
     files_scanned?: number;
   }> {
-    const baseUri = `viking://session/${sessionId}/history`;
+    const baseUri = `wfs://session/${sessionId}/history`;
     const uri = options.archiveId ? `${baseUri}/${options.archiveId}` : baseUri;
     return this.request(
       "/api/v1/search/grep",

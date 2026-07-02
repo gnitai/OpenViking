@@ -29,7 +29,7 @@ class TestConcurrencyRace:
                 api_client.delete_session(session_id)
 
     def test_concurrent_mkdir_same_uri_idempotent(self, api_client):
-        dir_uri = f"viking://resources/race_mkdir_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/race_mkdir_{uuid.uuid4().hex[:8]}"
         try:
             results = []
 
@@ -58,7 +58,7 @@ class TestConcurrencyRace:
                 pass
 
     def test_concurrent_read_same_file_no_corruption(self, api_client):
-        file_uri = f"viking://resources/race_read_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/race_read_{uuid.uuid4().hex[:8]}.md"
         original = "Stable content for concurrent read test"
         try:
             write_resp = api_client.fs_write(file_uri, original, mode="create", wait=True)
@@ -211,7 +211,7 @@ class TestConcurrencyRace:
                     pass
 
     def test_concurrent_rm_and_write_same_uri(self, api_client):
-        file_uri = f"viking://resources/race_rm_write_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/race_rm_write_{uuid.uuid4().hex[:8]}.md"
         try:
             api_client.fs_write(file_uri, "Original content", mode="create", wait=True)
 

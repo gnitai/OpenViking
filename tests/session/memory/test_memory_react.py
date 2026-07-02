@@ -32,7 +32,7 @@ class TestPreFetchFileFiltering:
             {"name": "data.json", "isDir": False},
         ]
 
-        dir_uri = "viking://user/default/memories/preferences"
+        dir_uri = "wfs://user/default/memories/preferences"
         single_file_schemas = set()
 
         # Apply the filtering logic manually (replicate what _pre_fetch_context does)
@@ -59,7 +59,7 @@ class TestPreFetchFileFiltering:
 
     def test_only_read_existing_files(self):
         """Test that only existing files are read - when only one exists or none exist."""
-        dir_uri = "viking://user/default/memories/preferences"
+        dir_uri = "wfs://user/default/memories/preferences"
         single_file_schemas = set()
 
         # Case 1: Only .abstract.md exists
@@ -164,14 +164,14 @@ class TestAllowedDirectoriesList:
             schema1 = MemoryTypeSchema(
                 memory_type="preferences",
                 description="Preferences",
-                directory="viking://user/{user_space}/memories/preferences",
+                directory="wfs://user/{user_space}/memories/preferences",
                 filename_template="{topic}.md",
                 fields=[],
             )
             schema2 = MemoryTypeSchema(
                 memory_type="tools",
                 description="Tools",
-                directory="viking://agent/{agent_space}/memories/tools",
+                directory="wfs://agent/{agent_space}/memories/tools",
                 filename_template="{tool_name}.md",
                 fields=[],
             )
@@ -193,8 +193,8 @@ class TestAllowedDirectoriesList:
                 result = extract_loop._get_allowed_directories_list()
 
                 # Verify the result contains the expected directories with variables replaced
-                assert "viking://user/default/memories/preferences" in result
-                assert "viking://agent/default/memories/tools" in result
+                assert "wfs://user/default/memories/preferences" in result
+                assert "wfs://agent/default/memories/tools" in result
 
 
 class TestExtractLoopFinalJsonRetry:
@@ -238,7 +238,7 @@ class TestExtractLoopFinalJsonRetry:
                     MemoryTypeSchema(
                         memory_type="preferences",
                         description="Preferences",
-                        directory="viking://user/{user_space}/memories/preferences",
+                        directory="wfs://user/{user_space}/memories/preferences",
                         filename_template="{topic}.md",
                         fields=[],
                     )

@@ -17,7 +17,7 @@ description: |
   - Forbidden: only-assistant content, sensitive/private info, trivial updates
   - Merge similar items; keep latest only when the same stable attribute truly conflicts
 
-directory: "viking://user/{{ user_space }}/memories"
+directory: "wfs://user/{{ user_space }}/memories"
 filename_template: "profile.md"
 enabled: true
 fields:

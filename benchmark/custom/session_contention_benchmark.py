@@ -19,7 +19,7 @@ from itertools import count
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, Iterable, List, Optional, Sequence
 
-DEFAULT_DATA_ROOT_URI = "viking://resources/bench/load_test"
+DEFAULT_DATA_ROOT_URI = "wfs://resources/bench/load_test"
 DEFAULT_SESSION_PREFIX = "bench-load-"
 DEFAULT_QUERIES = [
     "OpenViking server load test",
@@ -1304,7 +1304,7 @@ def extract_session_ids(payload: Any) -> List[str]:
 
 
 def iter_resource_tree_uris(root_uri: str) -> List[str]:
-    prefix = "viking://resources"
+    prefix = "wfs://resources"
     normalized = root_uri.rstrip("/")
     if not normalized.startswith(prefix):
         return [normalized]

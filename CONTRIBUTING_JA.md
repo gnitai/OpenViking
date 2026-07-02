@@ -284,7 +284,7 @@ class TestAsyncOpenViking:
             reason="test document"
         )
         assert "root_uri" in result
-        assert result["root_uri"].startswith("viking://")
+        assert result["root_uri"].startswith("wfs://")
 ```
 
 共通フィクスチャは`tests/conftest.py`に定義されており、`client`（初期化済み`AsyncOpenViking`）、`uninitialized_client`、`temp_dir`、`sample_markdown_file` などが含まれます。

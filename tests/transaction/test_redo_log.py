@@ -17,12 +17,12 @@ def redo(agfs_client):
 class TestRedoLogBasic:
     async def test_write_and_read(self, redo):
         task_id = uuid.uuid4().hex
-        info = {"archive_uri": "viking://test/archive", "session_uri": "viking://test/session"}
+        info = {"archive_uri": "wfs://test/archive", "session_uri": "wfs://test/session"}
         await redo.write_pending_async(task_id, info)
 
         result = await redo.read_async(task_id)
-        assert result["archive_uri"] == "viking://test/archive"
-        assert result["session_uri"] == "viking://test/session"
+        assert result["archive_uri"] == "wfs://test/archive"
+        assert result["session_uri"] == "wfs://test/session"
 
         await redo.mark_done_async(task_id)
 

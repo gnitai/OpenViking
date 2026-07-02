@@ -50,7 +50,7 @@ class DatasetGenerator:
             EvalDataset
         """
         get_viking_fs()
-        uri_base = f"viking://{scope}/{path.lstrip('/')}"
+        uri_base = f"wfs://{scope}/{path.lstrip('/')}"
 
         # Collect files
         # This is a simplified logic, assuming we can list files in VikingFS

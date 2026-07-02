@@ -1,7 +1,7 @@
 # Basic Usage Example: OpenViking Python SDK
 
 This example is the shortest path to understanding OpenViking's core Python SDK workflow:
-initialize a client, ingest a resource, browse the `viking://` filesystem, retrieve context,
+initialize a client, ingest a resource, browse the `wfs://` filesystem, retrieve context,
 and create a session that can later be committed into long-term memory.
 
 It is intentionally SDK-first. If you want production deployment, shared access, or MCP client
@@ -75,7 +75,7 @@ See the dedicated [Server Mode Quick Start](../../docs/en/getting-started/03-qui
 
 1. Initialize a client and verify health.
 2. Add a resource from a URL.
-3. Inspect the resulting `viking://resources/...` tree.
+3. Inspect the resulting `wfs://resources/...` tree.
 4. Wait for semantic processing.
 5. Load L0/L1/L2 context with `abstract`, `overview`, and `read`.
 6. Run retrieval with `find`.
@@ -144,17 +144,17 @@ asynchronously and call `wait_processed()` when you actually need the indexed re
 OpenViking organizes context as a virtual filesystem:
 
 ```python
-files = client.ls("viking://resources/")
-tree = client.tree("viking://resources/my-project", level_limit=3)
-content = client.read("viking://resources/my-project/README.md")
+files = client.ls("wfs://resources/")
+tree = client.tree("wfs://resources/my-project", level_limit=3)
+content = client.read("wfs://resources/my-project/README.md")
 ```
 
 This same URI model applies to memories and skills as well:
 
-- `viking://resources/`
-- `viking://user/memories/`
-- `viking://agent/memories/`
-- `viking://agent/skills/`
+- `wfs://resources/`
+- `wfs://user/memories/`
+- `wfs://agent/memories/`
+- `wfs://agent/skills/`
 
 ### Retrieval
 
@@ -163,13 +163,13 @@ Use `find` for fast semantic search and `search` for more advanced retrieval:
 ```python
 results = client.find(
     query="how does authentication work",
-    target_uri="viking://resources/my-project",
+    target_uri="wfs://resources/my-project",
     limit=5,
 )
 
 results = client.search(
     query="database configuration and failure handling",
-    target_uri="viking://resources/",
+    target_uri="wfs://resources/",
     limit=10,
 )
 ```
@@ -177,7 +177,7 @@ results = client.search(
 Use tiered loading after retrieval:
 
 ```python
-uri = "viking://resources/my-project/docs/api.md"
+uri = "wfs://resources/my-project/docs/api.md"
 
 abstract = client.abstract(uri)
 overview = client.overview(uri)
@@ -187,7 +187,7 @@ content = client.read(uri)
 Use `grep` when you need literal text matching instead of semantic retrieval:
 
 ```python
-result = client.grep("viking://resources/my-project", "Agent", case_insensitive=True)
+result = client.grep("wfs://resources/my-project", "Agent", case_insensitive=True)
 matches = result.get("matches", [])
 ```
 
@@ -214,7 +214,7 @@ After commit, you can retrieve those memories through normal search APIs:
 ```python
 memories = client.find(
     query="user programming preferences",
-    target_uri="viking://user/memories/",
+    target_uri="wfs://user/memories/",
 )
 ```
 

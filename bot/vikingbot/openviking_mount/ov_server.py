@@ -9,7 +9,7 @@ import openviking as ov
 from vikingbot.config.loader import load_config
 from vikingbot.openviking_mount.user_apikey_manager import UserApiKeyManager
 
-viking_resource_prefix = "viking://resources/"
+viking_resource_prefix = "wfs://resources/"
 
 
 class VikingClient:
@@ -168,14 +168,14 @@ class VikingClient:
     def _memory_target_uri(self, user_id: Optional[str]) -> str:
         user_space = self._user_space_fragment(user_id)
         if user_space:
-            return f"viking://user/{user_space}/memories/"
-        return "viking://user/memories/"
+            return f"wfs://user/{user_space}/memories/"
+        return "wfs://user/memories/"
 
     def _agent_memory_target_uri(self, user_id: Optional[str]) -> str:
         agent_space = self._agent_space_fragment(user_id)
         if agent_space:
-            return f"viking://agent/{agent_space}/memories/"
-        return "viking://agent/memories/"
+            return f"wfs://agent/{agent_space}/memories/"
+        return "wfs://agent/memories/"
 
     def _skill_memory_uri(self, skill_name: str, user_id: Optional[str] = None) -> str:
         return f"{self._agent_memory_target_uri(user_id)}skills/{skill_name}.md"
@@ -438,7 +438,7 @@ class VikingClient:
     async def search_experiences(self, query: str, limit: int = 5) -> list[Any]:
         """用 query 检索 agent experience 记忆。"""
         effective_agent_id = self.openviking_config.agent_id or "default"
-        exp_uri = f"viking://agent/{effective_agent_id}/memories/experiences/"
+        exp_uri = f"wfs://agent/{effective_agent_id}/memories/experiences/"
         result = await self.search(query=query, target_uri=exp_uri, limit=limit)
         return result.get("memories", [])
 
@@ -552,7 +552,7 @@ class VikingClient:
                     match = re.search(r"^---\s*\nname:\s*(.+?)\s*\n", result_str, re.MULTILINE)
                     if match:
                         skill_name = match.group(1).strip()
-                        skill_uri = f"viking://agent/skills/{skill_name}"
+                        skill_uri = f"wfs://agent/skills/{skill_name}"
 
                 execute_success = tool_info.get("execute_success", True)
                 tool_status = "completed" if execute_success else "error"
@@ -560,7 +560,7 @@ class VikingClient:
                     ToolPart(
                         tool_id=tool_id,
                         tool_name=tool_name,
-                        tool_uri=f"viking://session/{session_id}/tools/{tool_id}",
+                        tool_uri=f"wfs://session/{session_id}/tools/{tool_id}",
                         tool_input=tool_input,
                         tool_output=result_str[:2000],
                         tool_status=tool_status,
@@ -594,13 +594,13 @@ class VikingClient:
 async def main_test():
     client = await VikingClient.create(agent_id="shared")
     # res = client.list_resources()
-    # res = await client.search("头有点疼", target_uri="viking://user/memories/")
+    # res = await client.search("头有点疼", target_uri="wfs://user/memories/")
     # res = await client.get_viking_memory_context("123", current_message="头疼", history=[])
     res = await client.search_memory("你好", "user_1")
-    # res = await client.list_resources("viking://resources/")
-    # res = await client.read_content("viking://user/memories/profile.md", level="read")
+    # res = await client.list_resources("wfs://resources/")
+    # res = await client.read_content("wfs://user/memories/profile.md", level="read")
     # res = await client.add_resource("https://github.com/volcengine/OpenViking", "ov代码")
-    # res = await client.grep("viking://resources/", "viking", True)
+    # res = await client.grep("wfs://resources/", "viking", True)
     # res = await client.commit(
     #     session_id="99999",
     #     messages=[{"role": "user", "content": "你好"}],

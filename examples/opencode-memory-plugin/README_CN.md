@@ -121,14 +121,14 @@ export OPENVIKING_USER="opencode"
 参数：
 
 - `query`：搜索查询
-- `target_uri?`：将搜索限制在 URI 前缀，如 `viking://user/memories/`
+- `target_uri?`：将搜索限制在 URI 前缀，如 `wfs://user/memories/`
 - `mode?`：`auto | fast | deep`
 - `limit?`：最大结果数
 - `score_threshold?`：可选的最小分数
 
 ### `memread`
 
-从特定的 `viking://` URI 读取内容。
+从特定的 `wfs://` URI 读取内容。
 
 参数：
 
@@ -163,7 +163,7 @@ export OPENVIKING_USER="opencode"
 ```typescript
 const results = await memsearch({
   query: "user coding preferences",
-  target_uri: "viking://user/memories/",
+  target_uri: "wfs://user/memories/",
   mode: "auto"
 })
 
@@ -177,7 +177,7 @@ const content = await memread({
 
 ```typescript
 const tree = await membrowse({
-  uri: "viking://resources/",
+  uri: "wfs://resources/",
   view: "tree"
 })
 ```

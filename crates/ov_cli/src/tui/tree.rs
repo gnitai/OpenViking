@@ -62,7 +62,7 @@ impl TreeState {
     const ROOT_SCOPES: &'static [&'static str] = &["agent", "resources", "session", "user"];
 
     pub async fn load_root(&mut self, client: &HttpClient, uri: &str) {
-        let is_root = uri == "viking://" || uri == "viking:///" || uri == "/";
+        let is_root = uri == "wfs://" || uri == "wfs:///" || uri == "/";
 
         if is_root {
             // Create a single "/" root directory node, which when expanded will show the scopes
@@ -82,7 +82,7 @@ impl TreeState {
             // Preload the children (root scopes) so they're ready when expanding
             let mut scope_nodes = Vec::new();
             for scope in Self::ROOT_SCOPES {
-                let scope_uri = format!("viking://{}", scope);
+                let scope_uri = format!("wfs://{}", scope);
                 let mut node = TreeNode {
                     entry: FsEntry {
                         uri: scope_uri.clone(),
@@ -318,6 +318,6 @@ impl TreeState {
     }
     
     pub fn allow_deletion(&self, selected_uri: &str) -> bool {
-        selected_uri != "/" && !Self::ROOT_SCOPES.iter().any(|s| selected_uri == format!("viking://{}", s))
+        selected_uri != "/" && !Self::ROOT_SCOPES.iter().any(|s| selected_uri == format!("wfs://{}", s))
     }
 }

@@ -36,7 +36,7 @@ def _make_memory_record(
     """Helper to build a mock memory record."""
     now = datetime.now(timezone.utc)
     return {
-        "uri": f"viking://memories/{category}/test-item",
+        "uri": f"wfs://memories/{category}/test-item",
         "context_type": "memory",
         "active_count": active_count,
         "updated_at": (updated_at or now).isoformat(),

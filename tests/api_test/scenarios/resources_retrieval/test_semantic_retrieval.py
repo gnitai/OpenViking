@@ -109,7 +109,7 @@ class TestSemanticRetrieval:
             print(f"General search results: {general_total}")
 
             # 9. 业务逻辑验证：验证资源列表
-            response = api_client.fs_ls("viking://")
+            response = api_client.fs_ls("wfs://")
             assert response.status_code == 200
             ls_data = response.json()
             assert ls_data.get("status") == "ok"

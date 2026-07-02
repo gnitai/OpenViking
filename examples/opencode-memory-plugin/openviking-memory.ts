@@ -1415,8 +1415,8 @@ function resolveSearchMode(
 }
 
 function validateVikingUri(uri: string, toolName: string): string | null {
-  if (!uri.startsWith("viking://")) {
-    const error = `Invalid URI format. Must start with "viking://". Example: viking://user/memories/`
+  if (!uri.startsWith("wfs://")) {
+    const error = `Invalid URI format. Must start with "wfs://". Example: wfs://user/memories/`
     log("ERROR", toolName, "Invalid URI format", { uri })
     return `Error: ${error}`
   }
@@ -2001,12 +2001,12 @@ export const OpenVikingMemoryPlugin = async (input: PluginInput): Promise<Hooks>
     tool: {
       memread: tool({
         description:
-          "Retrieve the content of a specific memory, resource, or skill at a given viking:// URI.\n\nProgressive loading levels:\n- abstract: brief summary\n- overview: structured directory overview\n- read: full content\n- auto: choose overview for directories and read for files\n\nUse when:\n- You have a URI from memsearch or membrowse\n- You need to inspect a memory, resource, or skill in more detail\n\nRequires: Complete viking:// URI (e.g., viking://user/memories/profile.md)",
+          "Retrieve the content of a specific memory, resource, or skill at a given wfs:// URI.\n\nProgressive loading levels:\n- abstract: brief summary\n- overview: structured directory overview\n- read: full content\n- auto: choose overview for directories and read for files\n\nUse when:\n- You have a URI from memsearch or membrowse\n- You need to inspect a memory, resource, or skill in more detail\n\nRequires: Complete wfs:// URI (e.g., wfs://user/memories/profile.md)",
         args: {
           uri: z
             .string()
             .describe(
-              "Complete viking:// URI from search results or list output (e.g., viking://user/memories/profile.md, viking://agent/memories/context.md)",
+              "Complete wfs:// URI from search results or list output (e.g., wfs://user/memories/profile.md, wfs://agent/memories/context.md)",
             ),
           level: z
             .enum(["auto", "abstract", "overview", "read"])
@@ -2059,12 +2059,12 @@ export const OpenVikingMemoryPlugin = async (input: PluginInput): Promise<Hooks>
 
       membrowse: tool({
         description:
-          "Browse the OpenViking filesystem structure for a specific URI.\n\nViews:\n- list: list immediate children, or recurse when `recursive=true`\n- tree: return a directory tree view\n- stat: return metadata for a single file or directory\n\nUse when:\n- You need to discover available URIs before reading\n- You want to inspect directory structure under memories/resources/skills\n- You need file metadata before deciding how to read it\n\nRequires: Complete viking:// URI",
+          "Browse the OpenViking filesystem structure for a specific URI.\n\nViews:\n- list: list immediate children, or recurse when `recursive=true`\n- tree: return a directory tree view\n- stat: return metadata for a single file or directory\n\nUse when:\n- You need to discover available URIs before reading\n- You want to inspect directory structure under memories/resources/skills\n- You need file metadata before deciding how to read it\n\nRequires: Complete wfs:// URI",
         args: {
           uri: z
             .string()
             .describe(
-              "Complete viking:// URI to inspect (e.g., viking://user/memories/, viking://agent/memories/, viking://resources/zh/)",
+              "Complete wfs:// URI to inspect (e.g., wfs://user/memories/, wfs://agent/memories/, wfs://resources/zh/)",
             ),
           view: z
             .enum(["list", "tree", "stat"])
@@ -2119,7 +2119,7 @@ export const OpenVikingMemoryPlugin = async (input: PluginInput): Promise<Hooks>
 
       memcommit: tool({
         description:
-          "Commit the current OpenCode session to OpenViking and extract persistent memories from the accumulated conversation.\n\nBy default this tool commits the OpenViking session mapped to the current OpenCode session. Use `session_id` only when you need to target a specific OpenViking session manually.\n\nUse when:\n- You want a mid-session memory extraction without ending the chat\n- You want recently discussed preferences, entities, or cases persisted immediately\n\nAutomatically extracts and stores:\n- User profile, preferences, entities, events → viking://user/memories/\n- Agent cases and patterns → viking://agent/memories/\n\nReturns background commit progress or completion details, including task_id, memories_extracted, and archived.",
+          "Commit the current OpenCode session to OpenViking and extract persistent memories from the accumulated conversation.\n\nBy default this tool commits the OpenViking session mapped to the current OpenCode session. Use `session_id` only when you need to target a specific OpenViking session manually.\n\nUse when:\n- You want a mid-session memory extraction without ending the chat\n- You want recently discussed preferences, entities, or cases persisted immediately\n\nAutomatically extracts and stores:\n- User profile, preferences, entities, events → wfs://user/memories/\n- Agent cases and patterns → wfs://agent/memories/\n\nReturns background commit progress or completion details, including task_id, memories_extracted, and archived.",
         args: {
           session_id: z
             .string()
@@ -2268,7 +2268,7 @@ export const OpenVikingMemoryPlugin = async (input: PluginInput): Promise<Hooks>
               .string()
               .optional()
               .describe(
-                "Limit search to a specific URI prefix (e.g., viking://resources/, viking://user/memories/). Omit to search all contexts.",
+                "Limit search to a specific URI prefix (e.g., wfs://resources/, wfs://user/memories/). Omit to search all contexts.",
               ),
             mode: z
               .enum(["auto", "fast", "deep"])

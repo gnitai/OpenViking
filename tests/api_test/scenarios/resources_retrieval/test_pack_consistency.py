@@ -46,7 +46,7 @@ class TestPackConsistency:
             time.sleep(3)
 
             # 4. 验证资源存在于文件系统
-            response = api_client.fs_ls("viking://resources/")
+            response = api_client.fs_ls("wfs://resources/")
             assert response.status_code == 200
             ls_data = response.json()
             assert ls_data.get("status") == "ok"

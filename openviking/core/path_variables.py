@@ -105,8 +105,8 @@ class PathVariableResolver:
 
     Example:
         resolver = PathVariableResolver()
-        resolved = resolver.resolve("viking://resources/emails/{calendar:today}/inbox")
-        # Returns: "viking://resources/emails/2026/05/07/inbox"
+        resolved = resolver.resolve("wfs://resources/emails/{calendar:today}/inbox")
+        # Returns: "wfs://resources/emails/2026/05/07/inbox"
     """
 
     def __init__(self, extra_providers: Optional[Dict[str, VariableProvider]] = None):
@@ -145,7 +145,7 @@ class PathVariableResolver:
         Resolve variables in a URI template.
 
         Args:
-            uri_template: URI template with variables (e.g., "viking://resources/{calendar:ym}/logs")
+            uri_template: URI template with variables (e.g., "wfs://resources/{calendar:ym}/logs")
             dt: Optional datetime to use for calendar variables (default: now)
 
         Returns:

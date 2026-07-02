@@ -94,7 +94,7 @@ async def test_manual_memory_batching_100_files(monkeypatch):
                     {
                         "name": f"day_{day:02d}_entry_{entry:02d}.txt",
                         "isDir": False,
-                        "uri": f"viking://user/memories/northwest_trip/day_{day:02d}_entry_{entry:02d}.txt",
+                        "uri": f"wfs://user/memories/northwest_trip/day_{day:02d}_entry_{entry:02d}.txt",
                     }
                 )
 
@@ -109,7 +109,7 @@ async def test_manual_memory_batching_100_files(monkeypatch):
             return True
 
         def _uri_to_path(self, uri, ctx=None):
-            return uri.replace("viking://", "/")
+            return uri.replace("wfs://", "/")
 
     mock_fs = MockVikingFS()
 
@@ -161,7 +161,7 @@ async def test_manual_memory_batching_100_files(monkeypatch):
 
         # 5. 构造消息
         msg = SemanticMsg(
-            uri="viking://user/memories/northwest_trip",
+            uri="wfs://user/memories/northwest_trip",
             context_type="memory",
             telemetry_id="tel-stress-northwest-100",
             changes={"added": [f["uri"] for f in mock_fs.files], "modified": [], "deleted": []},

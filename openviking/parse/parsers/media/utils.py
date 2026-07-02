@@ -87,14 +87,14 @@ def get_media_base_uri(media_type: str) -> str:
         media_type: Media type ("image", "audio", "video")
 
     Returns:
-        Base URI like "viking://resources/images/2025/02/19"
+        Base URI like "wfs://resources/images/2025/02/19"
     """
     # Map singular media types to plural directory names
     media_dir_map = {"image": "images", "audio": "audio", "video": "video"}
     media_dir = media_dir_map.get(media_type, media_type)
     # Use CalendarVariableProvider to get today's date in YYYY/MM/DD format
     date_str = CalendarVariableProvider().get_variables()["today"]
-    return f"viking://resources/{media_dir}/{date_str}"
+    return f"wfs://resources/{media_dir}/{date_str}"
 
 
 async def generate_image_summary(

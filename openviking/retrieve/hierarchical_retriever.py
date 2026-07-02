@@ -643,7 +643,7 @@ class HierarchicalRetriever:
             return [
                 f"{user_root}/memories",
                 f"{agent_root}/memories",
-                "viking://resources",
+                "wfs://resources",
                 f"{agent_root}/skills",
             ]
         elif context_type == ContextType.MEMORY:
@@ -652,7 +652,7 @@ class HierarchicalRetriever:
                 f"{agent_root}/memories",
             ]
         elif context_type == ContextType.RESOURCE:
-            return ["viking://resources"]
+            return ["wfs://resources"]
         elif context_type == ContextType.SKILL:
             return [f"{agent_root}/skills"]
         return []

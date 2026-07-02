@@ -1,11 +1,11 @@
 """Minimal stdio MCP server that exposes the 3 new code-navigation tools
 backed by the *actual* code_tools / extractor modules from the OpenViking
 repo. Stubs the heavy openviking dependencies (pyagfs, etc.) and maps
-viking:// URIs to local disk so we can drive an end-to-end MCP test
+wfs:// URIs to local disk so we can drive an end-to-end MCP test
 without building the full openviking stack.
 
 URI scheme:
-  viking://local/<ABSOLUTE-PATH>   -> /<ABSOLUTE-PATH> on local disk
+  wfs://local/<ABSOLUTE-PATH>   -> /<ABSOLUTE-PATH> on local disk
 
 This is *only* for the end-to-end MCP verification. Production runs through
 openviking.server.mcp_endpoint with the real VikingFS.
@@ -75,13 +75,13 @@ logger = logging.getLogger("openviking_mcp_test")
 
 mcp = FastMCP("openviking-code-tools-test")
 
-_VIKING_PREFIX = "viking://local"
+_VIKING_PREFIX = "wfs://local"
 _CODE_SEARCH_FILE_CAP = 200
 _CODE_SEARCH_CONCURRENCY = 10
 
 
 def _uri_to_path(uri: str) -> Optional[Path]:
-    """Map viking://local/<abs-path> -> Path('<abs-path>'). None on bad URI."""
+    """Map wfs://local/<abs-path> -> Path('<abs-path>'). None on bad URI."""
     if not isinstance(uri, str) or not uri.startswith(_VIKING_PREFIX):
         return None
     rest = uri[len(_VIKING_PREFIX):]
@@ -91,10 +91,10 @@ def _uri_to_path(uri: str) -> Optional[Path]:
 
 
 def _require_viking_uri(uri: str) -> Optional[str]:
-    if not isinstance(uri, str) or not uri.startswith("viking://"):
+    if not isinstance(uri, str) or not uri.startswith("wfs://"):
         return (
-            "Error: only viking:// URIs are supported; "
-            "use add_resource to ingest local code as a viking:// resource first."
+            "Error: only wfs:// URIs are supported; "
+            "use add_resource to ingest local code as a wfs:// resource first."
         )
     return None
 
@@ -103,7 +103,7 @@ async def _read_text(uri: str) -> tuple[Optional[str], Optional[str]]:
     """Returns (content, error_msg). Content is None iff error_msg is set."""
     path = _uri_to_path(uri)
     if path is None:
-        return None, f"Error: {uri} is not a viking://local URI in this test server"
+        return None, f"Error: {uri} is not a wfs://local URI in this test server"
     try:
         return await asyncio.to_thread(path.read_text, encoding="utf-8"), None
     except FileNotFoundError as exc:
@@ -115,7 +115,7 @@ async def _read_text(uri: str) -> tuple[Optional[str], Optional[str]]:
 
 
 async def _walk(uri: str) -> tuple[Optional[list[str]], Optional[str]]:
-    """Recursively list viking:// URIs under a directory. Returns (uris, error)."""
+    """Recursively list wfs:// URIs under a directory. Returns (uris, error)."""
     root = _uri_to_path(uri)
     if root is None or not root.is_dir():
         return None, f"Error: failed to list {uri}: not a directory"
@@ -142,7 +142,7 @@ async def code_outline(uri: str) -> str:
     file when you only need to locate a method or understand a file's API surface.
     Typical workflow: code_search → code_outline → code_expand.
 
-    uri must be a viking://local file URI in this test server."""
+    uri must be a wfs://local file URI in this test server."""
     err = _require_viking_uri(uri)
     if err:
         return err
@@ -154,7 +154,7 @@ async def code_outline(uri: str) -> str:
 
 @mcp.tool()
 async def code_search(query: str, uri: str) -> str:
-    """Search symbol names (class / function / method) by substring across a viking://local directory.
+    """Search symbol names (class / function / method) by substring across a wfs://local directory.
     Returns structured results: symbol type, class context, file URI, and line range.
 
     Use when you don't know which file contains the symbol you're looking for. Returns
@@ -212,7 +212,7 @@ async def code_expand(uri: str, symbol: str) -> str:
     symbols from the same file, Read is often more efficient.
 
     `symbol` accepts 'bar' (top-level) or 'Foo.bar' (method).
-    uri must be a viking://local file URI in this test server."""
+    uri must be a wfs://local file URI in this test server."""
     err = _require_viking_uri(uri)
     if err:
         return err

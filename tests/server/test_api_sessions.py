@@ -212,7 +212,7 @@ async def test_tool_result_externalization_read_and_search(client: httpx.AsyncCl
     assert context_resp.status_code == 200
     part = context_resp.json()["result"]["messages"][0]["parts"][0]
     assert part["tool_output_truncated"] is True
-    assert part["tool_output_ref"].startswith(f"viking://session/{session_id}/tool-results/")
+    assert part["tool_output_ref"].startswith(f"wfs://session/{session_id}/tool-results/")
     assert raw not in part["tool_output"]
 
     tool_result_id = part["tool_output_ref"].rsplit("/", 1)[-1]
@@ -693,7 +693,7 @@ async def test_extract_session_jsonable_regression(client: httpx.AsyncClient, se
             return {"uri": self.uri}
 
     async def fake_extract(_session_id: str, _ctx):
-        return [FakeMemory("viking://user/memories/mock.md")]
+        return [FakeMemory("wfs://user/memories/mock.md")]
 
     monkeypatch.setattr(service.sessions, "extract", fake_extract)
 
@@ -704,7 +704,7 @@ async def test_extract_session_jsonable_regression(client: httpx.AsyncClient, se
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["result"] == [{"uri": "viking://user/memories/mock.md"}]
+    assert body["result"] == [{"uri": "wfs://user/memories/mock.md"}]
 
 
 async def test_get_session_context_endpoint_returns_trimmed_latest_archive_and_messages(
@@ -731,7 +731,7 @@ async def test_get_session_context_endpoint_returns_trimmed_latest_archive_and_m
                     "type": "tool",
                     "tool_id": "tool_123",
                     "tool_name": "demo_tool",
-                    "tool_uri": f"viking://session/{session_id}/tools/tool_123",
+                    "tool_uri": f"wfs://session/{session_id}/tools/tool_123",
                     "tool_input": {"x": 1},
                     "tool_status": "running",
                 },

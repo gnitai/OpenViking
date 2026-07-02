@@ -33,15 +33,15 @@ async def test_write_omits_removed_semantic_flags_from_http_payload(tmp_path, mo
     fake_http = _FakeHTTPClient()
     client._http = fake_http
     client._handle_response_data = lambda _response: {
-        "result": {"uri": "viking://resources/demo.md"}
+        "result": {"uri": "wfs://resources/demo.md"}
     }
 
-    await client.write("viking://resources/demo.md", "updated", wait=True)
+    await client.write("wfs://resources/demo.md", "updated", wait=True)
 
     call = fake_http.calls[-1]
     assert call["path"] == "/api/v1/content/write"
     assert call["json"] == {
-        "uri": "viking://resources/demo.md",
+        "uri": "wfs://resources/demo.md",
         "content": "updated",
         "mode": "replace",
         "wait": True,
@@ -87,7 +87,7 @@ async def test_add_resource_uploads_local_file_even_when_url_is_localhost(tmp_pa
 
     client._upload_temp_file = fake_upload
     client._handle_response_data = lambda _response: {
-        "result": {"root_uri": "viking://resources/demo"}
+        "result": {"root_uri": "wfs://resources/demo"}
     }
 
     await client.add_resource(str(resource_file), reason="test")
@@ -111,11 +111,11 @@ async def test_import_ovpack_uploads_local_file_even_when_url_is_localhost(tmp_p
         return "upload_pack.ovpack"
 
     client._upload_temp_file = fake_upload
-    client._handle_response = lambda _response: {"uri": "viking://resources/imported"}
+    client._handle_response = lambda _response: {"uri": "wfs://resources/imported"}
 
     await client.import_ovpack(
         str(pack_file),
-        parent="viking://resources/",
+        parent="wfs://resources/",
         on_conflict="skip",
     )
 
@@ -136,7 +136,7 @@ async def test_import_ovpack_fails_fast_when_local_file_is_missing(tmp_path):
     missing_path = tmp_path / "missing.ovpack"
 
     with pytest.raises(FileNotFoundError, match="Local ovpack file not found"):
-        await client.import_ovpack(str(missing_path), parent="viking://resources/")
+        await client.import_ovpack(str(missing_path), parent="wfs://resources/")
 
     assert fake_http.calls == []
 
@@ -151,7 +151,7 @@ async def test_import_ovpack_fails_fast_when_path_is_directory(tmp_path):
     pack_dir.mkdir()
 
     with pytest.raises(ValueError, match="is not a file"):
-        await client.import_ovpack(str(pack_dir), parent="viking://resources/")
+        await client.import_ovpack(str(pack_dir), parent="wfs://resources/")
 
     assert fake_http.calls == []
 

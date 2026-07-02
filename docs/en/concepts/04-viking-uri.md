@@ -5,7 +5,7 @@ Viking URI is the unified resource identifier for all content in OpenViking.
 ## Format
 
 ```
-viking://{scope}/{path}
+wfs://{scope}/{path}
 ```
 
 - **scheme**: Always `viking`
@@ -24,16 +24,16 @@ viking://{scope}/{path}
 | **temp** | Temporary files | During parsing | Internal |
 
 Public API and CLI filesystem/content operations accept only the public scopes:
-`resources`, `user`, `agent`, and `session` (plus the root URI `viking://`).
+`resources`, `user`, `agent`, and `session` (plus the root URI `wfs://`).
 `temp` and `queue` are internal implementation scopes and cannot be addressed
 directly through public API URI parameters.
 
 ## Initial Directory Structure
 
-Moving away from traditional flat database thinking, all context is organized as a filesystem. Agents no longer just find data through vector search, but can locate and browse data through deterministic paths and standard filesystem commands. Each context or directory is assigned a unique URI identifier string in the format viking://{scope}/{path}, allowing the system to precisely locate and access resources stored in different locations.
+Moving away from traditional flat database thinking, all context is organized as a filesystem. Agents no longer just find data through vector search, but can locate and browse data through deterministic paths and standard filesystem commands. Each context or directory is assigned a unique URI identifier string in the format wfs://{scope}/{path}, allowing the system to precisely locate and access resources stored in different locations.
 
 ```
-viking://
+wfs://
 ├── session/{session_id}/
 │   ├── .abstract.md          # L0: One-line session summary
 │   ├── .overview.md          # L1: Session overview
@@ -70,47 +70,47 @@ viking://
 ### Resources
 
 ```
-viking://resources/                           # All resources
-viking://resources/my-project/                # Project root
-viking://resources/my-project/docs/           # Docs directory
-viking://resources/my-project/docs/api.md     # Specific file
+wfs://resources/                           # All resources
+wfs://resources/my-project/                # Project root
+wfs://resources/my-project/docs/           # Docs directory
+wfs://resources/my-project/docs/api.md     # Specific file
 ```
 
 ### User Data
 
 ```
-viking://user/                                # User root
-viking://user/memories/                       # All user memories
-viking://user/memories/preferences/           # User preferences
-viking://user/memories/preferences/coding     # Specific preference
-viking://user/memories/entities/              # Entity memories
-viking://user/memories/events/                # Event memories
+wfs://user/                                # User root
+wfs://user/memories/                       # All user memories
+wfs://user/memories/preferences/           # User preferences
+wfs://user/memories/preferences/coding     # Specific preference
+wfs://user/memories/entities/              # Entity memories
+wfs://user/memories/events/                # Event memories
 ```
 
 ### Agent Data
 
 ```
-viking://agent/                               # Agent root
-viking://agent/skills/                        # All skills
-viking://agent/skills/search-web              # Specific skill
-viking://agent/memories/                      # Agent memories
-viking://agent/memories/cases/                # Learned cases
-viking://agent/memories/patterns/             # Learned patterns
-viking://agent/instructions/                  # Agent instructions
+wfs://agent/                               # Agent root
+wfs://agent/skills/                        # All skills
+wfs://agent/skills/search-web              # Specific skill
+wfs://agent/memories/                      # Agent memories
+wfs://agent/memories/cases/                # Learned cases
+wfs://agent/memories/patterns/             # Learned patterns
+wfs://agent/instructions/                  # Agent instructions
 ```
 
-The short `viking://user/...` and `viking://agent/...` forms above are
+The short `wfs://user/...` and `wfs://agent/...` forms above are
 relative to the current request identity. OpenViking expands them internally to
-explicit namespace paths such as `viking://user/{user_id}/...` and
-`viking://agent/{agent_id}/...` before storage and retrieval.
+explicit namespace paths such as `wfs://user/{user_id}/...` and
+`wfs://agent/{agent_id}/...` before storage and retrieval.
 
 ### Session Data
 
 ```
-viking://session/{session_id}/                # Session root
-viking://session/{session_id}/messages/       # Session messages
-viking://session/{session_id}/tools/          # Tool executions
-viking://session/{session_id}/history/        # Archived history
+wfs://session/{session_id}/                # Session root
+wfs://session/{session_id}/messages/       # Session messages
+wfs://session/{session_id}/tools/          # Tool executions
+wfs://session/{session_id}/history/        # Archived history
 ```
 
 ## Path Variables
@@ -148,24 +148,24 @@ The `calendar` namespace provides date-related variables:
 
 ```python
 # Organize emails by date
-viking://resources/emails/{calendar:today}/inbox
-# Renders to: viking://resources/emails/2026/05/07/inbox
+wfs://resources/emails/{calendar:today}/inbox
+# Renders to: wfs://resources/emails/2026/05/07/inbox
 
 # View yesterday's logs
-viking://resources/logs/{calendar:yesterday}/app.log
-# Renders to: viking://resources/logs/2026/05/06/app.log
+wfs://resources/logs/{calendar:yesterday}/app.log
+# Renders to: wfs://resources/logs/2026/05/06/app.log
 
 # Pre-upload tomorrow's tasks
-viking://resources/tasks/{calendar:tomorrow}/todo.md
-# Renders to: viking://resources/tasks/2026/05/08/todo.md
+wfs://resources/tasks/{calendar:tomorrow}/todo.md
+# Renders to: wfs://resources/tasks/2026/05/08/todo.md
 
 # Monthly logs
-viking://resources/logs/{calendar:year}/{calendar:month}/app.log
-# Renders to: viking://resources/logs/2026/05/app.log
+wfs://resources/logs/{calendar:year}/{calendar:month}/app.log
+# Renders to: wfs://resources/logs/2026/05/app.log
 
 # Daily snapshots
-viking://resources/snapshots/{calendar:today}/
-# Renders to: viking://resources/snapshots/2026/05/07/
+wfs://resources/snapshots/{calendar:today}/
+# Renders to: wfs://resources/snapshots/2026/05/07/
 ```
 
 ### Resolution
@@ -176,22 +176,22 @@ Path variables are resolved **server-side** at the time of API execution. The CL
 
 ```bash
 # Add today's emails, --parent-auto-create can be shortened to -p
-ov add-resource --parent-auto-create "viking://resources/emails/{calendar:today}/inbox" ./emails/*.eml
+ov add-resource --parent-auto-create "wfs://resources/emails/{calendar:today}/inbox" ./emails/*.eml
 
 # Read yesterday's log
-ov read "viking://resources/logs/{calendar:yesterday}/app.log"
+ov read "wfs://resources/logs/{calendar:yesterday}/app.log"
 
 # Prep tomorrow's tasks
-ov write --uri "viking://resources/tasks/{calendar:tomorrow}/todo.md" --content "Plan the day"
+ov write --uri "wfs://resources/tasks/{calendar:tomorrow}/todo.md" --content "Plan the day"
 
 # Upload monthly report, --parent-auto-create can be shortened to -p
-ov add-resource --parent-auto-create "viking://resources/reports/{calendar:ym}" ./report.pdf
+ov add-resource --parent-auto-create "wfs://resources/reports/{calendar:ym}" ./report.pdf
 ```
 
 ## Directory Structure
 
 ```
-viking://
+wfs://
 ├── resources/       # Independent resources
 │   └── {project}/
 │       ├── .abstract.md
@@ -227,8 +227,8 @@ viking://
 
 Agent namespace shape is controlled by per-account namespace policy:
 
-- `isolate_agent_scope_by_user = false`: `viking://agent/{agent_id}/...`
-- `isolate_agent_scope_by_user = true`: `viking://agent/{agent_id}/user/{user_id}/...`
+- `isolate_agent_scope_by_user = false`: `wfs://agent/{agent_id}/...`
+- `isolate_agent_scope_by_user = true`: `wfs://agent/{agent_id}/user/{user_id}/...`
 
 `memory.agent_scope_mode` is deprecated and ignored.
 
@@ -239,7 +239,7 @@ Agent namespace shape is controlled by per-account namespace policy:
 ```python
 from openviking_cli.utils.uri import VikingURI
 
-uri = VikingURI("viking://resources/docs/api")
+uri = VikingURI("wfs://resources/docs/api")
 print(uri.scope)      # "resources"
 print(uri.full_path)  # "resources/docs/api"
 ```
@@ -248,12 +248,12 @@ print(uri.full_path)  # "resources/docs/api"
 
 ```python
 # Join paths
-base = "viking://resources/docs/"
-full = VikingURI(base).join("api.md").uri  # viking://resources/docs/api.md
+base = "wfs://resources/docs/"
+full = VikingURI(base).join("api.md").uri  # wfs://resources/docs/api.md
 
 # Parent directory
-uri = "viking://resources/docs/api.md"
-parent = VikingURI(uri).parent.uri  # viking://resources/docs
+uri = "wfs://resources/docs/api.md"
+parent = VikingURI(uri).parent.uri  # wfs://resources/docs
 ```
 
 ## API Usage
@@ -264,19 +264,19 @@ parent = VikingURI(uri).parent.uri  # viking://resources/docs
 # Search only in resources
 results = client.find(
     "authentication",
-    target_uri="viking://resources/"
+    target_uri="wfs://resources/"
 )
 
 # Search only in user memories
 results = client.find(
     "coding preferences",
-    target_uri="viking://user/memories/"
+    target_uri="wfs://user/memories/"
 )
 
 # Search only in skills
 results = client.find(
     "web search",
-    target_uri="viking://agent/skills/"
+    target_uri="wfs://agent/skills/"
 )
 ```
 
@@ -284,16 +284,16 @@ results = client.find(
 
 ```python
 # List directory
-entries = await client.ls("viking://resources/")
+entries = await client.ls("wfs://resources/")
 
 # Read file
-content = await client.read("viking://resources/docs/api.md")
+content = await client.read("wfs://resources/docs/api.md")
 
 # Get abstract
-abstract = await client.abstract("viking://resources/docs/")
+abstract = await client.abstract("wfs://resources/docs/")
 
 # Get overview
-overview = await client.overview("viking://resources/docs/")
+overview = await client.overview("wfs://resources/docs/")
 ```
 
 ## Special Files
@@ -313,20 +313,20 @@ Each directory may contain special files:
 
 ```python
 # Directory
-"viking://resources/docs/"
+"wfs://resources/docs/"
 
 # File
-"viking://resources/docs/api.md"
+"wfs://resources/docs/api.md"
 ```
 
 ### Scope-Specific Operations
 
 ```python
 # Add resources only to resources scope
-await client.add_resource(url, to="viking://resources/project/")
+await client.add_resource(url, to="wfs://resources/project/")
 
 # Skills go to agent scope
-await client.add_skill(skill)  # Automatically to viking://agent/skills/
+await client.add_skill(skill)  # Automatically to wfs://agent/skills/
 ```
 
 ## Related Documents

@@ -75,7 +75,7 @@ class TestOpenVikingVectorDB(unittest.TestCase):
             {
                 "type": "file",
                 "context_type": "markdown",
-                "parent_uri": "viking://resources/demo/",
+                "parent_uri": "wfs://resources/demo/",
                 "ext": ".md",
                 "tags": "tag_a;tag_b",
                 "abstract": "quick brown",
@@ -84,7 +84,7 @@ class TestOpenVikingVectorDB(unittest.TestCase):
             {
                 "type": "file",
                 "context_type": "text",
-                "parent_uri": "viking://resources/docs/",
+                "parent_uri": "wfs://resources/docs/",
                 "ext": ".txt",
                 "tags": "tag_b",
                 "abstract": "lazy dog",
@@ -93,7 +93,7 @@ class TestOpenVikingVectorDB(unittest.TestCase):
             {
                 "type": "image",
                 "context_type": "image",
-                "parent_uri": "viking://resources/images/",
+                "parent_uri": "wfs://resources/images/",
                 "ext": ".png",
                 "tags": "tag_c",
                 "abstract": "fox",
@@ -208,17 +208,17 @@ class TestOpenVikingVectorDB(unittest.TestCase):
         self.assertEqual(
             self._search_ids(
                 collection,
-                {"op": "prefix", "field": "uri", "prefix": "viking://resources/demo/"},
+                {"op": "prefix", "field": "uri", "prefix": "wfs://resources/demo/"},
             ),
-            self._expected_ids(lambda item: item["uri"].startswith("viking://resources/demo/")),
+            self._expected_ids(lambda item: item["uri"].startswith("wfs://resources/demo/")),
         )
         self.assertEqual(
             self._search_ids(
                 collection,
-                {"op": "prefix", "field": "parent_uri", "prefix": "viking://resources/docs/"},
+                {"op": "prefix", "field": "parent_uri", "prefix": "wfs://resources/docs/"},
             ),
             self._expected_ids(
-                lambda item: item["parent_uri"].startswith("viking://resources/docs/")
+                lambda item: item["parent_uri"].startswith("wfs://resources/docs/")
             ),
         )
         self.assertEqual(

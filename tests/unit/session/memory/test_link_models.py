@@ -73,26 +73,26 @@ class TestWikiLink:
 class TestStoredLink:
     def test_link(self):
         link = StoredLink(
-            from_uri="viking://a",
-            to_uri="viking://b",
+            from_uri="wfs://a",
+            to_uri="wfs://b",
             link_type="belongs_to",
             weight=0.9,
             created_at="2026-05-09T10:00:00+00:00",
         )
-        assert link.from_uri == "viking://a"
-        assert link.to_uri == "viking://b"
+        assert link.from_uri == "wfs://a"
+        assert link.to_uri == "wfs://b"
         assert link.link_type == "belongs_to"
 
     def test_model_dump(self):
         link = StoredLink(
-            from_uri="viking://a",
-            to_uri="viking://b",
+            from_uri="wfs://a",
+            to_uri="wfs://b",
             link_type="related_to",
             created_at="2026-05-09T10:00:00+00:00",
         )
         d = link.model_dump()
-        assert d["from_uri"] == "viking://a"
-        assert d["to_uri"] == "viking://b"
+        assert d["from_uri"] == "wfs://a"
+        assert d["to_uri"] == "wfs://b"
         assert d["link_type"] == "related_to"
         assert "direction" not in d
 
@@ -108,8 +108,8 @@ class TestResolvedOperationsLinks:
 
     def test_with_resolved_links(self):
         link = StoredLink(
-            from_uri="viking://a",
-            to_uri="viking://b",
+            from_uri="wfs://a",
+            to_uri="wfs://b",
             link_type="related_to",
             created_at="2026-05-09T10:00:00+00:00",
         )

@@ -77,7 +77,7 @@ def main():
 
         # ── 2. 查看文件系统 ──
         print("\n== 2. 文件系统 ==")
-        entries = client.ls("viking://")
+        entries = client.ls("wfs://")
         for entry in entries:
             if isinstance(entry, dict):
                 kind = "dir " if entry.get("isDir") else "file"
@@ -140,7 +140,7 @@ def main():
         # ── 7. 查看记忆目录 ──
         print("\n== 7. 记忆目录 ==")
         try:
-            mem_entries = client.ls("viking://user/alice/memories")
+            mem_entries = client.ls("wfs://user/alice/memories")
             for entry in mem_entries:
                 if isinstance(entry, dict):
                     kind = "dir " if entry.get("isDir") else "file"

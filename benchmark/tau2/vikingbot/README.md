@@ -218,7 +218,7 @@ domain id like `airline_v1` contains a single `_`), instead of always using the 
      effective_agent_id = self.openviking_config.agent_id or "default"
 +    if self.agent_id and "_" in self.agent_id:
 +        effective_agent_id = self.agent_id
-     exp_uri = f"viking://agent/{effective_agent_id}/memories/experiences/"
+     exp_uri = f"wfs://agent/{effective_agent_id}/memories/experiences/"
      result = await self.search(query=query, target_uri=exp_uri, limit=limit)
      return result.get("memories", [])
 ```
@@ -239,10 +239,10 @@ run_full_test.sh                AGENT_ID=${DOMAIN}_v1            # e.g. airline_
                         └─ _create_client(workspace_id)
                              └─ VikingClient.create(agent_id=workspace_id)
                                   └─ ov_server.py  VikingClient.__init__ / search_experiences
-                                       viking://agent/airline_v1/memories/experiences/
+                                       wfs://agent/airline_v1/memories/experiences/
 ```
 
-So `--agent-id airline_v1` ⇒ the agent reads/writes `viking://agent/airline_v1/...`, giving each
+So `--agent-id airline_v1` ⇒ the agent reads/writes `wfs://agent/airline_v1/...`, giving each
 domain an isolated workspace.
 
 ### Change 2 — system prompt reads *agent experience* memory (`agent/context.py`)

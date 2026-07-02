@@ -140,7 +140,7 @@ class TestFilterOpsLargeFields(unittest.TestCase):
 
     def test_upsert_record_with_oversized_json_field_raises(self):
         large_abstract = 'prefix "quoted" \\\\ path\n' + ("x" * 66000)
-        uri = "viking://user/memories/large.md"
+        uri = "wfs://user/memories/large.md"
         with self.assertRaisesRegex(
             (RuntimeError, ValueError), "fields.*exceeds 65535 bytes"
         ):
@@ -721,7 +721,7 @@ class TestFilterOpsPath(unittest.TestCase):
             {"id": 6, "embedding": [1.0, 0, 0, 0], "file_path": "a/b/c"},
             {"id": 7, "embedding": [1.0, 0, 0, 0], "file_path": "f/h/i"},
             {"id": 8, "embedding": [1.0, 0, 0, 0], "file_path": "a"},
-            {"id": 9, "embedding": [1.0, 0, 0, 0], "file_path": "viking://resources/tmp/x"},
+            {"id": 9, "embedding": [1.0, 0, 0, 0], "file_path": "wfs://resources/tmp/x"},
         ]
         self.collection.upsert_data(data)
 
@@ -747,7 +747,7 @@ class TestFilterOpsPath(unittest.TestCase):
         )
         # Ensure scheme is preserved, only prefixed with '/'
         self.assertEqual(
-            self._search({"op": "must", "field": "file_path", "conds": ["/viking://resources"]}),
+            self._search({"op": "must", "field": "file_path", "conds": ["/wfs://resources"]}),
             [9],
         )
 

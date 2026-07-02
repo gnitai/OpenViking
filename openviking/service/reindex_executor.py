@@ -149,7 +149,7 @@ class ReindexExecutor:
         }
 
     def _infer_target_type(self, uri: str) -> str:
-        if not uri.startswith("viking://"):
+        if not uri.startswith("wfs://"):
             raise OpenVikingError(
                 f"Unsupported reindex URI: {uri}",
                 code="UNSUPPORTED_URI",
@@ -256,8 +256,8 @@ class ReindexExecutor:
 
     @staticmethod
     def _child_prefix(root: str) -> str:
-        if root.rstrip("/") == "viking:":
-            return "viking://"
+        if root.rstrip("/") == "wfs:":
+            return "wfs://"
         return root.rstrip("/") + "/"
 
     @staticmethod
@@ -285,7 +285,7 @@ class ReindexExecutor:
         return True
 
     def _is_global_resource_entry(self, uri: str) -> bool:
-        return uri == "viking://resources" or uri.startswith("viking://resources/")
+        return uri == "wfs://resources" or uri.startswith("wfs://resources/")
 
     async def _reindex_skill_namespace(
         self,
@@ -610,7 +610,7 @@ class ReindexExecutor:
                 seen_files.add(file_uri)
 
         for directory_uri in deduped_directories:
-            if directory_uri == "viking://":
+            if directory_uri == "wfs://":
                 continue
             counters.scanned_records += 1
             abstract = await self._read_directory_abstract(directory_uri, ctx=ctx)
@@ -697,7 +697,7 @@ class ReindexExecutor:
         except Exception as exc:
             raise NotFoundError(uri, "resource") from exc
 
-        if target_root == "viking://user":
+        if target_root == "wfs://user":
             user_roots = [
                 entry.get("uri")
                 for entry in entries
@@ -778,7 +778,7 @@ class ReindexExecutor:
         except Exception as exc:
             raise NotFoundError(uri, "resource") from exc
 
-        if target_root == "viking://agent":
+        if target_root == "wfs://agent":
             agent_roots = [
                 entry.get("uri")
                 for entry in entries
@@ -866,7 +866,7 @@ class ReindexExecutor:
     ) -> None:
         counters = run.counters
         ctx = run.ctx
-        target_root = "viking://"
+        target_root = "wfs://"
         viking_fs = get_viking_fs()
         try:
             entries = await self._tree_all(viking_fs, target_root, show_all_hidden=True, ctx=ctx)
@@ -882,19 +882,19 @@ class ReindexExecutor:
             entry_uri = entry.get("uri")
             if not entry_uri:
                 continue
-            if entry_uri in {"viking://user", "viking://agent"}:
+            if entry_uri in {"wfs://user", "wfs://agent"}:
                 continue
-            if entry_uri.startswith("viking://user/"):
-                remainder = entry_uri[len("viking://user/") :]
+            if entry_uri.startswith("wfs://user/"):
+                remainder = entry_uri[len("wfs://user/") :]
                 if entry.get("isDir") and remainder and "/" not in remainder:
                     user_roots.append(entry_uri)
                 continue
-            if entry_uri.startswith("viking://agent/"):
-                remainder = entry_uri[len("viking://agent/") :]
+            if entry_uri.startswith("wfs://agent/"):
+                remainder = entry_uri[len("wfs://agent/") :]
                 if entry.get("isDir") and remainder and "/" not in remainder:
                     agent_roots.append(entry_uri)
                 continue
-            if entry_uri == "viking://session" or entry_uri.startswith("viking://session/"):
+            if entry_uri == "wfs://session" or entry_uri.startswith("wfs://session/"):
                 continue
             if not self._is_global_resource_entry(entry_uri):
                 continue

@@ -106,17 +106,17 @@ claude mcp add --transport http openviking \
 | 工具 | 说明 | 主要参数 |
 |------|------|----------|
 | `search` | 语义搜索记忆、资源和技能 | `query`, `target_uri`(可选), `limit`, `min_score` |
-| `read` | 读取一个或多个 `viking://` URI 的内容 | `uris`（单个字符串或数组） |
-| `list` | 列出 `viking://` 目录下的条目 | `uri`, `recursive`(可选) |
+| `read` | 读取一个或多个 `wfs://` URI 的内容 | `uris`（单个字符串或数组） |
+| `list` | 列出 `wfs://` 目录下的条目 | `uri`, `recursive`(可选) |
 | `store` | 存储消息到长期记忆（触发记忆提取） | `messages`（`{role, content}` 列表） |
-| `add_resource` | 添加本地文件或 URL 作为资源(本地文件触发渐进式上传流) | `path`, `temp_file_id`(可选), `description`(可选), `watch_interval`(可选,分钟数 — 远程 URL 的自动刷新周期), `to`(可选,目标 `viking://resources/...` URI；`watch_interval > 0` 时必填) |
+| `add_resource` | 添加本地文件或 URL 作为资源(本地文件触发渐进式上传流) | `path`, `temp_file_id`(可选), `description`(可选), `watch_interval`(可选,分钟数 — 远程 URL 的自动刷新周期), `to`(可选,目标 `wfs://resources/...` URI；`watch_interval > 0` 时必填) |
 | `list_watches` | 列出当前 Agent 可见的 watch 任务（自动刷新订阅），每行显示目标 URI、刷新间隔（分钟）、active/paused 状态以及下一次调度时间 | 无 |
-| `cancel_watch` | 按目标 URI 取消（删除）watch 任务。若需调整刷新周期或临时暂停，请取消后使用新的 `watch_interval` 重新添加 | `to_uri`（必须匹配 watch 任务的 `to` 值，例如 `viking://resources/...`） |
-| `grep` | 在 `viking://` 文件中进行正则内容搜索 | `uri`, `pattern`（字符串）, `case_insensitive` |
+| `cancel_watch` | 按目标 URI 取消（删除）watch 任务。若需调整刷新周期或临时暂停，请取消后使用新的 `watch_interval` 重新添加 | `to_uri`（必须匹配 watch 任务的 `to` 值，例如 `wfs://resources/...`） |
+| `grep` | 在 `wfs://` 文件中进行正则内容搜索 | `uri`, `pattern`（字符串）, `case_insensitive` |
 | `glob` | 按 glob 模式匹配文件 | `pattern`, `uri`(可选范围) |
-| `forget` | 删除任意 `viking://` URI（先用 `search` 查找；删除目录需 `recursive=true`） | `uri`, `recursive`(可选) |
-| `code_outline` | 显示文件的符号结构（类、函数、方法及其行号范围），不读取实现体。在决定 `read` 之前用于快速浏览文件。 | `uri`（必须是 `viking://` **文件** URI） |
-| `code_search` | 在 `viking://` 目录下按子串搜索符号名（类 / 函数 / 方法），返回符号类型、所属类、文件 URI、行号范围。最多扫描 200 个源文件。 | `query`, `uri`（必须是 `viking://` 目录；缩小到子目录可获得更深覆盖） |
+| `forget` | 删除任意 `wfs://` URI（先用 `search` 查找；删除目录需 `recursive=true`） | `uri`, `recursive`(可选) |
+| `code_outline` | 显示文件的符号结构（类、函数、方法及其行号范围），不读取实现体。在决定 `read` 之前用于快速浏览文件。 | `uri`（必须是 `wfs://` **文件** URI） |
+| `code_search` | 在 `wfs://` 目录下按子串搜索符号名（类 / 函数 / 方法），返回符号类型、所属类、文件 URI、行号范围。最多扫描 200 个源文件。 | `query`, `uri`（必须是 `wfs://` 目录；缩小到子目录可获得更深覆盖） |
 | `code_expand` | 返回单个命名符号的完整源码，避免读取整个文件。 | `uri`（文件）, `symbol`（`bar` 表示顶层，`Foo.bar` 表示方法） |
 | `health` | 检查 OpenViking 服务健康状态 | 无 |
 

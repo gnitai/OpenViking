@@ -146,13 +146,13 @@ class TestSessionConcurrency:
 
             api_client.session_used(
                 session_id,
-                contexts=["viking://resources/ctx1"],
+                contexts=["wfs://resources/ctx1"],
                 skill={"name": "skill-a"},
             )
 
             api_client.session_used(
                 session_id,
-                contexts=["viking://resources/ctx2", "viking://resources/ctx3"],
+                contexts=["wfs://resources/ctx2", "wfs://resources/ctx3"],
                 skill={"name": "skill-b"},
             )
 

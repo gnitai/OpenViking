@@ -40,23 +40,23 @@ class TestFinalizeFromTemp:
         from openviking_cli.session.user_id import UserIdentifier
 
         entries = {
-            "viking://temp/import": [{"name": "tt_b", "isDir": True}],
+            "wfs://temp/import": [{"name": "tt_b", "isDir": True}],
         }
-        fs = self._make_fs(entries, {"viking://resources"})
+        fs = self._make_fs(entries, {"wfs://resources"})
         builder = TreeBuilder()
         ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.ROOT)
 
         with patch("openviking.parse.tree_builder.get_viking_fs", return_value=fs):
             tree = await builder.finalize_from_temp(
-                temp_dir_path="viking://temp/import",
+                temp_dir_path="wfs://temp/import",
                 ctx=ctx,
                 scope="resources",
-                to_uri="viking://resources",
+                to_uri="wfs://resources",
             )
 
-        assert tree.root.uri == "viking://resources/tt_b"
-        assert tree.root.temp_uri == "viking://temp/import/tt_b"
-        assert tree._candidate_uri == "viking://resources/tt_b"
+        assert tree.root.uri == "wfs://resources/tt_b"
+        assert tree.root.temp_uri == "wfs://temp/import/tt_b"
+        assert tree._candidate_uri == "wfs://resources/tt_b"
 
     @pytest.mark.asyncio
     async def test_resources_root_to_with_trailing_slash_uses_child_incremental_target(self):
@@ -65,23 +65,23 @@ class TestFinalizeFromTemp:
         from openviking_cli.session.user_id import UserIdentifier
 
         entries = {
-            "viking://temp/import": [{"name": "tt_b", "isDir": True}],
+            "wfs://temp/import": [{"name": "tt_b", "isDir": True}],
         }
-        fs = self._make_fs(entries, {"viking://resources", "viking://resources/tt_b"})
+        fs = self._make_fs(entries, {"wfs://resources", "wfs://resources/tt_b"})
         builder = TreeBuilder()
         ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.ROOT)
 
         with patch("openviking.parse.tree_builder.get_viking_fs", return_value=fs):
             tree = await builder.finalize_from_temp(
-                temp_dir_path="viking://temp/import",
+                temp_dir_path="wfs://temp/import",
                 ctx=ctx,
                 scope="resources",
-                to_uri="viking://resources/",
+                to_uri="wfs://resources/",
             )
 
-        assert tree.root.uri == "viking://resources/tt_b"
-        assert tree.root.temp_uri == "viking://temp/import/tt_b"
-        assert tree._candidate_uri == "viking://resources/tt_b"
+        assert tree.root.uri == "wfs://resources/tt_b"
+        assert tree.root.temp_uri == "wfs://temp/import/tt_b"
+        assert tree._candidate_uri == "wfs://resources/tt_b"
 
     @pytest.mark.asyncio
     async def test_resources_root_to_keeps_single_file_wrapper_directory(self):
@@ -90,21 +90,21 @@ class TestFinalizeFromTemp:
         from openviking_cli.session.user_id import UserIdentifier
 
         entries = {
-            "viking://temp/import": [{"name": "aa", "isDir": True}],
-            "viking://temp/import/aa": [{"name": "aa.md", "isDir": False}],
+            "wfs://temp/import": [{"name": "aa", "isDir": True}],
+            "wfs://temp/import/aa": [{"name": "aa.md", "isDir": False}],
         }
-        fs = self._make_fs(entries, {"viking://resources"})
+        fs = self._make_fs(entries, {"wfs://resources"})
         builder = TreeBuilder()
         ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.ROOT)
 
         with patch("openviking.parse.tree_builder.get_viking_fs", return_value=fs):
             tree = await builder.finalize_from_temp(
-                temp_dir_path="viking://temp/import",
+                temp_dir_path="wfs://temp/import",
                 ctx=ctx,
                 scope="resources",
-                to_uri="viking://resources",
+                to_uri="wfs://resources",
             )
 
-        assert tree.root.uri == "viking://resources/aa"
-        assert tree.root.temp_uri == "viking://temp/import/aa"
-        assert tree._candidate_uri == "viking://resources/aa"
+        assert tree.root.uri == "wfs://resources/aa"
+        assert tree.root.temp_uri == "wfs://temp/import/aa"
+        assert tree._candidate_uri == "wfs://resources/aa"

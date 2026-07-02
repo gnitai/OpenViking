@@ -152,12 +152,12 @@ ov session list
   "result": [
     {
       "session_id": "a1b2c3d4",
-      "uri": "viking://session/alice/a1b2c3d4",
+      "uri": "wfs://session/alice/a1b2c3d4",
       "is_dir": true
     },
     {
       "session_id": "e5f6g7h8",
-      "uri": "viking://session/alice/e5f6g7h8",
+      "uri": "wfs://session/alice/e5f6g7h8",
       "is_dir": true
     }
   ],
@@ -586,7 +586,7 @@ TextPart(text="Hello, how can I help?")
 
 # Context reference
 ContextPart(
-    uri="viking://resources/docs/auth/",
+    uri="wfs://resources/docs/auth/",
     context_type="resource",  # "resource", "memory", or "skill"
     abstract="Authentication guide..."
 )
@@ -595,7 +595,7 @@ ContextPart(
 ToolPart(
     tool_id="call_123",
     tool_name="search_web",
-    skill_uri="viking://agent/skills/search-web/",
+    skill_uri="wfs://agent/skills/search-web/",
     tool_input={"query": "OAuth best practices"},
     tool_output="",
     tool_status="pending"  # "pending", "running", "completed", "error"
@@ -634,7 +634,7 @@ curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/messages \
     "role": "assistant",
     "parts": [
       {"type": "text", "text": "Based on the authentication guide..."},
-      {"type": "context", "uri": "viking://resources/docs/auth/", "context_type": "resource", "abstract": "Auth guide"}
+      {"type": "context", "uri": "wfs://resources/docs/auth/", "context_type": "resource", "abstract": "Auth guide"}
     ]
   }'
 
@@ -673,7 +673,7 @@ await client.add_message(
     parts=[
         TextPart(text="Based on the documentation, you can configure embedding..."),
         ContextPart(
-            uri="viking://resources/docs/auth/",
+            uri="wfs://resources/docs/auth/",
             context_type="resource",
             abstract="Authentication guide"
         )
@@ -830,13 +830,13 @@ POST /api/v1/sessions/{session_id}/used
 curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/used \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
-  -d '{"contexts": ["viking://resources/docs/auth/"]}'
+  -d '{"contexts": ["wfs://resources/docs/auth/"]}'
 
 # Record used skill
 curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/used \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
-  -d '{"skill": {"uri": "viking://agent/skills/search-web/", "input": {"query": "OAuth"}, "output": "Results...", "success": true}}'
+  -d '{"skill": {"uri": "wfs://agent/skills/search-web/", "input": {"query": "OAuth"}, "output": "Results...", "success": true}}'
 ```
 
 **Python SDK**
@@ -849,14 +849,14 @@ client = ov.Client(base_url="http://localhost:1933", api_key="your-key")
 # Record used contexts
 await client.session_used(
     session_id="a1b2c3d4",
-    contexts=["viking://resources/docs/auth/"]
+    contexts=["wfs://resources/docs/auth/"]
 )
 
 # Record used skill
 await client.session_used(
     session_id="a1b2c3d4",
     skill={
-        "uri": "viking://agent/skills/search-web/",
+        "uri": "wfs://agent/skills/search-web/",
         "input": {"query": "OAuth"},
         "output": "Results...",
         "success": True
@@ -963,7 +963,7 @@ ov session commit a1b2c3d4
     "session_id": "a1b2c3d4",
     "status": "accepted",
     "task_id": "uuid-xxx",
-    "archive_uri": "viking://session/alice/a1b2c3d4/history/archive_001",
+    "archive_uri": "wfs://session/alice/a1b2c3d4/history/archive_001",
     "archived": true
   }
 }
@@ -1079,7 +1079,7 @@ print(f"Status: {task['status']}")
     "status": "completed",
     "result": {
       "session_id": "a1b2c3d4",
-      "archive_uri": "viking://session/alice/a1b2c3d4/history/archive_001",
+      "archive_uri": "wfs://session/alice/a1b2c3d4/history/archive_001",
       "memories_extracted": {
         "profile": 1,
         "preferences": 2,
@@ -1168,7 +1168,7 @@ curl -X GET "http://localhost:1933/api/v1/tasks?task_type=session_commit&status=
 
 | Property | Type | Description |
 |----------|------|-------------|
-| uri | str | Session Viking URI (`viking://session/{session_id}/`) |
+| uri | str | Session Viking URI (`wfs://session/{session_id}/`) |
 | messages | List[Message] | Current messages in the session |
 | stats | SessionStats | Session statistics |
 | summary | str | Compression summary |
@@ -1179,7 +1179,7 @@ curl -X GET "http://localhost:1933/api/v1/tasks?task_type=session_commit&status=
 ## Session Storage Structure
 
 ```
-viking://session/{user_id}/{session_id}/
+wfs://session/{user_id}/{session_id}/
 +-- .abstract.md              # L0: Session overview
 +-- .overview.md              # L1: Key decisions
 +-- messages.jsonl            # Current messages
@@ -1206,7 +1206,7 @@ Each commit writes a `memory_diff.json` to the archive directory, recording all 
 
 ```json
 {
-  "archive_uri": "viking://session/{session_id}/history/archive_001",
+  "archive_uri": "wfs://session/{session_id}/history/archive_001",
   "extracted_at": "2026-04-21T10:00:00Z",
   "operations": {
     "adds": [
@@ -1360,7 +1360,7 @@ curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/messages \
 curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/used \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-key" \
-  -d '{"contexts": ["viking://resources/docs/embedding/"]}'
+  -d '{"contexts": ["wfs://resources/docs/embedding/"]}'
 
 # Step 6: Commit session (returns immediately with task_id)
 curl -X POST http://localhost:1933/api/v1/sessions/a1b2c3d4/commit \

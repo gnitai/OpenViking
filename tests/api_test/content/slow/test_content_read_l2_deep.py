@@ -81,7 +81,7 @@ class TestContentReadL2Deep:
                 api_client.fs_rm(root_uri, recursive=True)
 
     def test_read_nonexistent_file_returns_404(self, api_client):
-        fake_uri = f"viking://resources/readl2_nonexist_{uuid.uuid4().hex[:8]}.md"
+        fake_uri = f"wfs://resources/readl2_nonexist_{uuid.uuid4().hex[:8]}.md"
         read_resp = api_client.fs_read(fake_uri)
         assert read_resp.status_code == 404, (
             f"read nonexistent should return 404, got {read_resp.status_code}"

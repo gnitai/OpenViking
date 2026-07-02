@@ -36,7 +36,7 @@ If any download fails, stop and verify `SOURCE_BASE`.
 ```bash
 grep -q 'SERVERLESS_BASE_URL' ~/.openclaw/skills/ov_dream/scripts/dream.py
 grep -q 'OPENVIKING_AUTH_MODE' ~/.openclaw/skills/ov_dream/scripts/dream.py
-grep -q 'viking://user/default' ~/.openclaw/skills/ov_dream/scripts/dream.py
+grep -q 'wfs://user/default' ~/.openclaw/skills/ov_dream/scripts/dream.py
 grep -q 'is_chat_session_key' ~/.openclaw/skills/ov_dream/scripts/dream.py
 grep -q 'raw jsonl fallback can accidentally sync cron/subagent transcripts' ~/.openclaw/skills/ov_dream/scripts/dream.py
 grep -q 'client.add_session_message(session.session_id' ~/.openclaw/skills/ov_dream/scripts/dream.py

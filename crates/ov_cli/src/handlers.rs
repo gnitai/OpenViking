@@ -1180,14 +1180,14 @@ pub async fn handle_grep(
     ctx: CliContext,
 ) -> Result<()> {
     // Prevent grep from root directory to avoid excessive server load and timeouts
-    if uri == "viking://" || uri == "viking:///" {
+    if uri == "wfs://" || uri == "wfs:///" {
         eprintln!(
-            "Error: Cannot grep from root directory 'viking://'.\n\
+            "Error: Cannot grep from root directory 'wfs://'.\n\
              Grep from root would search across all scopes (resources, user, agent, session, queue, temp),\n\
              which may cause server timeout or excessive load.\n\
              Please specify a more specific scope, e.g.:\n\
-               ov grep --uri=viking://resources '{}'\n\
-               ov grep --uri=viking://user '{}'",
+               ov grep --uri=wfs://resources '{}'\n\
+               ov grep --uri=wfs://user '{}'",
             pattern, pattern
         );
         std::process::exit(1);

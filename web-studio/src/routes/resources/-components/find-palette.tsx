@@ -58,9 +58,9 @@ function parseScopeCommand(query: string): string | null {
     .filter(Boolean)
     .join('/')
 
-  if (!normalizedPath) return 'viking://'
+  if (!normalizedPath) return 'wfs://'
 
-  return normalizeDirUri(`viking://${normalizedPath}`)
+  return normalizeDirUri(`wfs://${normalizedPath}`)
 }
 
 function displayName(uri: string): { name: string; parent: string } {
@@ -81,7 +81,7 @@ export function FindPalette({
   const { t } = useTranslation('resources')
   const [query, setQuery] = useState(() => findPaletteSession.inputQuery)
   const [findTargetUri, setFindTargetUri] = useState(() =>
-    normalizeDirUri(findPaletteSession.targetUri || scopeUri || 'viking://'),
+    normalizeDirUri(findPaletteSession.targetUri || scopeUri || 'wfs://'),
   )
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -92,23 +92,23 @@ export function FindPalette({
   const scopeCommandUri = isDirMode ? null : parseScopeCommand(query)
   const trimmedQuery = query.trim()
   const hasQuery = trimmedQuery.length > 0 && !scopeCommandUri && !isDirMode
-  const isRoot = findTargetUri === 'viking://'
+  const isRoot = findTargetUri === 'wfs://'
   const searchSpec = useMemo(
     () => getResourceSearchSpec(query, findTargetUri),
     [query, findTargetUri],
   )
 
   const scopeValidationQuery = useVikingFsList(
-    scopeCommandUri || 'viking://',
+    scopeCommandUri || 'wfs://',
     { output: 'agent', showAllHidden: true, nodeLimit: 1 },
-    Boolean(scopeCommandUri && scopeCommandUri !== 'viking://'),
+    Boolean(scopeCommandUri && scopeCommandUri !== 'wfs://'),
   )
   const isScopeCommandValid =
     Boolean(scopeCommandUri) &&
-    (scopeCommandUri === 'viking://' || scopeValidationQuery.isSuccess)
+    (scopeCommandUri === 'wfs://' || scopeValidationQuery.isSuccess)
 
   const treeQuery = useVikingFsTree(
-    searchSpec?.rootUri || 'viking://',
+    searchSpec?.rootUri || 'wfs://',
     { output: 'agent', showAllHidden: true, nodeLimit: 2000, levelLimit: 100 },
     hasQuery && Boolean(searchSpec),
   )

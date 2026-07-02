@@ -68,9 +68,9 @@ const LIST_OPTS = {
 }
 
 function isSessionSubtree(parentUri: string): boolean {
-  // Children of viking://session and anything nested inside it sort by
+  // Children of wfs://session and anything nested inside it sort by
   // modTime DESC (most recent first) instead of name.
-  return parentUri.startsWith('viking://session/')
+  return parentUri.startsWith('wfs://session/')
 }
 
 function sortEntries(
@@ -231,8 +231,8 @@ function TreeNode({
 const TreeNodeMemo = memo(TreeNode)
 
 const ROOT_ENTRY: VikingFsEntry = {
-  uri: 'viking://',
-  name: 'viking://',
+  uri: 'wfs://',
+  name: 'wfs://',
   isDir: true,
   size: '',
   sizeBytes: null,

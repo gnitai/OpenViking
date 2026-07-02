@@ -37,7 +37,7 @@ async def viking_fs_binding_instance():
     init_lock_manager(agfs=agfs_client)
     vfs = init_viking_fs(agfs=agfs_client)
     # make sure default/temp directory exists
-    await vfs.mkdir("viking://temp/", exist_ok=True)
+    await vfs.mkdir("wfs://temp/", exist_ok=True)
 
     yield vfs
 
@@ -54,7 +54,7 @@ class TestVikingFSBindingLocal:
 
         test_filename = f"binding_file_{uuid.uuid4().hex}.txt"
         test_content = "Hello VikingFS Binding! " + uuid.uuid4().hex
-        test_uri = f"viking://temp/{test_filename}"
+        test_uri = f"wfs://temp/{test_filename}"
 
         await vfs.write(test_uri, test_content)
 
@@ -62,7 +62,7 @@ class TestVikingFSBindingLocal:
         assert stat_info["name"] == test_filename
         assert not stat_info["isDir"]
 
-        entries = await vfs.ls("viking://temp/")
+        entries = await vfs.ls("wfs://temp/")
         assert any(e["name"] == test_filename for e in entries)
 
         read_data = await vfs.read(test_uri)
@@ -74,7 +74,7 @@ class TestVikingFSBindingLocal:
         """Test VikingFS directory operations: mkdir, rm, ls, stat."""
         vfs = viking_fs_binding_instance
         test_dir = f"binding_dir_{uuid.uuid4().hex}"
-        test_dir_uri = f"viking://temp/{test_dir}/"
+        test_dir_uri = f"wfs://temp/{test_dir}/"
 
         await vfs.mkdir(test_dir_uri)
 
@@ -82,7 +82,7 @@ class TestVikingFSBindingLocal:
         assert stat_info["name"] == test_dir
         assert stat_info["isDir"]
 
-        root_entries = await vfs.ls("viking://temp/")
+        root_entries = await vfs.ls("wfs://temp/")
         assert any(e["name"] == test_dir and e["isDir"] for e in root_entries)
 
         file_uri = f"{test_dir_uri}inner.txt"
@@ -93,46 +93,46 @@ class TestVikingFSBindingLocal:
 
         await vfs.rm(test_dir_uri, recursive=True)
 
-        root_entries = await vfs.ls("viking://temp/")
+        root_entries = await vfs.ls("wfs://temp/")
         assert not any(e["name"] == test_dir for e in root_entries)
 
     async def test_tree_operations(self, viking_fs_binding_instance):
         """Test VikingFS tree operations."""
         vfs = viking_fs_binding_instance
         base_dir = f"binding_tree_test_{uuid.uuid4().hex}"
-        sub_dir = f"viking://temp/{base_dir}/a/b/"
+        sub_dir = f"wfs://temp/{base_dir}/a/b/"
         file_uri = f"{sub_dir}leaf.txt"
 
         await vfs.mkdir(sub_dir)
         await vfs.write(file_uri, "leaf content")
 
-        entries = await vfs.tree(f"viking://temp/{base_dir}/")
+        entries = await vfs.tree(f"wfs://temp/{base_dir}/")
         assert any("leaf.txt" in e["uri"] for e in entries)
 
-        await vfs.rm(f"viking://temp/{base_dir}/", recursive=True)
+        await vfs.rm(f"wfs://temp/{base_dir}/", recursive=True)
 
     async def test_glob_matches_deep_markdown_files(self, viking_fs_binding_instance):
         """Test glob recursively matches markdown files beyond tree's default depth."""
         vfs = viking_fs_binding_instance
         base_dir = f"binding_glob_test_{uuid.uuid4().hex}"
-        deep_dir_uri = f"viking://temp/{base_dir}/events/2023/05/08/"
+        deep_dir_uri = f"wfs://temp/{base_dir}/events/2023/05/08/"
         deep_file_uri = f"{deep_dir_uri}entry.md"
 
         await vfs.mkdir(deep_dir_uri)
         await vfs.write(deep_file_uri, "# deep event")
 
-        result = await vfs.glob("**/*.md", uri=f"viking://temp/{base_dir}/")
+        result = await vfs.glob("**/*.md", uri=f"wfs://temp/{base_dir}/")
 
         assert deep_file_uri in result["matches"]
 
-        await vfs.rm(f"viking://temp/{base_dir}/", recursive=True)
+        await vfs.rm(f"wfs://temp/{base_dir}/", recursive=True)
 
     async def test_binary_operations(self, viking_fs_binding_instance):
         """Test VikingFS binary file operations."""
         vfs = viking_fs_binding_instance
         test_filename = f"binding_binary_{uuid.uuid4().hex}.bin"
         test_content = bytes([i % 256 for i in range(256)])
-        test_uri = f"viking://temp/{test_filename}"
+        test_uri = f"wfs://temp/{test_filename}"
 
         await vfs.write(test_uri, test_content)
 

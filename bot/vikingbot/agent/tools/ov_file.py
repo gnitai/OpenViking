@@ -42,7 +42,7 @@ class VikingListTool(OVFileTool):
             "properties": {
                 "uri": {
                     "type": "string",
-                    "description": "The parent Viking uri to list (e.g., viking://resources/)",
+                    "description": "The parent Viking uri to list (e.g., wfs://resources/)",
                 },
                 "recursive": {
                     "type": "boolean",
@@ -102,7 +102,7 @@ class VikingSearchTool(OVFileTool):
                 "query": {"type": "string", "description": "The search query"},
                 "target_uri": {
                     "type": "string",
-                    "description": "Optional target URI to limit search scope, if is None, then search the entire range.(e.g., viking://resources/)",
+                    "description": "Optional target URI to limit search scope, if is None, then search the entire range.(e.g., wfs://resources/)",
                 },
                 "min_score": {
                     "type": "number",
@@ -375,7 +375,7 @@ class VikingGrepTool(OVFileTool):
             "properties": {
                 "uri": {
                     "type": "string",
-                    "description": "The whole Viking URI to search within (e.g., viking://resources/)",
+                    "description": "The whole Viking URI to search within (e.g., wfs://resources/)",
                 },
                 "pattern": {
                     "type": "string",
@@ -471,7 +471,7 @@ class VikingGlobTool(OVFileTool):
                 },
                 "uri": {
                     "type": "string",
-                    "description": "The whole Viking URI to search within (e.g., viking://resources/path/)",
+                    "description": "The whole Viking URI to search within (e.g., wfs://resources/path/)",
                     "default": "",
                 },
             },
@@ -575,7 +575,7 @@ class VikingMultiReadTool(OVFileTool):
                 "uris": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": 'List of Viking file URIs to read from (e.g., ["viking://resources/path/123.md", "viking://resources/path/456.md"])',
+                    "description": 'List of Viking file URIs to read from (e.g., ["wfs://resources/path/123.md", "wfs://resources/path/456.md"])',
                 },
             },
             "required": ["uris"],

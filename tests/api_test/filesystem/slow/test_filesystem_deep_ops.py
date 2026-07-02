@@ -5,7 +5,7 @@ import uuid
 
 class TestFilesystemDeep:
     def test_mkdir_creates_directory_stat_confirms(self, api_client):
-        dir_uri = f"viking://resources/mkdir_stat_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/mkdir_stat_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             assert mkdir_resp.status_code == 200, (
@@ -19,7 +19,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_mkdir_with_description(self, api_client):
-        dir_uri = f"viking://resources/desc_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/desc_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri, description="Test directory description")
             assert mkdir_resp.status_code == 200, (
@@ -38,7 +38,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_mkdir_nested_path(self, api_client):
-        parent_uri = f"viking://resources/nested_{uuid.uuid4().hex[:8]}"
+        parent_uri = f"wfs://resources/nested_{uuid.uuid4().hex[:8]}"
         child_uri = f"{parent_uri}/child"
         grandchild_uri = f"{child_uri}/grandchild"
         try:
@@ -71,7 +71,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(parent_uri, recursive=True)
 
     def test_mkdir_duplicate_returns_ok_or_conflict(self, api_client):
-        dir_uri = f"viking://resources/dup_mkdir_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/dup_mkdir_{uuid.uuid4().hex[:8]}"
         try:
             mkdir1 = api_client.fs_mkdir(dir_uri)
             assert mkdir1.status_code == 200
@@ -84,7 +84,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_mkdir_special_chars_in_description(self, api_client):
-        dir_uri = f"viking://resources/mkdir_special_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/mkdir_special_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri, description="目录 with 中文 and symbols !@#")
             assert mkdir_resp.status_code == 200, (
@@ -94,7 +94,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_rm_file_removes_from_ls(self, api_client):
-        file_uri = f"viking://resources/rm_ls_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/rm_ls_{uuid.uuid4().hex[:8]}.md"
         try:
             write_resp = api_client.fs_write(
                 file_uri, "File to be removed", mode="create", wait=True
@@ -113,7 +113,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(file_uri)
 
     def test_rm_directory_nonrecursive_returns_412(self, api_client):
-        dir_uri = f"viking://resources/rm_nonrec_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/rm_nonrec_{uuid.uuid4().hex[:8]}"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)
             if mkdir_resp.status_code != 200:
@@ -128,14 +128,14 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_rm_nonexistent_returns_ok_or_error(self, api_client):
-        uri = f"viking://resources/nonexist_rm_{uuid.uuid4().hex[:8]}"
+        uri = f"wfs://resources/nonexist_rm_{uuid.uuid4().hex[:8]}"
         rm_resp = api_client.fs_rm(uri)
         assert rm_resp.status_code == 200, (
             f"rm nonexistent should return 200/400/404/412, got {rm_resp.status_code}: {rm_resp.text[:200]}"
         )
 
     def test_rm_then_recreate_same_uri(self, api_client):
-        dir_uri = f"viking://resources/rm_recreate_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/rm_recreate_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(dir_uri, description="First creation")
             api_client.fs_rm(dir_uri, recursive=True)
@@ -151,8 +151,8 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_mv_nonexistent_source_returns_error(self, api_client):
-        src_uri = f"viking://resources/nonexist_mv_src_{uuid.uuid4().hex[:8]}.md"
-        dst_uri = f"viking://resources/nonexist_mv_dst_{uuid.uuid4().hex[:8]}.md"
+        src_uri = f"wfs://resources/nonexist_mv_src_{uuid.uuid4().hex[:8]}.md"
+        dst_uri = f"wfs://resources/nonexist_mv_dst_{uuid.uuid4().hex[:8]}.md"
         mv_resp = api_client.fs_mv(src_uri, dst_uri)
         assert mv_resp.status_code == 404, (
             f"mv nonexistent source should return 404/412, got {mv_resp.status_code}: {mv_resp.text[:200]}"
@@ -178,7 +178,7 @@ class TestFilesystemDeep:
             assert isinstance(tree_data, (dict, list)), "tree result should be dict or list"
 
     def test_stat_file_has_size_and_modtime(self, api_client):
-        file_uri = f"viking://resources/stat_file_{uuid.uuid4().hex[:8]}.md"
+        file_uri = f"wfs://resources/stat_file_{uuid.uuid4().hex[:8]}.md"
         try:
             write_resp = api_client.fs_write(
                 file_uri, "Stat test content", mode="create", wait=True
@@ -202,7 +202,7 @@ class TestFilesystemDeep:
             api_client.fs_rm(file_uri)
 
     def test_ls_simple_mode(self, api_client):
-        dir_uri = f"viking://resources/ls_simple_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/ls_simple_{uuid.uuid4().hex[:8]}"
         try:
             api_client.fs_mkdir(dir_uri)
 
@@ -214,19 +214,19 @@ class TestFilesystemDeep:
             api_client.fs_rm(dir_uri, recursive=True)
 
     def test_stat_nonexistent_uri(self, api_client):
-        stat_resp = api_client.fs_stat("viking://resources/nonexistent_stat_test_xyz")
+        stat_resp = api_client.fs_stat("wfs://resources/nonexistent_stat_test_xyz")
         assert stat_resp.status_code == 404, (
             f"stat nonexistent should return 404/412, got {stat_resp.status_code}: {stat_resp.text[:200]}"
         )
 
     def test_ls_nonexistent_uri(self, api_client):
-        ls_resp = api_client.fs_ls("viking://resources/nonexistent_ls_test_xyz")
+        ls_resp = api_client.fs_ls("wfs://resources/nonexistent_ls_test_xyz")
         assert ls_resp.status_code == 404, (
             f"ls nonexistent should return 200/404/412, got {ls_resp.status_code}"
         )
 
     def test_write_file_inside_mkdir_directory(self, api_client):
-        dir_uri = f"viking://resources/write_in_dir_{uuid.uuid4().hex[:8]}"
+        dir_uri = f"wfs://resources/write_in_dir_{uuid.uuid4().hex[:8]}"
         file_uri = f"{dir_uri}/inner.md"
         try:
             mkdir_resp = api_client.fs_mkdir(dir_uri)

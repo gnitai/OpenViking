@@ -56,7 +56,7 @@ export type MemoryOpenVikingConfig = {
 };
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:1933";
-const DEFAULT_TARGET_URI = "viking://user/memories";
+const DEFAULT_TARGET_URI = "wfs://user/memories";
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_CAPTURE_MODE = "semantic";
 const DEFAULT_CAPTURE_MAX_LENGTH = 24000;
@@ -357,13 +357,13 @@ export const memoryOpenVikingConfigSchema = {
     isolateUserScopeByAgent: {
       label: "Isolate User Scope By Agent",
       placeholder: "false",
-      help: "Canonical namespace policy. false (default): user alias expands to viking://user/<user_id>/... . true: expands to viking://user/<user_id>/agent/<agent_id>/... . Must match the server-side account namespace policy.",
+      help: "Canonical namespace policy. false (default): user alias expands to wfs://user/<user_id>/... . true: expands to wfs://user/<user_id>/agent/<agent_id>/... . Must match the server-side account namespace policy.",
       advanced: true,
     },
     isolateAgentScopeByUser: {
       label: "Isolate Agent Scope By User",
       placeholder: "false",
-      help: "Canonical namespace policy. false (default): agent alias expands to viking://agent/<agent_id>/... . true: expands to viking://agent/<agent_id>/user/<user_id>/... . Must match the server-side account namespace policy.",
+      help: "Canonical namespace policy. false (default): agent alias expands to wfs://agent/<agent_id>/... . true: expands to wfs://agent/<agent_id>/user/<user_id>/... . Must match the server-side account namespace policy.",
       advanced: true,
     },
     agentScopeMode: {
@@ -404,7 +404,7 @@ export const memoryOpenVikingConfigSchema = {
     },
     recallResources: {
       label: "Recall Resources",
-      help: "Include resources (viking://resources) in auto-recall and default memory_recall search. Enables account-level shared knowledge retrieval.",
+      help: "Include resources (wfs://resources) in auto-recall and default memory_recall search. Enables account-level shared knowledge retrieval.",
       advanced: true,
     },
     recallLimit: {
