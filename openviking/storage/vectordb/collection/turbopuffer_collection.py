@@ -339,14 +339,20 @@ class TurbopufferCollection(ICollection):
         if has_sparse:
             sparse = {str(k): float(v) for k, v in (sparse_vector or {}).items()}
             rank_by: Any = ("sparse_vector", "SparseKNN", sparse)
+            # NOTE: SparseKNN also returns a distance and carries the same latent
+            # ranking-inversion as ANN, but it is unused today (no sparse embedder is
+            # configured). Revisit this conversion if sparse retrieval is enabled.
+            convert_distance = False
         else:
             rank_by = ("vector", "ANN", list(dense_vector or []))
+            convert_distance = True
         return self._run_query(
             rank_by=rank_by,
             limit=limit,
             offset=offset,
             filters=filters,
             include_attributes=output_fields,
+            convert_distance=convert_distance,
         )
 
     def search_by_keywords(
@@ -519,7 +525,13 @@ class TurbopufferCollection(ICollection):
         offset: int,
         filters: Optional[Any],
         include_attributes: Optional[List[str]],
+        convert_distance: bool = False,
     ) -> SearchResult:
+        # ``convert_distance`` is set only for vector (ANN) queries, where Turbopuffer
+        # returns a distance (lower = better) that must be flipped to a similarity so
+        # downstream descending-sort/threshold logic ranks nearer records higher. BM25,
+        # scalar-sort and id-order queries put a relevance score / field value / no score
+        # in ``$dist`` and must be passed through untouched.
         top_k = min(_TP_MAX_TOP_K, max(1, limit + max(0, offset)))
         rows = self._query_rows(
             rank_by=rank_by,
@@ -534,7 +546,11 @@ class TurbopufferCollection(ICollection):
             SearchItemResult(
                 id=self._row_id(row),
                 fields=self._row_fields(row),
-                score=self._row_score(row),
+                score=(
+                    self._score_from_distance(self._row_score(row))
+                    if convert_distance
+                    else self._row_score(row)
+                ),
             )
             for row in rows
         ]
@@ -666,6 +682,26 @@ class TurbopufferCollection(ICollection):
             return float(value)
         except (TypeError, ValueError):
             return None
+
+    def _score_from_distance(self, distance: Optional[float]) -> Optional[float]:
+        """Convert Turbopuffer's raw distance into a similarity (higher = better).
+
+        Turbopuffer ranks by distance (lower = better), but every downstream consumer
+        in OpenViking (hierarchical retriever's descending sort, score threshold,
+        hotness blend) treats ``_score`` as a similarity where higher = better — the
+        same convention the local index returns. Emitting the raw distance here would
+        invert the ranking, surfacing the *farthest* records first. Convert with a
+        metric-aware, monotonically-decreasing transform so nearer records score higher.
+        """
+        if distance is None:
+            return None
+        metric = (self._distance_metric or "").lower()
+        if metric == "cosine_distance":
+            # cosine_distance == 1 - cosine_similarity  ->  similarity in [-1, 1]
+            return 1.0 - distance
+        # euclidean_squared / unknown distance-like metrics: keep positive and
+        # monotonically decreasing so thresholding stays sane.
+        return 1.0 / (1.0 + distance)
 
     @classmethod
     def _row_vector(cls, row: Any) -> Optional[List[float]]:

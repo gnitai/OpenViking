@@ -289,12 +289,54 @@ class TestUpsertAndSchemaApply(unittest.TestCase):
         self.assertEqual(len(out), 1)
         self.assertEqual(out[0]["id"], "x1")
         self.assertEqual(out[0]["text"], "hi")
-        self.assertEqual(out[0]["_score"], pytest.approx(0.42))
+        # Vector (ANN) queries return a cosine _distance_ (lower = better); it must be
+        # converted to a similarity (higher = better) so the retriever's descending sort
+        # ranks nearer records first. cosine_distance 0.42 -> similarity 1 - 0.42 = 0.58.
+        self.assertEqual(out[0]["_score"], pytest.approx(0.58))
 
         # Inspect the call we made to ns.query
         call_kwargs = self.ns_mock.query.call_args.kwargs
         self.assertEqual(call_kwargs["rank_by"], ("vector", "ANN", [0.1, 0.2, 0.3]))
         self.assertEqual(call_kwargs["top_k"], 5)
+
+    def test_vector_query_score_is_similarity_not_distance(self):
+        # Regression for inverted ranking: with cosine_distance, the record NEAREST the
+        # query (smallest $dist) must receive the HIGHEST _score, so a descending sort
+        # surfaces it first — the opposite of returning raw distance.
+        self.adapter.create_collection(
+            name="test_ns",
+            schema={"Fields": []},
+            distance="cosine",
+            sparse_weight=0.0,
+            index_name="default",
+        )
+        near = SimpleNamespace(id="near", attributes={"text": "near"}, dist=0.20)
+        far = SimpleNamespace(id="far", attributes={"text": "far"}, dist=0.80)
+        self.ns_mock.query.return_value = SimpleNamespace(rows=[near, far], aggregations=None)
+        out = self.adapter.query(query_vector=[0.1, 0.2, 0.3], limit=5)
+        by_id = {r["id"]: r["_score"] for r in out}
+        self.assertEqual(by_id["near"], pytest.approx(0.80))  # 1 - 0.20
+        self.assertEqual(by_id["far"], pytest.approx(0.20))   # 1 - 0.80
+        self.assertGreater(by_id["near"], by_id["far"])
+
+    def test_keyword_query_score_left_as_raw_relevance(self):
+        # BM25 keyword search returns a relevance score (higher = better), not a vector
+        # distance — it must NOT be run through the distance->similarity conversion.
+        self.adapter.create_collection(
+            name="test_ns",
+            schema={"Fields": []},
+            distance="cosine",
+            sparse_weight=0.0,
+            index_name="default",
+        )
+        row = SimpleNamespace(id="k1", attributes={"text": "hit"}, dist=3.5)
+        self.ns_mock.query.return_value = SimpleNamespace(rows=[row], aggregations=None)
+        coll = self.adapter._wrap_collection()
+        res = coll.search_by_keywords(index_name="default", query="hit", limit=5)
+        self.assertEqual(res.data[0].score, pytest.approx(3.5))
+        self.assertEqual(
+            self.ns_mock.query.call_args.kwargs["rank_by"][1], "BM25"
+        )
 
     def test_count_via_aggregate(self):
         self.adapter.create_collection(
