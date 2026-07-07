@@ -179,7 +179,7 @@ class TestEnsurePublicRemoteTarget:
         with pytest.raises(PermissionDeniedError, match="valid destination host"):
             ensure_public_remote_target("git@github.com")
 
-    # -- Rejection: localhost variants --
+    # -- Localhost variants: rejected by default, allowed with allow_private_networks --
 
     @pytest.mark.parametrize(
         "source",
@@ -191,13 +191,44 @@ class TestEnsurePublicRemoteTarget:
             "http://anything.localhost/path",
         ],
     )
-    def test_rejects_localhost_variants(self, source: str) -> None:
+    @patch("openviking.utils.network_guard._is_allow_private_networks", return_value=False)
+    def test_rejects_localhost_variants(self, _mock_allow, source: str) -> None:
         with pytest.raises(PermissionDeniedError, match="non-public"):
             ensure_public_remote_target(source)
 
-    def test_rejects_localhost_with_trailing_dot(self) -> None:
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "http://localhost/path",
+            "http://localhost.localdomain/path",
+            "http://LOCALHOST/path",
+            "http://sub.localhost/path",
+            "http://anything.localhost/path",
+        ],
+    )
+    @patch("openviking.utils.network_guard._is_allow_private_networks", return_value=True)
+    def test_allows_localhost_variants_when_private_networks_allowed(
+        self, _mock_allow, source: str
+    ) -> None:
+        ensure_public_remote_target(source)  # should not raise
+
+    @patch("openviking.utils.network_guard._is_allow_private_networks", return_value=False)
+    def test_rejects_localhost_with_trailing_dot(self, _mock_allow) -> None:
         with pytest.raises(PermissionDeniedError, match="non-public"):
             ensure_public_remote_target("http://localhost./path")
+
+    # -- Control: bare private IP literal honors the same flag --
+
+    @patch("openviking.utils.network_guard._is_allow_private_networks", return_value=False)
+    def test_rejects_private_ip_literal_when_private_networks_disallowed(
+        self, _mock_allow
+    ) -> None:
+        with pytest.raises(PermissionDeniedError, match="non-public"):
+            ensure_public_remote_target("http://127.0.0.1:8080/path")
+
+    @patch("openviking.utils.network_guard._is_allow_private_networks", return_value=True)
+    def test_allows_private_ip_literal_when_private_networks_allowed(self, _mock_allow) -> None:
+        ensure_public_remote_target("http://127.0.0.1:8080/path")  # should not raise
 
     # -- Rejection: non-public resolved IPs --
 

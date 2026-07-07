@@ -208,6 +208,8 @@ async def add_resource(
     request: AddResourceRequest,
     _ctx: RequestContext = Depends(ensure_project_ready),
     x_git_token: Optional[str] = Header(None, alias="X-OpenViking-Git-Token"),
+    x_callback_url: Optional[str] = Header(None, alias="X-OpenViking-Callback-Url"),
+    x_callback_token: Optional[str] = Header(None, alias="X-OpenViking-Callback-Token"),
 ):
     """Add resource to OpenViking.
 
@@ -215,6 +217,11 @@ async def add_resource(
     access token (OAuth token or PAT) in the ``X-OpenViking-Git-Token`` header. The
     token is used only for this fetch and is never persisted or logged. It is sent
     as a header (not in the JSON body) to keep it off request-body logging surfaces.
+
+    A completion callback can be registered per request via the
+    ``X-OpenViking-Callback-Url`` and ``X-OpenViking-Callback-Token`` headers: when
+    the ingestion task completes or fails, OpenViking POSTs the task status to the
+    URL, authenticated with the token. The token is never logged.
     """
     service = get_service()
     if request.to and request.parent:
@@ -277,6 +284,8 @@ async def add_resource(
                 allow_local_path_resolution=allow_local_path_resolution,
                 enforce_public_remote_targets=True,
                 git_auth_token=x_git_token,
+                callback_url=x_callback_url,
+                callback_token=x_callback_token,
                 **kwargs,
             )
         except Exception:

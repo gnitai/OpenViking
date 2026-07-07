@@ -128,15 +128,17 @@ def ensure_public_remote_target(source: str) -> None:
         )
 
     normalized_host = _normalize_host(host)
+
+    # Check if private networks are allowed globally. This also covers localhost
+    # hostnames, which resolve to loopback -- exactly what the flag permits.
+    if _is_allow_private_networks():
+        return
+
     if normalized_host in _LOCAL_HOSTNAMES or normalized_host.endswith(".localhost"):
         raise PermissionDeniedError(
             "HTTP server only accepts public remote resource targets; "
             "loopback, link-local, private, and otherwise non-public destinations are not allowed."
         )
-
-    # Check if private networks are allowed globally
-    if _is_allow_private_networks():
-        return
 
     # Check if host is in allowed code hosting domains
     allowed_domains = _get_allowed_code_hosting_domains()

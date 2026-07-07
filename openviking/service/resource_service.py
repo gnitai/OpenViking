@@ -120,6 +120,8 @@ class ResourceService:
         allow_local_path_resolution: bool = True,
         enforce_public_remote_targets: bool = False,
         git_auth_token: Optional[str] = None,
+        callback_url: Optional[str] = None,
+        callback_token: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Any]:
         """Add resource to OpenViking (only supports resources scope).
@@ -151,6 +153,10 @@ class ResourceService:
                 validate each outbound HTTP request URL during fetch.
             git_auth_token: Transient per-request token (OAuth/PAT) used to clone/download
                 a private repository for this ingest only. Never persisted or logged.
+            callback_url: Optional URL to POST the task status to when the ingestion
+                task completes or fails.
+            callback_token: Optional bearer token used to authenticate the callback
+                request. Never logged.
             **kwargs: Extra options forwarded to the parser chain
 
         Returns:
@@ -301,6 +307,8 @@ class ResourceService:
                     resource_id=root_uri,
                     account_id=ctx.account_id,
                     user_id=ctx.user.user_id,
+                    callback_url=callback_url,
+                    callback_token=callback_token,
                 )
                 result["task_id"] = task.task_id
                 if telemetry_id:
