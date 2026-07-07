@@ -18,12 +18,13 @@ import re
 import threading
 import time
 from copy import deepcopy
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
+from openviking.service.task_callback import deliver_task_callback
 from openviking.service.task_store import InMemoryTaskStore, TaskStore
 from openviking_cli.utils.logger import get_logger
 
@@ -53,6 +54,8 @@ class TaskRecord:
     user_id: Optional[str] = None
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    callback_url: Optional[str] = None
+    callback_token: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize for JSON response."""
@@ -62,6 +65,8 @@ class TaskRecord:
         d["updated_at_iso"] = datetime.fromtimestamp(self.updated_at, tz=timezone.utc).isoformat()
         d.pop("account_id", None)
         d.pop("user_id", None)
+        d.pop("callback_url", None)
+        d.pop("callback_token", None)
         return d
 
 
@@ -236,6 +241,8 @@ class TaskTracker:
         *,
         account_id: str,
         user_id: str,
+        callback_url: Optional[str] = None,
+        callback_token: Optional[str] = None,
     ) -> TaskRecord:
         """Register a new pending task. Returns a snapshot copy."""
         self._validate_owner(account_id, user_id)
@@ -245,6 +252,8 @@ class TaskTracker:
             resource_id=resource_id,
             account_id=account_id,
             user_id=user_id,
+            callback_url=callback_url,
+            callback_token=callback_token,
         )
         async with self._async_lock:
             await self._store.create(task)
@@ -265,6 +274,8 @@ class TaskTracker:
         *,
         account_id: str,
         user_id: str,
+        callback_url: Optional[str] = None,
+        callback_token: Optional[str] = None,
     ) -> Optional[TaskRecord]:
         """Atomically check for running tasks and create a new one if none exist.
 
@@ -294,6 +305,8 @@ class TaskTracker:
                 resource_id=resource_id,
                 account_id=account_id,
                 user_id=user_id,
+                callback_url=callback_url,
+                callback_token=callback_token,
             )
             await self._store.create(task)
             with self._lock:
@@ -330,6 +343,7 @@ class TaskTracker:
         user_id: Optional[str] = None,
     ) -> None:
         """Transition task to COMPLETED with optional result."""
+        task: Optional[TaskRecord] = None
         async with self._async_lock:
             task = await self._load_for_update(task_id, account_id, user_id)
             if task:
@@ -340,6 +354,8 @@ class TaskTracker:
                 with self._lock:
                     self._tasks[task.task_id] = task
         logger.info("[TaskTracker] Task %s completed", task_id)
+        if task is not None and task.callback_url:
+            self._fire_callback(task)
 
     async def fail(
         self,
@@ -349,6 +365,7 @@ class TaskTracker:
         user_id: Optional[str] = None,
     ) -> None:
         """Transition task to FAILED with sanitized error."""
+        task: Optional[TaskRecord] = None
         async with self._async_lock:
             task = await self._load_for_update(task_id, account_id, user_id)
             if task:
@@ -359,6 +376,25 @@ class TaskTracker:
                 with self._lock:
                     self._tasks[task.task_id] = task
         logger.warning("[TaskTracker] Task %s failed: %s", task_id, _sanitize_error(error))
+        if task is not None and task.callback_url:
+            self._fire_callback(task)
+
+    @staticmethod
+    def _fire_callback(task: TaskRecord) -> None:
+        """Schedule delivery of the task-completion webhook, if registered.
+
+        Never allowed to fail task completion: callback delivery runs as a
+        fire-and-forget asyncio task, guarded against there being no running
+        event loop (e.g. in synchronous test contexts).
+        """
+        snapshot = TaskTracker._copy(task)
+        try:
+            asyncio.create_task(deliver_task_callback(snapshot))
+        except RuntimeError:
+            logger.warning(
+                "[TaskTracker] Could not schedule callback for task %s: no running event loop",
+                task.task_id,
+            )
 
     async def get(
         self,
@@ -449,7 +485,10 @@ class TaskTracker:
 
     @staticmethod
     def _record_from_payload(payload: Dict[str, Any]) -> TaskRecord:
-        data = dict(payload)
+        # Filter to known TaskRecord fields so payloads from older/newer
+        # binaries (missing or with extra keys) still load (rollback safety).
+        known_fields = {f.name for f in fields(TaskRecord)}
+        data = {k: v for k, v in payload.items() if k in known_fields}
         data["status"] = TaskStatus(data["status"])
         return TaskRecord(**data)
 

@@ -178,6 +178,10 @@ class ServerConfig(BaseModel):
     # behind a reverse proxy that does not forward X-Forwarded-* headers.
     public_base_url: Optional[str] = None
     upload_signed_ttl_seconds: int = 600
+    # Kill switch for outbound task-completion webhook delivery (see
+    # ``openviking.service.task_callback``). Defaults on; set false to
+    # disable delivery without touching caller-registered callback_url/token.
+    task_callback_enabled: bool = True
     temp_upload: TempUploadConfig = Field(default_factory=TempUploadConfig)
     tool_output_externalization: ToolOutputExternalizationConfig = Field(
         default_factory=ToolOutputExternalizationConfig

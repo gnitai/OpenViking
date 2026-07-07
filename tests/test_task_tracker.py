@@ -3,11 +3,13 @@
 
 """Unit tests for TaskTracker."""
 
+import asyncio
 import json
 import time
 
 import pytest
 
+import openviking.service.task_tracker as task_tracker_module
 from openviking.pyagfs.exceptions import AGFSAlreadyExistsError
 from openviking.server.identity import RequestContext, Role
 from openviking.service.session_service import SessionService
@@ -309,6 +311,156 @@ async def test_to_dict(tracker: TaskTracker):
     assert "user_id" not in d
 
 
+async def test_to_dict_omits_callback_fields(tracker: TaskTracker):
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    d = task.to_dict()
+    assert "callback_url" not in d
+    assert "callback_token" not in d
+
+
+# ── Callback registration ──
+
+
+async def test_create_sets_callback_fields(tracker: TaskTracker):
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    assert task.callback_url == "https://caller.example.com/hook"
+    assert task.callback_token == "secret-token"
+
+
+async def test_create_if_no_running_sets_callback_fields(tracker: TaskTracker):
+    task = await tracker.create_if_no_running(
+        "reindex",
+        "wfs://resources/demo",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    assert task is not None
+    assert task.callback_url == "https://caller.example.com/hook"
+    assert task.callback_token == "secret-token"
+
+
+async def test_create_defaults_callback_fields_to_none(tracker: TaskTracker):
+    task = await tracker.create("session_commit", resource_id="s1", **_owner_kwargs())
+    assert task.callback_url is None
+    assert task.callback_token is None
+
+
+# ── Callback delivery hook ──
+
+
+async def test_complete_fires_callback_when_registered(tracker: TaskTracker, monkeypatch):
+    calls = []
+
+    async def fake_deliver(task_snapshot):
+        calls.append(task_snapshot)
+
+    monkeypatch.setattr(task_tracker_module, "deliver_task_callback", fake_deliver)
+
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    await tracker.complete(task.task_id, {"ok": True})
+    await asyncio.sleep(0)  # let the fire-and-forget task run
+
+    assert len(calls) == 1
+    assert calls[0].task_id == task.task_id
+    assert calls[0].status == TaskStatus.COMPLETED
+
+
+async def test_complete_does_not_fire_callback_without_url(tracker: TaskTracker, monkeypatch):
+    calls = []
+
+    async def fake_deliver(task_snapshot):
+        calls.append(task_snapshot)
+
+    monkeypatch.setattr(task_tracker_module, "deliver_task_callback", fake_deliver)
+
+    task = await tracker.create("session_commit", resource_id="s1", **_owner_kwargs())
+    await tracker.complete(task.task_id, {"ok": True})
+    await asyncio.sleep(0)
+
+    assert calls == []
+
+
+async def test_fail_fires_callback_when_registered(tracker: TaskTracker, monkeypatch):
+    calls = []
+
+    async def fake_deliver(task_snapshot):
+        calls.append(task_snapshot)
+
+    monkeypatch.setattr(task_tracker_module, "deliver_task_callback", fake_deliver)
+
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    await tracker.fail(task.task_id, "boom")
+    await asyncio.sleep(0)
+
+    assert len(calls) == 1
+    assert calls[0].task_id == task.task_id
+    assert calls[0].status == TaskStatus.FAILED
+
+
+async def test_fail_does_not_fire_callback_without_url(tracker: TaskTracker, monkeypatch):
+    calls = []
+
+    async def fake_deliver(task_snapshot):
+        calls.append(task_snapshot)
+
+    monkeypatch.setattr(task_tracker_module, "deliver_task_callback", fake_deliver)
+
+    task = await tracker.create("session_commit", resource_id="s1", **_owner_kwargs())
+    await tracker.fail(task.task_id, "boom")
+    await asyncio.sleep(0)
+
+    assert calls == []
+
+
+async def test_complete_callback_scheduling_failure_does_not_raise(
+    tracker: TaskTracker, monkeypatch
+):
+    """If scheduling the callback task fails (e.g. no running loop), complete() must not raise."""
+
+    def raise_runtime_error(coro):
+        coro.close()
+        raise RuntimeError("no running event loop")
+
+    monkeypatch.setattr(task_tracker_module.asyncio, "create_task", raise_runtime_error)
+
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        **_owner_kwargs(),
+    )
+    # Should not raise despite the scheduling failure.
+    await tracker.complete(task.task_id, {"ok": True})
+    retrieved = await tracker.get(task.task_id)
+    assert retrieved is not None
+    assert retrieved.status == TaskStatus.COMPLETED
+
+
 # ── Sanitization ──
 
 
@@ -423,6 +575,66 @@ async def test_persistent_store_writes_task_record_json():
     assert payload["account_id"] == "acme"
     assert payload["user_id"] == "alice"
     assert "schema_version" not in payload
+
+
+async def test_payload_roundtrip_includes_callback_fields():
+    from openviking.service.task_store import _task_to_payload
+
+    tracker = TaskTracker(store=InMemoryTaskStore())
+    task = await tracker.create(
+        "session_commit",
+        resource_id="s1",
+        callback_url="https://caller.example.com/hook",
+        callback_token="secret-token",
+        **_owner_kwargs(),
+    )
+    payload = _task_to_payload(task)
+    assert payload["callback_url"] == "https://caller.example.com/hook"
+    assert payload["callback_token"] == "secret-token"
+
+    reloaded = tracker._record_from_payload(payload)
+    assert reloaded.callback_url == "https://caller.example.com/hook"
+    assert reloaded.callback_token == "secret-token"
+
+
+async def test_record_from_payload_loads_old_format_without_callback_fields(
+    tracker: TaskTracker,
+):
+    old_payload = {
+        "task_id": "t1",
+        "task_type": "session_commit",
+        "status": "pending",
+        "created_at": 1.0,
+        "updated_at": 1.0,
+        "resource_id": None,
+        "account_id": "acme",
+        "user_id": "alice",
+        "result": None,
+        "error": None,
+    }
+    record = tracker._record_from_payload(old_payload)
+    assert record.task_id == "t1"
+    assert record.callback_url is None
+    assert record.callback_token is None
+
+
+async def test_record_from_payload_ignores_unknown_extra_key(tracker: TaskTracker):
+    payload_with_extra = {
+        "task_id": "t1",
+        "task_type": "session_commit",
+        "status": "pending",
+        "created_at": 1.0,
+        "updated_at": 1.0,
+        "resource_id": None,
+        "account_id": "acme",
+        "user_id": "alice",
+        "result": None,
+        "error": None,
+        "schema_version": 3,
+        "future_field": "unknown",
+    }
+    record = tracker._record_from_payload(payload_with_extra)
+    assert record.task_id == "t1"
 
 
 async def test_inmemory_store_keeps_tasktracker_tasks_dict():

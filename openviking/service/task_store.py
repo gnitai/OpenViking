@@ -188,6 +188,8 @@ def _task_to_payload(task: Any) -> Dict[str, Any]:
         "user_id": task.user_id,
         "result": deepcopy(task.result),
         "error": task.error,
+        "callback_url": task.callback_url,
+        "callback_token": task.callback_token,
     }
 
 
