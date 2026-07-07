@@ -11,10 +11,22 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+import openviking.server.dependencies as dependencies
 from openviking.server.dependencies import ensure_project_ready, set_service
 from openviking.server.identity import RequestContext, Role
 from openviking.server.routers.resources import router as resources_router
 from openviking_cli.session.user_id import UserIdentifier
+
+
+@pytest.fixture(autouse=True)
+def _restore_service():
+    """``set_service`` mutates module-global state; save and restore it so this
+    file is self-cleaning (a leaked fake service would poison later tests)."""
+    prev_service = dependencies._service
+    prev_guard = dependencies._PROJECT_GUARD
+    yield
+    dependencies._service = prev_service
+    dependencies._PROJECT_GUARD = prev_guard
 
 
 class _Resources:
