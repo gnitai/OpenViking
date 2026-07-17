@@ -577,7 +577,7 @@ class SemanticConfig:
     abstract_max_chars: int = 256
     """Maximum characters for generated abstracts."""
 
-    overview_max_chars: int = 4000
+    overview_max_chars: int = 100000
     """Maximum characters for generated overviews."""
 
     memory_chunk_chars: int = 2000

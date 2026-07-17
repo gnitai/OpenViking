@@ -3,6 +3,9 @@
 
 """Tests for SemanticConfig and overview budget estimation."""
 
+from types import SimpleNamespace
+
+from openviking.storage.queuefs.semantic_processor import SemanticProcessor
 from openviking_cli.utils.config.parser_config import SemanticConfig
 
 
@@ -13,7 +16,7 @@ def test_semantic_config_defaults():
     assert config.max_overview_prompt_chars == 60000
     assert config.overview_batch_size == 50
     assert config.abstract_max_chars == 256
-    assert config.overview_max_chars == 4000
+    assert config.overview_max_chars == 100000
     assert config.memory_chunk_chars == 2000
     assert config.memory_chunk_overlap == 200
 
@@ -61,13 +64,40 @@ def test_abstract_truncation():
     assert abstract.endswith("...")
 
 
-def test_overview_truncation():
-    """Test overview is truncated to overview_max_chars."""
-    config = SemanticConfig(overview_max_chars=500)
+def _enforce_size_limits(monkeypatch, semantic: SemanticConfig, overview: str) -> str:
+    config = SimpleNamespace(semantic=semantic)
+    monkeypatch.setattr(
+        "openviking.storage.queuefs.semantic_processor.get_openviking_config",
+        lambda: config,
+    )
+    limited_overview, _ = SemanticProcessor()._enforce_size_limits(overview, "abstract")
+    return limited_overview
+
+
+def test_default_overview_limit_preserves_100000_characters(monkeypatch):
+    """The default limit must not truncate a 100,000-character overview."""
+    overview = "x" * 100000
+
+    assert _enforce_size_limits(monkeypatch, SemanticConfig(), overview) == overview
+
+
+def test_default_overview_limit_truncates_above_100000_characters(monkeypatch):
+    """The default limit must still guard against oversized overview output."""
+    overview = "x" * 100001
+
+    limited = _enforce_size_limits(monkeypatch, SemanticConfig(), overview)
+
+    assert limited == overview[:100000]
+
+
+def test_custom_overview_limit_overrides_default(monkeypatch):
+    """A configured overview_max_chars value must continue to control truncation."""
+    semantic = SemanticConfig(overview_max_chars=500)
     overview = "x" * 1000
-    if len(overview) > config.overview_max_chars:
-        overview = overview[: config.overview_max_chars]
-    assert len(overview) == 500
+
+    limited = _enforce_size_limits(monkeypatch, semantic, overview)
+
+    assert limited == overview[:500]
 
 
 def test_batch_splitting():
