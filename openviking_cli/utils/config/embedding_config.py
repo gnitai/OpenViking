@@ -372,8 +372,34 @@ class LegacyEmbeddingIdentityConfig(BaseModel):
         default="voyage/voyage-code-3", description="Model the legacy vectors were made with"
     )
     dimension: int = Field(default=1024, gt=0, description="Dimension of the legacy vectors")
+    applies_below_account_id: Optional[int] = Field(
+        default=None,
+        description=(
+            "Numeric account-id cutoff. An unpinned account whose id parses as an "
+            "integer BELOW this belongs to the legacy vector space; at or above it, "
+            "the account is new and takes the current default. Set this to an id "
+            "safely ABOVE the highest account that existed when the model changed -- "
+            "erring high only leaves a few new projects on the older model (harmless, "
+            "they stay self-consistent), while erring low silently points existing "
+            "projects at a vector space their data is not in. Leave unset to treat "
+            "every unpinned account as legacy."
+        ),
+    )
 
     model_config = {"extra": "forbid"}
+
+    def covers_account(self, account_id: str) -> bool:
+        """True when an unpinned ``account_id`` should resolve to legacy.
+
+        Non-numeric ids never satisfy the cutoff, so they fall to legacy -- the
+        safe direction for an account that may already hold vectors.
+        """
+        if self.applies_below_account_id is None:
+            return True
+        try:
+            return int(str(account_id).strip()) < self.applies_below_account_id
+        except (TypeError, ValueError):
+            return True
 
 
 class EmbeddingConfig(BaseModel):

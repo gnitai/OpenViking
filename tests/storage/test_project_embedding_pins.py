@@ -71,6 +71,8 @@ def _config(model="voyage/voyage-code-4", dimension=1024, legacy=None):
                 provider="openai",
                 model="voyage/voyage-code-3",
                 dimension=1024,
+                applies_below_account_id=None,
+                covers_account=lambda account_id: True,
             ),
         ),
     )
@@ -369,3 +371,86 @@ def test_ovpack_labels_exports_with_the_projects_model(monkeypatch):
     assert embedding_snapshot_metadata(None, legacy)["model"] == "voyage/voyage-code-3"
     assert current_embedding_metadata(legacy)["model"] == "voyage/voyage-code-3"
     assert current_embedding_metadata(legacy)["dimensions"] == 1024
+
+
+# ------------------------------------------------------- account-id cutoff
+
+
+def _cutoff_config(cutoff):
+    """Legacy block carrying a numeric account-id cutoff."""
+    config = _config()
+    config.embedding.legacy = SimpleNamespace(
+        provider="openai",
+        model="voyage/voyage-code-3",
+        dimension=1024,
+        applies_below_account_id=cutoff,
+        covers_account=lambda account_id: _covers(cutoff, account_id),
+    )
+    return config
+
+
+def _covers(cutoff, account_id):
+    if cutoff is None:
+        return True
+    try:
+        return int(str(account_id).strip()) < cutoff
+    except (TypeError, ValueError):
+        return True
+
+
+@pytest.mark.asyncio
+async def test_account_id_cutoff_splits_old_from_new(monkeypatch):
+    """A numeric cutoff replaces the backfill for a fleet with ordered ids."""
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _cutoff_config(168794),
+    )
+
+    assert (await store.resolve("168793")).model == "voyage/voyage-code-3"
+    assert (await store.resolve("168794")).model == "voyage/voyage-code-4"
+    assert (await store.resolve("200000")).model == "voyage/voyage-code-4"
+
+
+@pytest.mark.asyncio
+async def test_non_numeric_accounts_fall_to_legacy_under_a_cutoff(monkeypatch):
+    """Legacy is the safe direction for an id the cutoff cannot rank."""
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _cutoff_config(168794),
+    )
+
+    assert (await store.resolve("acme-corp")).model == "voyage/voyage-code-3"
+
+
+@pytest.mark.asyncio
+async def test_pin_beats_the_cutoff(monkeypatch):
+    """A written pin is the truth; the cutoff is only a fallback for its absence."""
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _cutoff_config(168794),
+    )
+    # An id far above the cutoff, but pinned to the old space.
+    await store._write_pin(
+        "999999",
+        EmbeddingIdentity(provider="openai", model="voyage/voyage-code-3", dimension=1024),
+    )
+
+    assert (await store.resolve("999999")).model == "voyage/voyage-code-3"
+
+
+@pytest.mark.asyncio
+async def test_no_cutoff_treats_every_unpinned_account_as_legacy(monkeypatch):
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _cutoff_config(None),
+    )
+
+    assert (await store.resolve("999999")).model == "voyage/voyage-code-3"

@@ -105,13 +105,28 @@ class ProjectEmbeddingPins:
         if identity is None:
             from openviking_cli.utils.config import get_openviking_config
 
-            identity = legacy_identity(get_openviking_config())
-            logger.warning(
-                "No embedding pin for account %s; falling back to legacy identity %s. "
-                "This project predates per-project pinning.",
-                account_id,
-                identity.model,
-            )
+            config = get_openviking_config()
+            legacy_cfg = getattr(config.embedding, "legacy", None)
+            covered = legacy_cfg.covers_account(account_id) if legacy_cfg is not None else True
+            if covered:
+                identity = legacy_identity(config)
+                logger.warning(
+                    "No embedding pin for account %s; resolving to legacy identity %s. "
+                    "This project predates per-project pinning.",
+                    account_id,
+                    identity.model,
+                )
+            else:
+                # Above the cutoff: this account came into existence after the
+                # model changed, so its vectors are in the current space even
+                # though the pin is missing.
+                identity = default_identity(config)
+                logger.info(
+                    "No embedding pin for account %s, but it is above the legacy "
+                    "cutoff; resolving to the current default %s.",
+                    account_id,
+                    identity.model,
+                )
         self._cache[account_id] = identity
         return identity
 
