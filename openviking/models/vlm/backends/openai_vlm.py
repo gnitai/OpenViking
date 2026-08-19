@@ -36,6 +36,12 @@ _DASHSCOPE_HOSTS = {
 _REASONING_MODEL_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 
 
+# Tag attached to every call routed through the W `/user` gateway so the gateway
+# attributes indexing usage to the context-indexing feature (and admits it past
+# the feature:* tag gate). Not sent to other providers.
+GATEWAY_FEATURE_TAG = "feature:context-indexing"
+
+
 def _is_reasoning_model(model: Optional[str]) -> bool:
     """OpenAI reasoning-model families reject `max_tokens` and non-default `temperature`.
 
@@ -142,11 +148,29 @@ class OpenAIVLM(VLMBase):
 
         return host.lower() in _DASHSCOPE_HOSTS
 
+    def _is_user_gateway(self) -> bool:
+        """True when api_base targets the W `/user` gateway, which requires a
+        feature:* tag and bills the caller's plan. Other providers (OpenAI, Azure,
+        DashScope) must NOT receive the tag."""
+        if not self.api_base:
+            return False
+        try:
+            path = urlparse(self.api_base).path
+        except ValueError:
+            return False
+        return path.rstrip("/").endswith("/user")
+
     def _apply_provider_specific_extra_body(self, kwargs: Dict[str, Any], thinking: bool) -> None:
         """Attach provider-specific raw body parameters understood by compatible APIs."""
         extra_body = dict(self.extra_request_body)
         if self._supports_enable_thinking():
             extra_body["enable_thinking"] = bool(thinking)
+        if self._is_user_gateway():
+            existing = extra_body.get("tags")
+            tags = list(existing) if isinstance(existing, list) else []
+            if GATEWAY_FEATURE_TAG not in tags:
+                tags.append(GATEWAY_FEATURE_TAG)
+            extra_body["tags"] = tags
         if extra_body:
             kwargs["extra_body"] = extra_body
         # When a per-request W credential is bound (e.g. the semantic-queue

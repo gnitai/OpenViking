@@ -486,6 +486,104 @@ class TestVLMExtraRequestBody:
         assert kwargs["extra_body"] == {"seed": 7, "enable_thinking": False}
 
 
+class TestGatewayFeatureTag:
+    """Feature tag is attached only for the W /user gateway."""
+
+    def _make_response(self):
+        response = MagicMock()
+        response.choices = [MagicMock(message=MagicMock(content="ok"), finish_reason="stop")]
+        response.usage = None
+        return response
+
+    def test_is_user_gateway_detection(self):
+        def gw(api_base):
+            return OpenAIVLM({"api_key": "sk-test", "api_base": api_base})._is_user_gateway()
+
+        assert gw("https://gw.example.com/user") is True
+        assert gw("https://gw.example.com/user/") is True
+        assert gw("https://gw.example.com/v1") is False
+        assert gw("https://api.openai.com/v1") is False
+        assert gw("https://example-resource.openai.azure.com") is False
+        assert OpenAIVLM({"api_key": "sk-test"})._is_user_gateway() is False
+
+    @patch("openviking.models.vlm.backends.openai_vlm.openai.OpenAI")
+    def test_user_gateway_text_completion_adds_feature_tag(self, mock_openai_class):
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._make_response()
+
+        vlm = OpenAIVLM(
+            {
+                "api_key": "sk-test",
+                "api_base": "https://gw.example.com/user",
+                "model": "indexing",
+            }
+        )
+
+        vlm.get_completion("hello")
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["extra_body"] == {"tags": ["feature:context-indexing"]}
+
+    @patch("openviking.models.vlm.backends.openai_vlm.openai.OpenAI")
+    def test_user_gateway_vision_completion_adds_feature_tag(self, mock_openai_class):
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._make_response()
+
+        vlm = OpenAIVLM(
+            {
+                "api_key": "sk-test",
+                "api_base": "https://gw.example.com/user",
+                "model": "indexing-vision",
+            }
+        )
+
+        vlm.get_vision_completion(prompt="describe", images=[b"\x89PNG\r\n\x1a\n0000"])
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["extra_body"] == {"tags": ["feature:context-indexing"]}
+
+    @patch("openviking.models.vlm.backends.openai_vlm.openai.OpenAI")
+    def test_non_gateway_provider_gets_no_feature_tag(self, mock_openai_class):
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._make_response()
+
+        vlm = OpenAIVLM(
+            {
+                "api_key": "sk-test",
+                "api_base": "https://api.openai.com/v1",
+                "model": "gpt-4o-mini",
+            }
+        )
+
+        vlm.get_completion("hello")
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        assert "extra_body" not in call_kwargs
+
+    @patch("openviking.models.vlm.backends.openai_vlm.openai.OpenAI")
+    def test_feature_tag_merges_with_config_tags_without_duplication(self, mock_openai_class):
+        mock_client = MagicMock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._make_response()
+
+        vlm = OpenAIVLM(
+            {
+                "api_key": "sk-test",
+                "api_base": "https://gw.example.com/user",
+                "model": "indexing",
+                "extra_request_body": {"tags": ["feature:x"]},
+            }
+        )
+
+        vlm.get_completion("hello")
+
+        call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+        assert call_kwargs["extra_body"]["tags"] == ["feature:x", "feature:context-indexing"]
+
+
 class TestVLMConfigExtraHeaders:
     """Test VLMConfig passes extra_headers to VLM instance."""
 
