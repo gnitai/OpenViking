@@ -18,7 +18,6 @@ from openviking.storage.collection_schemas import (
     build_context_schema,
     init_context_collection,
 )
-from openviking.storage.errors import EmbeddingRebuildRequiredError
 from openviking.storage.expr import Eq
 from openviking.storage.queuefs.embedding_msg import EmbeddingMsg
 from openviking.storage.viking_vector_index_backend import _SingleAccountBackend
@@ -178,7 +177,17 @@ async def test_init_context_collection_backfills_metadata_for_empty_legacy_colle
 
 
 @pytest.mark.asyncio
-async def test_init_context_collection_rejects_mismatched_nonempty_collection(monkeypatch):
+async def test_init_context_collection_rerecords_mismatched_nonempty_collection(monkeypatch):
+    """A changed default model must NOT block startup.
+
+    The default-collection metadata records "the model NEW projects get", not
+    a fleet-wide invariant -- each project's own pin is what keeps it in its
+    original vector space. Refusing to boot here would take every project down
+    for a config change that is correct for all of them.
+    """
+
+    updated = {}
+
     class _FakeStorage:
         async def create_collection(self, name, schema):
             del name, schema
@@ -196,9 +205,9 @@ async def test_init_context_collection_rejects_mismatched_nonempty_collection(mo
         async def count(self):
             return 3
 
-        async def update_collection_description(self, description):  # pragma: no cover
-            del description
-            raise AssertionError("should not update mismatched non-empty collection")
+        async def update_collection_description(self, description):
+            updated["description"] = description
+            return True
 
     config = _DummyConfig(_DummyEmbedder())
     monkeypatch.setattr(
@@ -206,8 +215,9 @@ async def test_init_context_collection_rejects_mismatched_nonempty_collection(mo
         lambda: config,
     )
 
-    with pytest.raises(EmbeddingRebuildRequiredError, match="Rebuild is required"):
-        await init_context_collection(_FakeStorage())
+    assert await init_context_collection(_FakeStorage()) is False
+    assert "description" in updated, "the new default must be recorded"
+    assert config.embedding.dense.model in updated["description"]
 
 
 def test_build_embedding_metadata_hashes_resolved_local_model_path(tmp_path):

@@ -26,6 +26,7 @@ from openviking.session import create_session_compressor
 from openviking.storage import VikingDBManager
 from openviking.storage.collection_schemas import init_context_collection
 from openviking.storage.index_consistency import check_index_consistency
+from openviking.storage.project_embedding import init_project_embedding_pins
 from openviking.storage.queuefs.queue_manager import QueueManager, init_queue_manager
 from openviking.storage.transaction import LockManager, init_lock_manager
 from openviking.storage.viking_fs import VikingFS, init_viking_fs
@@ -290,6 +291,19 @@ class OpenVikingService:
         )
         if enable_recorder:
             logger.info("VikingFS IO Recorder enabled")
+
+        # Install the per-project embedding pin store before any worker can
+        # embed. Pins decide which vector space each project writes into, so
+        # they must be resolvable before the queue starts draining.
+        pins = init_project_embedding_pins(self._viking_fs)
+        # The default account never passes through ProjectInitGuard (its
+        # sentinel is pre-seeded), so stamp it here or it would resolve to the
+        # legacy identity forever -- wrong on a fresh install, where nothing
+        # is legacy.
+        try:
+            await pins.ensure_pinned(self._user.account_id)
+        except Exception as err:
+            logger.error("Failed to pin default account embedding identity: %s", err)
 
         # Start queue workers now that VikingFS is ready.
         # Doing it here (rather than in _init_storage) ensures that any tasks

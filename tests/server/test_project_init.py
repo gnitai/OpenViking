@@ -4,6 +4,7 @@
 
 import pytest
 
+from openviking.models.embedder.identity import EmbeddingIdentity
 from openviking.server.identity import RequestContext, Role
 from openviking.server.project_init import ProjectInitGuard, build_default_initializer
 from openviking_cli.session.user_id import UserIdentifier
@@ -99,7 +100,7 @@ async def test_default_initializer_applies_schema_before_directory_init():
     order = []
 
     class _FakeVikingDBManager:
-        async def ensure_collection(self, *, ctx):
+        async def ensure_collection(self, *, ctx, identity=None):
             order.append("ensure_collection")
             return True
 
@@ -115,13 +116,25 @@ async def test_default_initializer_applies_schema_before_directory_init():
             order.append("initialize_user_directories")
             return 0
 
-    initializer = build_default_initializer(_FakeService())
-    await initializer(_ctx("3493", "m1"))
+    async def _fake_pin(account_id):
+        order.append("pin_embedding_identity")
+        return EmbeddingIdentity(provider="openai", model="voyage/voyage-code-3", dimension=1024)
 
-    assert order[0] == "ensure_collection", (
-        f"ensure_collection must run first; got order {order}"
+    import openviking.server.project_init as project_init_mod
+
+    original = project_init_mod.ensure_project_pinned
+    project_init_mod.ensure_project_pinned = _fake_pin
+    try:
+        initializer = build_default_initializer(_FakeService())
+        await initializer(_ctx("3493", "m1"))
+    finally:
+        project_init_mod.ensure_project_pinned = original
+
+    assert order[1] == "ensure_collection", (
+        f"ensure_collection must run before directory init; got order {order}"
     )
     assert order == [
+        "pin_embedding_identity",
         "ensure_collection",
         "initialize_account_directories",
         "initialize_user_directories",
