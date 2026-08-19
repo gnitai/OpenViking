@@ -3,6 +3,7 @@
 """OpenAI Embedder Implementation"""
 
 from typing import Any, Dict, List, Literal, Optional
+from urllib.parse import urlparse
 
 import openai
 
@@ -12,12 +13,24 @@ from openviking.models.embedder.base import (
     HybridEmbedderBase,
     SparseEmbedderBase,
 )
+from openviking.models.llm_credentials import apply_llm_request_metadata
 from openviking.models.vlm.registry import DEFAULT_AZURE_API_VERSION
 from openviking.telemetry import get_current_telemetry
 from openviking.utils.async_client_cache import LoopScopedAsyncClientCache
 from openviking_cli.utils import get_logger
 
 logger = get_logger(__name__)
+
+
+# First-party endpoints that reject unknown embedding-body fields outright.
+# Everything else reachable through this backend is an OpenAI-compatible gateway.
+_STRICT_BODY_SCHEMA_HOSTS = {"api.openai.com"}
+
+
+# Feature label for embedding spend at the W proxy. A sub-tag of the indexing
+# feature, so a usage query for `feature:context-indexing` covers it as well,
+# while still separating vector spend from the VLM spend beside it.
+EMBEDDING_FEATURE_TAG = "feature:context-indexing:embedding"
 
 
 class OpenAIDenseEmbedder(DenseEmbedderBase):
@@ -274,7 +287,33 @@ class OpenAIDenseEmbedder(DenseEmbedderBase):
         extra_body = self._build_extra_body(is_query=is_query)
         if extra_body:
             kwargs["extra_body"] = extra_body
+        # Embeddings go to the W LLM proxy under its own service key rather than
+        # the caller's JWT, and skip the gateway that would otherwise label them,
+        # so the proxy can infer neither who the work is for nor what it is for.
+        # Attach both so the spend log stays attributable and filterable. No-op
+        # when no W credential is bound (every non-W deployment).
+        if self._accepts_request_metadata():
+            apply_llm_request_metadata(kwargs, feature_tag=EMBEDDING_FEATURE_TAG)
         return kwargs
+
+    def _accepts_request_metadata(self) -> bool:
+        """True when this endpoint tolerates a ``metadata`` field on the body.
+
+        A credential being bound says the *request* is W-routed; it says nothing
+        about where *this embedder* points. A deployment can route chat through
+        the W proxy while embedding against OpenAI or Azure directly -- and those
+        two validate embedding bodies against a fixed schema, rejecting anything
+        unknown with ``400 Unrecognized request argument``. Attribution is
+        best-effort metadata, never worth failing the request over, so it is only
+        attached to OpenAI-compatible gateways (which consume or ignore it).
+        """
+        if self._provider == "azure" or not self.api_base:
+            return False
+        try:
+            host = (urlparse(self.api_base).hostname or "").lower()
+        except ValueError:
+            return False
+        return host not in _STRICT_BODY_SCHEMA_HOSTS
 
     def _should_send_dimensions(self) -> bool:
         # Preserve existing behavior for official OpenAI embeddings: only custom

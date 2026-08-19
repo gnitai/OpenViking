@@ -13,6 +13,7 @@ class EmbeddingMsg:
     id: str = field(default_factory=lambda: str(uuid4()))
     telemetry_id: str = ""
     semantic_msg_id: Optional[str] = None
+    llm_user_id: Optional[str] = None
 
     def __init__(
         self,
@@ -20,12 +21,25 @@ class EmbeddingMsg:
         context_data: Dict[str, Any],
         telemetry_id: str = "",
         semantic_msg_id: Optional[str] = None,
+        llm_user_id: Optional[str] = None,
     ):
         self.id = str(uuid4())
         self.message = message
         self.context_data = context_data
         self.telemetry_id = telemetry_id
         self.semantic_msg_id = semantic_msg_id
+        # Embedding runs on the queue worker, long after the request that
+        # enqueued it, so the user the proxy should bill this vector to has to
+        # travel on the message. Default it from the credential bound to the
+        # current unit of work (HTTP request or semantic worker) so no call site
+        # has to thread it explicitly.
+        if llm_user_id is None:
+            from openviking.models.llm_credentials import get_llm_credentials
+
+            creds = get_llm_credentials()
+            if creds is not None:
+                llm_user_id = creds.user_id
+        self.llm_user_id = llm_user_id
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert embedding message to dictionary format."""
@@ -44,6 +58,10 @@ class EmbeddingMsg:
             telemetry_id=data.get("telemetry_id", ""),
             semantic_msg_id=data.get("semantic_msg_id"),
         )
+        # Restore the persisted user deterministically (bypassing the ctor's
+        # contextvar fallback): a message written before this field existed must
+        # yield None, not inherit whoever the deserializing task is acting for.
+        obj.llm_user_id = data.get("llm_user_id")
         obj.id = data.get("id", obj.id)
         return obj
 

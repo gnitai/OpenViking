@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from openviking.models.embedder.base import EmbedResult, embed_compat
+from openviking.models.llm_credentials import bind_llm_user_id, reset_llm_credentials
 from openviking.server.identity import RequestContext, Role
 from openviking.storage.errors import (
     CollectionNotFoundError,
@@ -523,9 +524,17 @@ class TextEmbeddingHandler(DequeueHandlerBase):
                         import time as _time
 
                         _embed_t0 = _time.monotonic()
-                        result: EmbedResult = await embed_compat(
-                            self._embedder, embedding_msg.message, is_query=False
-                        )
+                        # The worker runs outside any request, so re-bind the
+                        # user carried on the message: it is what lets the LLM
+                        # proxy attribute this vector's spend to whoever asked
+                        # for the indexing. No-op off W.
+                        creds_token = bind_llm_user_id(embedding_msg.llm_user_id)
+                        try:
+                            result: EmbedResult = await embed_compat(
+                                self._embedder, embedding_msg.message, is_query=False
+                            )
+                        finally:
+                            reset_llm_credentials(creds_token)
                         _embed_elapsed = _time.monotonic() - _embed_t0
                         try:
                             from openviking.metrics.datasources import EmbeddingEventDataSource

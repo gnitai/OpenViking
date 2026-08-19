@@ -370,8 +370,12 @@ class SemanticProcessor(DequeueHandlerBase):
                 root_context_token = bind_root_observability_context(root_attrs)
                 # Bind the requesting user's LLM-gateway JWT (carried on the
                 # message) so the VLM call for L0/L1 authenticates as that user
-                # and recursive child enqueues inherit it. project_id == account_id.
-                llm_credentials_token = bind_llm_credentials(msg.llm_auth_token, msg.account_id)
+                # and recursive child enqueues inherit it. project_id == account_id,
+                # user_id attributes the deferred work back to the requester in
+                # the proxy's spend logs.
+                llm_credentials_token = bind_llm_credentials(
+                    msg.llm_auth_token, msg.account_id, msg.user_id
+                )
                 try:
                     self._current_msg = msg
                     self._current_ctx = self._ctx_from_semantic_msg(msg)

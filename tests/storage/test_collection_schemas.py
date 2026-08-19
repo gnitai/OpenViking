@@ -984,3 +984,97 @@ async def test_single_account_backend_query_runs_adapter_in_threadpool(monkeypat
     assert isinstance(query_filter, Eq)
     assert query_filter.field == "account_id"
     assert query_filter.value == "acc1"
+
+
+@pytest.mark.asyncio
+async def test_embedding_handler_binds_message_user_for_the_embed_call(monkeypatch):
+    """The proxy attributes a vector's spend from the user on the message.
+
+    The worker runs outside the request that enqueued the work, so the id has to
+    be re-bound around the embed call or the spend log lands unattributed.
+    """
+    from openviking.models.llm_credentials import get_llm_credentials
+
+    seen: dict[str, object] = {}
+
+    class _RecordingEmbedder(_DummyEmbedder):
+        # embed_compat prepares input before calling the async entrypoint;
+        # _DummyEmbedder is a bare stub, so supply both here.
+        def prepare_embedding_input(self, text: str) -> str:
+            return text
+
+        async def embed_async(self, text: str, is_query: bool = False):
+            return self.embed(text, is_query=is_query)
+
+        def embed(self, text: str, is_query: bool = False):
+            creds = get_llm_credentials()
+            seen["user_id"] = creds.user_id if creds else None
+            return super().embed(text, is_query=is_query)
+
+    class _DummyVikingDB:
+        is_closing = False
+
+        async def upsert(self, _data, *, ctx):
+            return None
+
+    embedder = _RecordingEmbedder()
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _DummyConfig(embedder),
+    )
+
+    msg = EmbeddingMsg(
+        message="hello",
+        context_data={
+            "id": "id-1",
+            "uri": "wfs://resources/sample",
+            "account_id": "default",
+            "abstract": "sample",
+        },
+        llm_user_id="3122",
+    )
+
+    handler = TextEmbeddingHandler(_DummyVikingDB())
+    await handler.on_dequeue({"data": json.dumps(msg.to_dict())})
+
+    assert seen["user_id"] == "3122"
+    # The binding is scoped to the one message, never leaked to the next.
+    assert get_llm_credentials() is None
+
+
+@pytest.mark.asyncio
+async def test_embedding_handler_leaves_unattributed_messages_unbound(monkeypatch):
+    """Off W there is no user to attribute; the embed call must stay a no-op."""
+    from openviking.models.llm_credentials import get_llm_credentials
+
+    seen: dict[str, object] = {"creds": "unset"}
+
+    class _RecordingEmbedder(_DummyEmbedder):
+        # embed_compat prepares input before calling the async entrypoint;
+        # _DummyEmbedder is a bare stub, so supply both here.
+        def prepare_embedding_input(self, text: str) -> str:
+            return text
+
+        async def embed_async(self, text: str, is_query: bool = False):
+            return self.embed(text, is_query=is_query)
+
+        def embed(self, text: str, is_query: bool = False):
+            seen["creds"] = get_llm_credentials()
+            return super().embed(text, is_query=is_query)
+
+    class _DummyVikingDB:
+        is_closing = False
+
+        async def upsert(self, _data, *, ctx):
+            return None
+
+    embedder = _RecordingEmbedder()
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _DummyConfig(embedder),
+    )
+
+    handler = TextEmbeddingHandler(_DummyVikingDB())
+    await handler.on_dequeue(_build_queue_payload())
+
+    assert seen["creds"] is None

@@ -442,9 +442,12 @@ async def get_request_context(
     # Bind the caller's W LLM-gateway JWT for this request task. Any LLM
     # call made synchronously here, and any SemanticMsg enqueued for deferred
     # L0/L1 generation, picks it up so usage is billed to that user.
-    # project_id == account_id (W project id). No-op when the header is absent.
+    # project_id == account_id (W project id), user_id == W user id, which the
+    # proxy records as the end user on every spend log -- including the
+    # embedding traffic that bypasses the per-user gateway.
+    # No-op when the header is absent.
     llm_auth_token = _normalize_header_value(request.headers.get("X-LLM-api-key"))
-    bind_llm_credentials(llm_auth_token, identity.account_id)
+    bind_llm_credentials(llm_auth_token, identity.account_id, identity.user_id)
 
     return ctx
 
