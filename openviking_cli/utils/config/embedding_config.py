@@ -1,5 +1,6 @@
 # Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: AGPL-3.0
+import hashlib
 import sys
 from typing import Any, List, Literal, Optional, Union, cast
 
@@ -9,6 +10,18 @@ from pydantic import BaseModel, Field, model_validator
 # stateless HTTP clients, so one per distinct vector space is enough no matter
 # how many projects share it.
 _EMBEDDER_CACHE: dict[str, Any] = {}
+
+
+def _credential_fingerprint(model_cfg: Any) -> str:
+    """Stable digest of the settings that decide WHERE a model is reached.
+
+    Hashed rather than stored raw so an api_key never lands in a dict key.
+    """
+    material = "|".join(
+        str(getattr(model_cfg, field, None))
+        for field in ("api_base", "api_key", "api_version", "extra_headers")
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
 class EmbeddingModelConfig(BaseModel):
@@ -430,10 +443,14 @@ class EmbeddingConfig(BaseModel):
     sparse: Optional[EmbeddingModelConfig] = Field(default=None)
     hybrid: Optional[EmbeddingModelConfig] = Field(default=None)
     legacy: Union[LegacyEmbeddingIdentityConfig, List[LegacyEmbeddingIdentityConfig]] = Field(
-        default_factory=LegacyEmbeddingIdentityConfig,
+        default_factory=list,
         description=(
-            "Frozen identity for projects created before per-project embedding "
-            "pinning. Used only when a project has no pin on disk."
+            "Vector spaces used before the current one, oldest first, each ending "
+            "at an account-id cutoff. Consulted ONLY for accounts with no pin on "
+            "disk. Defaults to empty: a deployment that has never changed its "
+            "embedding model has no history, so every unpinned account belongs to "
+            "the current default. Declare an era only when you actually change "
+            "models and older accounts still hold the previous model's vectors."
         ),
     )
     circuit_breaker: EmbeddingCircuitBreakerConfig = Field(
@@ -814,13 +831,19 @@ class EmbeddingConfig(BaseModel):
         Instances are cached per identity, not per project: they are stateless
         HTTP clients, and a fleet on two models needs exactly two of them.
         """
-        cached = _EMBEDDER_CACHE.get(identity.cache_key)
-        if cached is not None:
-            return cached
-
         base = self.hybrid or self.dense
         if base is None:
             raise ValueError("No dense/hybrid embedding configuration to derive an embedder from")
+
+        # Key on the credentials too, not just the identity. The config object
+        # can be replaced in-process (set_openviking_config / reset_instance),
+        # and an identity-only key would keep handing back an embedder bound to
+        # the old key or endpoint -- contradicting the promise above that
+        # rotating a key is a global operation.
+        cache_key = f"{identity.cache_key}|{_credential_fingerprint(base)}"
+        cached = _EMBEDDER_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
 
         # Copy live config, then override only the identity-bearing fields.
         overridden = base.model_copy(
@@ -847,7 +870,7 @@ class EmbeddingConfig(BaseModel):
                 cast(SparseEmbedderBase, sparse_embedder),
             )
 
-        _EMBEDDER_CACHE[identity.cache_key] = embedder
+        _EMBEDDER_CACHE[cache_key] = embedder
         return embedder
 
     def get_embedder(self):

@@ -116,10 +116,18 @@ class ProjectEmbeddingPins:
         return identity
 
     async def ensure_pinned(self, account_id: str) -> EmbeddingIdentity:
-        """Stamp a NEW project with the current default, or return its pin.
+        """Record the space this project is already in, if not recorded yet.
 
-        Called from per-project init. Two concurrent first-requests may both
-        write; the value is identical, so the race is benign.
+        Called from per-project init, which runs for EVERY account on first
+        contact in a process -- not just new ones. So this cannot stamp the
+        current default: an old project idle across the model change would
+        have its first request after the flip write a new-model pin over a
+        namespace full of old-model vectors, permanently, and the era cutoffs
+        would never get a chance to fire. It writes what the eras say the
+        account is, which for a genuinely new account IS the current default.
+
+        Two concurrent first-requests may both write; the value is identical,
+        so the race is benign.
         """
         cached = self._cache.get(account_id)
         if cached is not None:
@@ -137,7 +145,7 @@ class ProjectEmbeddingPins:
 
             from openviking_cli.utils.config import get_openviking_config
 
-            identity = default_identity(get_openviking_config())
+            identity = identity_for_unpinned(get_openviking_config(), account_id)
             try:
                 await self._write_pin(account_id, identity)
             except Exception as err:

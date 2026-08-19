@@ -17,13 +17,6 @@ produces. Keeping them out means key rotation and proxy moves stay global.
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-# Frozen fallback used when a project predates per-project pinning AND the
-# config carries no ``embedding.legacy`` block. Deliberately the model every
-# such project was actually embedded with.
-LEGACY_FALLBACK_PROVIDER = "openai"
-LEGACY_FALLBACK_MODEL = "voyage/voyage-code-3"
-LEGACY_FALLBACK_DIMENSION = 1024
-
 
 @dataclass(frozen=True)
 class EmbeddingIdentity:
@@ -83,8 +76,8 @@ def _active_dense_config(config: Any) -> Any:
 def default_identity(config: Any) -> EmbeddingIdentity:
     """The identity NEW projects are pinned to, from live config.
 
-    This is the ONLY place live config feeds an identity. Never use it as a
-    fallback for an existing project -- see ``legacy_identity``.
+    Never call this directly to decide an existing account's space -- go
+    through ``identity_for_unpinned``, which consults the recorded eras first.
     """
     model_cfg = _active_dense_config(config)
     provider = (
@@ -110,45 +103,29 @@ def _era_identity(era: Any) -> Optional[EmbeddingIdentity]:
     )
 
 
-def legacy_identity(config: Any) -> EmbeddingIdentity:
-    """The oldest recorded era -- the space of the earliest projects.
-
-    Read verbatim from the frozen ``embedding.legacy`` block. It is NEVER
-    derived from live dense config: doing so would mean a future config-only
-    model change silently re-pointed every unpinned legacy project at the new
-    vector space -- exactly the corruption pinning exists to prevent.
-    """
-    eras = getattr(config.embedding, "legacy_eras", None)
-    if eras:
-        parsed = _era_identity(eras[0])
-        if parsed is not None:
-            return parsed
-    legacy = getattr(config.embedding, "legacy", None)
-    if legacy is not None and not isinstance(legacy, list):
-        parsed = _era_identity(legacy)
-        if parsed is not None:
-            return parsed
-    return EmbeddingIdentity(
-        provider=LEGACY_FALLBACK_PROVIDER,
-        model=LEGACY_FALLBACK_MODEL,
-        dimension=LEGACY_FALLBACK_DIMENSION,
-    )
-
-
 def identity_for_unpinned(config: Any, account_id: str) -> EmbeddingIdentity:
     """The space an account with NO pin is already in.
 
     Walks the recorded eras oldest-first and takes the one the account falls
     into; an account past every era postdates them all, so the current default
     is what its vectors were made with.
+
+    Era identities are read verbatim and NEVER derived from live dense config:
+    doing so would mean a later config-only model change silently re-pointed
+    every unpinned legacy account at the new vector space -- exactly the
+    corruption pinning exists to prevent.
+
+    A deployment with no declared eras has never changed models, so there is no
+    history to honour and the current default is right for everyone. This is
+    why eras default to empty rather than to some particular model: guessing a
+    previous model for an install that never had one would hand it an identity
+    matching nothing it has ever written.
     """
     era_for_unpinned = getattr(config.embedding, "era_for_unpinned", None)
-    if era_for_unpinned is None:
-        return legacy_identity(config)
-
-    parsed = _era_identity(era_for_unpinned(account_id))
-    if parsed is not None:
-        return parsed
+    if era_for_unpinned is not None:
+        parsed = _era_identity(era_for_unpinned(account_id))
+        if parsed is not None:
+            return parsed
     # Past every recorded era: this account came into being under the current
     # default, so that is the space its vectors are in.
     return default_identity(config)

@@ -16,9 +16,14 @@ import pytest
 from openviking.models.embedder.identity import (
     EmbeddingIdentity,
     default_identity,
-    legacy_identity,
+    identity_for_unpinned,
 )
 from openviking.storage.project_embedding import PIN_PATH_TEMPLATE, ProjectEmbeddingPins
+
+# Accounts below this id predate the model change; at or above it they are new.
+LEGACY_CUTOFF = 168794
+OLD_ACCOUNT = "100"
+NEW_ACCOUNT = "999999"
 
 
 class _FakeSyncAGFS:
@@ -57,8 +62,34 @@ class _FakeVikingFS:
         return data
 
 
-def _config(model="voyage/voyage-code-4", dimension=1024, legacy=None):
-    """A config whose live default differs from the legacy block."""
+def _config(model="voyage/voyage-code-4", dimension=1024, eras=None):
+    """A mutable config stub whose live default differs from its one era.
+
+    The era objects and the selection logic are the REAL ones -- only the
+    surrounding container is a namespace, so individual tests can swap in fake
+    embedder factories.
+    """
+    from openviking_cli.utils.config.embedding_config import LegacyEmbeddingIdentityConfig
+
+    if eras is None:
+        # Mirrors the deployed shape: one prior era, bounded by an id cutoff.
+        # Accounts below LEGACY_CUTOFF are old; at or above it, new.
+        eras = [
+            LegacyEmbeddingIdentityConfig(
+                provider="openai",
+                model="voyage/voyage-code-3",
+                dimension=1024,
+                applies_below_account_id=LEGACY_CUTOFF,
+            )
+        ]
+    ordered = sorted(eras, key=lambda era: era.sort_key)
+
+    def _era_for_unpinned(account_id):
+        for era in ordered:
+            if era.covers_account(account_id):
+                return era
+        return None
+
     return SimpleNamespace(
         storage=SimpleNamespace(vectordb=SimpleNamespace(name="context", dimension=dimension)),
         embedding=SimpleNamespace(
@@ -66,14 +97,9 @@ def _config(model="voyage/voyage-code-4", dimension=1024, legacy=None):
             dense=SimpleNamespace(provider="openai", model=model, backend=None),
             sparse=None,
             hybrid=None,
-            legacy=legacy
-            or SimpleNamespace(
-                provider="openai",
-                model="voyage/voyage-code-3",
-                dimension=1024,
-                applies_below_account_id=None,
-                covers_account=lambda account_id: True,
-            ),
+            legacy=ordered,
+            legacy_eras=ordered,
+            era_for_unpinned=_era_for_unpinned,
         ),
     )
 
@@ -109,21 +135,34 @@ async def test_unpinned_project_resolves_to_legacy_not_the_live_default(pins):
     assert identity.model != default_identity(_config()).model
 
 
-@pytest.mark.asyncio
-async def test_legacy_identity_ignores_live_dense_config():
-    """The legacy block is frozen data, never derived from live config.
+def test_era_identities_ignore_live_dense_config():
+    """Eras are frozen data, never derived from live config.
 
-    If it inherited provider/dimension from `dense`, a LATER config-only model
-    change would silently re-point every unpinned project at the new vector
-    space -- the same corruption, one change later.
+    If an era inherited provider/dimension from `dense`, a LATER config-only
+    model change would silently re-point every unpinned project at the new
+    vector space -- the same corruption, one change later.
     """
     config = _config(model="something/else-v9", dimension=4096)
 
-    identity = legacy_identity(config)
+    identity = identity_for_unpinned(config, "any-account")
 
     assert identity.model == "voyage/voyage-code-3"
     assert identity.dimension == 1024
     assert identity.provider == "openai"
+
+
+def test_no_declared_eras_means_the_current_default():
+    """A deployment that never changed models has no history to honour.
+
+    Defaulting eras to some particular model would hand a fresh install an
+    identity matching nothing it has ever written -- and, worse, one built
+    with another provider's credentials.
+    """
+    config = _real_config("bge-small-zh-v1.5-f16", [])
+
+    identity = identity_for_unpinned(config, "42")
+
+    assert identity.model == "bge-small-zh-v1.5-f16"
 
 
 # ------------------------------------------------------------- new projects
@@ -133,10 +172,10 @@ async def test_legacy_identity_ignores_live_dense_config():
 async def test_new_project_is_pinned_to_the_current_default(pins):
     store, agfs = pins
 
-    identity = await store.ensure_pinned("brand-new")
+    identity = await store.ensure_pinned(NEW_ACCOUNT)
 
     assert identity.model == "voyage/voyage-code-4"
-    written = json.loads(agfs.files[PIN_PATH_TEMPLATE.format(account_id="brand-new")])
+    written = json.loads(agfs.files[PIN_PATH_TEMPLATE.format(account_id=NEW_ACCOUNT)])
     assert written == {"provider": "openai", "model": "voyage/voyage-code-4", "dimension": 1024}
 
 
@@ -144,7 +183,7 @@ async def test_new_project_is_pinned_to_the_current_default(pins):
 async def test_pin_survives_a_later_default_change(pins, monkeypatch):
     """The whole point: flip the config, old projects do not move."""
     store, agfs = pins
-    await store.ensure_pinned("early-adopter")
+    await store.ensure_pinned(NEW_ACCOUNT)
 
     # Config moves on to a different model, and a fresh process starts.
     monkeypatch.setattr(
@@ -153,8 +192,8 @@ async def test_pin_survives_a_later_default_change(pins, monkeypatch):
     )
     fresh = ProjectEmbeddingPins(_FakeVikingFS(agfs))
 
-    assert (await fresh.resolve("early-adopter")).model == "voyage/voyage-code-4"
-    assert (await fresh.ensure_pinned("newer-project")).model == "voyage/voyage-code-9"
+    assert (await fresh.resolve(NEW_ACCOUNT)).model == "voyage/voyage-code-4"
+    assert (await fresh.ensure_pinned("999998")).model == "voyage/voyage-code-9"
 
 
 @pytest.mark.asyncio
@@ -249,12 +288,12 @@ async def test_one_handler_embeds_each_project_with_its_own_model(monkeypatch):
         )
 
         # "old" predates pinning; "new" is stamped with the current default.
-        await store.ensure_pinned("new-project")
+        await store.ensure_pinned(NEW_ACCOUNT)
 
         handler = TextEmbeddingHandler(SimpleNamespace(is_closing=False))
 
-        old_embedder, old_dim = await handler._resolve_for_account("old-project")
-        new_embedder, new_dim = await handler._resolve_for_account("new-project")
+        old_embedder, old_dim = await handler._resolve_for_account(OLD_ACCOUNT)
+        new_embedder, new_dim = await handler._resolve_for_account(NEW_ACCOUNT)
 
         assert old_embedder.model == "voyage/voyage-code-3"
         assert new_embedder.model == "voyage/voyage-code-4"
@@ -312,13 +351,13 @@ async def test_query_is_embedded_with_the_projects_pinned_model(monkeypatch):
             "openviking_cli.utils.config.get_openviking_config",
             lambda: config,
         )
-        await store.ensure_pinned("new-project")
+        await store.ensure_pinned(NEW_ACCOUNT)
 
         default_embedder = SimpleNamespace(model="server-default")
         retriever = HierarchicalRetriever(storage=None, embedder=default_embedder)
 
-        old = await retriever._resolve_query_embedder(SimpleNamespace(account_id="old-project"))
-        new = await retriever._resolve_query_embedder(SimpleNamespace(account_id="new-project"))
+        old = await retriever._resolve_query_embedder(SimpleNamespace(account_id=OLD_ACCOUNT))
+        new = await retriever._resolve_query_embedder(SimpleNamespace(account_id=NEW_ACCOUNT))
 
         assert old.model == "voyage/voyage-code-3"
         assert new.model == "voyage/voyage-code-4"
@@ -508,3 +547,49 @@ async def test_eras_are_sorted_not_trusted_in_file_order(monkeypatch):
 
     assert (await store.resolve("100")).model == "voyage/voyage-code-3"
     assert (await store.resolve("200000")).model == "voyage/voyage-code-4"
+
+
+@pytest.mark.asyncio
+async def test_ensure_pinned_does_not_stamp_a_legacy_project_with_the_new_model(monkeypatch):
+    """The bug this whole design exists to prevent, on the path that runs.
+
+    Per-project init calls ensure_pinned for EVERY account on first contact in
+    a process, not just new ones. A project idle across the model change is
+    still unpinned when its next request lands; if ensure_pinned wrote the
+    current default, that request would permanently stamp code-4 onto a
+    namespace full of code-3 vectors and the era cutoff would never fire.
+    """
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _real_config("voyage/voyage-code-4", [("voyage/voyage-code-3", 168794)]),
+    )
+
+    old = await store.ensure_pinned("100")
+    new = await store.ensure_pinned("999999")
+
+    assert old.model == "voyage/voyage-code-3", "a legacy account must not be re-pointed"
+    assert new.model == "voyage/voyage-code-4"
+    # And it is durable, not just an in-memory answer.
+    written = json.loads(agfs.files[PIN_PATH_TEMPLATE.format(account_id="100")])
+    assert written["model"] == "voyage/voyage-code-3"
+
+
+@pytest.mark.asyncio
+async def test_ensure_pinned_and_resolve_agree(monkeypatch):
+    """Whichever path touches an account first, it lands in the same space.
+
+    A crash-recovered queue message reaches resolve(); an HTTP request reaches
+    ensure_pinned(). If they disagreed, an account's identity would depend on
+    which arrived first.
+    """
+    config = _real_config("voyage/voyage-code-4", [("voyage/voyage-code-3", 168794)])
+    monkeypatch.setattr("openviking_cli.utils.config.get_openviking_config", lambda: config)
+
+    for account_id in ("100", "168793", "168794", "999999", "acme-corp"):
+        via_resolve = await ProjectEmbeddingPins(_FakeVikingFS(_FakeSyncAGFS())).resolve(account_id)
+        via_pin = await ProjectEmbeddingPins(_FakeVikingFS(_FakeSyncAGFS())).ensure_pinned(
+            account_id
+        )
+        assert via_resolve == via_pin, f"paths disagree for {account_id}"

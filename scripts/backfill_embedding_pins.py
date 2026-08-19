@@ -26,7 +26,7 @@ import asyncio
 import sys
 from typing import List, Optional
 
-from openviking.models.embedder.identity import legacy_identity
+from openviking.models.embedder.identity import default_identity, identity_for_unpinned
 from openviking.storage.project_embedding import (
     PIN_PATH_TEMPLATE,
     ProjectEmbeddingPins,
@@ -58,8 +58,10 @@ async def _run(args: argparse.Namespace) -> int:
     service = OpenVikingService()
     await service.initialize()
 
-    identity = legacy_identity(get_openviking_config())
-    print(f"Legacy identity to stamp: {identity.to_dict()}")
+    config = get_openviking_config()
+    eras = [(era.applies_below_account_id, era.model) for era in config.embedding.legacy_eras]
+    print(f"Recorded eras (cutoff, model): {eras or 'none'}")
+    print(f"Current default: {default_identity(config).model}")
 
     viking_fs = service.viking_fs
     if viking_fs is None:
@@ -80,6 +82,9 @@ async def _run(args: argparse.Namespace) -> int:
             skipped += 1
             print(f"  skip   {account_id}: already pinned to {existing.model}")
             continue
+        # Per account, not once for the fleet: with more than one era recorded,
+        # which space an account belongs to depends on its id.
+        identity = identity_for_unpinned(config, account_id)
         if args.dry_run:
             stamped += 1
             print(f"  WOULD  {account_id} -> {identity.model}")
