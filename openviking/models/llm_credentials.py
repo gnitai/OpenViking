@@ -20,7 +20,10 @@ the VLM falls back to the static ``api_key`` configured for the backend.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import contextvars
+import json
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
@@ -69,6 +72,32 @@ _LLM_CREDENTIALS: contextvars.ContextVar[Optional[LLMCredentials]] = contextvars
 )
 
 
+def _user_id_from_auth_token(token: Optional[str]) -> Optional[str]:
+    """Read the ``user_id`` claim out of a W gateway JWT, if the token is one.
+
+    The signature is deliberately not verified, and this value must not be
+    trusted for anything beyond a label: the gateway verifies the same token on
+    the routes that bill against it, so a forged one fails there regardless.
+
+    What it buys is agreement. The gateway attributes its own traffic by this
+    exact claim, so reading it here puts direct-to-LiteLLM rows (embeddings) on
+    the same id as gateway rows for one indexing run -- rather than on whatever
+    the caller happened to put in the identity header, which for indexing is a
+    shared service identity rather than a person.
+    """
+    if not token or token.count(".") != 2:
+        return None
+    payload_segment = token.split(".")[1]
+    padding = "=" * (-len(payload_segment) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(payload_segment + padding))
+    except (ValueError, binascii.Error, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return _real_user_id(payload.get("user_id"))
+
+
 def bind_llm_credentials(
     auth_token: Optional[str],
     project_id: Optional[str] = None,
@@ -88,7 +117,9 @@ def bind_llm_credentials(
         LLMCredentials(
             auth_token=auth_token,
             project_id=project_id,
-            user_id=_real_user_id(user_id),
+            # The token's own claim wins: it is what the gateway bills by, so
+            # preferring it keeps every route of one run on a single end user.
+            user_id=_user_id_from_auth_token(auth_token) or _real_user_id(user_id),
         )
     )
 

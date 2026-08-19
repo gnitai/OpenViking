@@ -9,6 +9,8 @@ cover the ``metadata.user_id`` the proxy's pre-call callback reads to attribute
 them, and the boundary that keeps it off non-W providers.
 """
 
+import base64
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,6 +21,7 @@ from openviking.models.llm_credentials import (
     apply_llm_request_metadata,
     bind_llm_credentials,
     bind_llm_user_id,
+    get_llm_credentials,
     reset_llm_credentials,
 )
 from openviking.models.vlm.backends.openai_vlm import OpenAIVLM
@@ -33,6 +36,60 @@ def bound_user():
         yield
     finally:
         reset_llm_credentials(token)
+
+
+def _jwt(payload: dict) -> str:
+    """Build an unsigned token shaped like the gateway's, for claim reading."""
+    segment = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    return f"header.{segment}.signature"
+
+
+class TestUserIdFromAuthToken:
+    """The gateway bills by the token's claim, so attribution reads it too."""
+
+    def test_claim_wins_over_the_identity_header(self):
+        """Indexing arrives under a shared service identity, not a person.
+
+        Trusting the header would file every project's vector spend under one
+        name, while the same run's gateway calls land on the real user.
+        """
+        token = bind_llm_credentials(_jwt({"user_id": 3122}), "project-7", "shared")
+        try:
+            creds = get_llm_credentials()
+            assert creds.user_id == "3122"
+        finally:
+            reset_llm_credentials(token)
+
+    def test_identity_header_is_the_fallback(self):
+        """A non-JWT credential (local runs, test keys) still attributes."""
+        token = bind_llm_credentials("not-a-jwt", "project-7", "3122")
+        try:
+            assert get_llm_credentials().user_id == "3122"
+        finally:
+            reset_llm_credentials(token)
+
+    def test_token_without_the_claim_falls_back(self):
+        token = bind_llm_credentials(_jwt({"exp": 1}), "project-7", "3122")
+        try:
+            assert get_llm_credentials().user_id == "3122"
+        finally:
+            reset_llm_credentials(token)
+
+    def test_undecodable_token_never_raises(self):
+        """A malformed token must not break the request it rides on."""
+        for bad in ("a.b.c", "..", _jwt({}) + ".extra", "!!!.!!!.!!!"):
+            token = bind_llm_credentials(bad, "project-7", "3122")
+            try:
+                assert get_llm_credentials().user_id == "3122"
+            finally:
+                reset_llm_credentials(token)
+
+    def test_anonymous_claim_is_not_an_identity(self):
+        token = bind_llm_credentials(_jwt({"user_id": "default"}), "project-7", "3122")
+        try:
+            assert get_llm_credentials().user_id == "3122"
+        finally:
+            reset_llm_credentials(token)
 
 
 class TestApplyLLMUserMetadata:
