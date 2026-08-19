@@ -31,7 +31,7 @@ from typing import Any, Dict, Optional
 from openviking.models.embedder.identity import (
     EmbeddingIdentity,
     default_identity,
-    legacy_identity,
+    identity_for_unpinned,
 )
 from openviking_cli.utils import get_logger
 
@@ -92,10 +92,10 @@ class ProjectEmbeddingPins:
     async def resolve(self, account_id: str) -> EmbeddingIdentity:
         """Return the identity this project's vectors live in.
 
-        Falls back to ``legacy_identity`` -- NEVER ``default_identity`` -- when
-        no pin exists. An unpinned project is one that predates pinning and is
-        therefore already full of legacy vectors; pointing it at the current
-        default would silently query the new model against old vectors.
+        With no pin, the recorded eras decide -- never the live default on its
+        own. An unpinned project predates pinning and is already full of an
+        older model's vectors; resolving it to whatever the server currently
+        defaults to would silently query a new model against old data.
         """
         cached = self._cache.get(account_id)
         if cached is not None:
@@ -106,27 +106,12 @@ class ProjectEmbeddingPins:
             from openviking_cli.utils.config import get_openviking_config
 
             config = get_openviking_config()
-            legacy_cfg = getattr(config.embedding, "legacy", None)
-            covered = legacy_cfg.covers_account(account_id) if legacy_cfg is not None else True
-            if covered:
-                identity = legacy_identity(config)
-                logger.warning(
-                    "No embedding pin for account %s; resolving to legacy identity %s. "
-                    "This project predates per-project pinning.",
-                    account_id,
-                    identity.model,
-                )
-            else:
-                # Above the cutoff: this account came into existence after the
-                # model changed, so its vectors are in the current space even
-                # though the pin is missing.
-                identity = default_identity(config)
-                logger.info(
-                    "No embedding pin for account %s, but it is above the legacy "
-                    "cutoff; resolving to the current default %s.",
-                    account_id,
-                    identity.model,
-                )
+            identity = identity_for_unpinned(config, account_id)
+            logger.warning(
+                "No embedding pin for account %s; resolving to %s from the recorded eras.",
+                account_id,
+                identity.model,
+            )
         self._cache[account_id] = identity
         return identity
 

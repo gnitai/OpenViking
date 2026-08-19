@@ -98,23 +98,34 @@ def default_identity(config: Any) -> EmbeddingIdentity:
     )
 
 
+def _era_identity(era: Any) -> Optional[EmbeddingIdentity]:
+    if era is None:
+        return None
+    return EmbeddingIdentity.from_dict(
+        {
+            "provider": era.provider,
+            "model": era.model,
+            "dimension": era.dimension,
+        }
+    )
+
+
 def legacy_identity(config: Any) -> EmbeddingIdentity:
-    """The identity for projects that predate per-project pinning.
+    """The oldest recorded era -- the space of the earliest projects.
 
     Read verbatim from the frozen ``embedding.legacy`` block. It is NEVER
     derived from live dense config: doing so would mean a future config-only
     model change silently re-pointed every unpinned legacy project at the new
     vector space -- exactly the corruption pinning exists to prevent.
     """
+    eras = getattr(config.embedding, "legacy_eras", None)
+    if eras:
+        parsed = _era_identity(eras[0])
+        if parsed is not None:
+            return parsed
     legacy = getattr(config.embedding, "legacy", None)
-    if legacy is not None:
-        parsed = EmbeddingIdentity.from_dict(
-            {
-                "provider": legacy.provider,
-                "model": legacy.model,
-                "dimension": legacy.dimension,
-            }
-        )
+    if legacy is not None and not isinstance(legacy, list):
+        parsed = _era_identity(legacy)
         if parsed is not None:
             return parsed
     return EmbeddingIdentity(
@@ -122,3 +133,22 @@ def legacy_identity(config: Any) -> EmbeddingIdentity:
         model=LEGACY_FALLBACK_MODEL,
         dimension=LEGACY_FALLBACK_DIMENSION,
     )
+
+
+def identity_for_unpinned(config: Any, account_id: str) -> EmbeddingIdentity:
+    """The space an account with NO pin is already in.
+
+    Walks the recorded eras oldest-first and takes the one the account falls
+    into; an account past every era postdates them all, so the current default
+    is what its vectors were made with.
+    """
+    era_for_unpinned = getattr(config.embedding, "era_for_unpinned", None)
+    if era_for_unpinned is None:
+        return legacy_identity(config)
+
+    parsed = _era_identity(era_for_unpinned(account_id))
+    if parsed is not None:
+        return parsed
+    # Past every recorded era: this account came into being under the current
+    # default, so that is the space its vectors are in.
+    return default_identity(config)

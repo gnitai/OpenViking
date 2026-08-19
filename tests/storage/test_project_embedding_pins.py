@@ -376,26 +376,36 @@ def test_ovpack_labels_exports_with_the_projects_model(monkeypatch):
 # ------------------------------------------------------- account-id cutoff
 
 
-def _cutoff_config(cutoff):
-    """Legacy block carrying a numeric account-id cutoff."""
-    config = _config()
-    config.embedding.legacy = SimpleNamespace(
-        provider="openai",
-        model="voyage/voyage-code-3",
-        dimension=1024,
-        applies_below_account_id=cutoff,
-        covers_account=lambda account_id: _covers(cutoff, account_id),
+def _real_config(default_model, eras):
+    """A REAL EmbeddingConfig, so era resolution runs the shipped logic.
+
+    ``eras`` is a list of (model, applies_below_account_id).
+    """
+    from openviking_cli.utils.config.embedding_config import EmbeddingConfig
+
+    embedding = EmbeddingConfig(
+        dense={
+            "provider": "openai",
+            "model": default_model,
+            "dimension": 1024,
+            "api_key": "test",
+        },
+        legacy=[
+            {
+                "provider": "openai",
+                "model": model,
+                "dimension": 1024,
+                "applies_below_account_id": cutoff,
+            }
+            for model, cutoff in eras
+        ],
     )
-    return config
+    return SimpleNamespace(embedding=embedding)
 
 
-def _covers(cutoff, account_id):
-    if cutoff is None:
-        return True
-    try:
-        return int(str(account_id).strip()) < cutoff
-    except (TypeError, ValueError):
-        return True
+def _cutoff_config(cutoff):
+    """One legacy era, optionally bounded by a numeric account-id cutoff."""
+    return _real_config("voyage/voyage-code-4", [("voyage/voyage-code-3", cutoff)])
 
 
 @pytest.mark.asyncio
@@ -454,3 +464,47 @@ async def test_no_cutoff_treats_every_unpinned_account_as_legacy(monkeypatch):
     )
 
     assert (await store.resolve("999999")).model == "voyage/voyage-code-3"
+
+
+@pytest.mark.asyncio
+async def test_three_models_need_only_one_appended_era(monkeypatch):
+    """Changing the model a second time appends an era; it never rewrites one.
+
+    Eras describe frozen history, so the code-3 entry written at the first
+    change stays byte-identical forever. Only the new boundary is new.
+    """
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _real_config(
+            "voyage/voyage-code-5",
+            [("voyage/voyage-code-3", 168794), ("voyage/voyage-code-4", 250000)],
+        ),
+    )
+
+    assert (await store.resolve("100")).model == "voyage/voyage-code-3"
+    assert (await store.resolve("168793")).model == "voyage/voyage-code-3"
+    assert (await store.resolve("168794")).model == "voyage/voyage-code-4"
+    assert (await store.resolve("249999")).model == "voyage/voyage-code-4"
+    # Past every recorded era -> it was born under the current default.
+    assert (await store.resolve("250000")).model == "voyage/voyage-code-5"
+    # Unrankable ids fall to the OLDEST era, the safe direction.
+    assert (await store.resolve("acme-corp")).model == "voyage/voyage-code-3"
+
+
+@pytest.mark.asyncio
+async def test_eras_are_sorted_not_trusted_in_file_order(monkeypatch):
+    """An era appended out of order still lands in the right place."""
+    agfs = _FakeSyncAGFS()
+    store = ProjectEmbeddingPins(_FakeVikingFS(agfs))
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: _real_config(
+            "voyage/voyage-code-5",
+            [("voyage/voyage-code-4", 250000), ("voyage/voyage-code-3", 168794)],
+        ),
+    )
+
+    assert (await store.resolve("100")).model == "voyage/voyage-code-3"
+    assert (await store.resolve("200000")).model == "voyage/voyage-code-4"

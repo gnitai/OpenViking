@@ -1,6 +1,7 @@
 # Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: AGPL-3.0
-from typing import Any, Literal, Optional, cast
+import sys
+from typing import Any, List, Literal, Optional, Union, cast
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -357,12 +358,16 @@ class EmbeddingCircuitBreakerConfig(BaseModel):
 
 
 class LegacyEmbeddingIdentityConfig(BaseModel):
-    """Frozen description of the vector space pre-pinning projects already use.
+    """One historical era: a vector space, and which accounts are in it.
 
     This is DATA ABOUT THE PAST, not a model choice. It is read verbatim and
     never derived from the live ``dense`` block: if it inherited provider or
     dimension from live config, a future config-only model change would
     silently re-point every unpinned legacy project at the new vector space.
+
+    Eras only ever describe accounts with NO pin on disk. Pinned accounts are
+    resolved from their pin and are unaffected by anything here, so this list
+    stops growing as soon as every live account carries a pin.
     """
 
     provider: str = Field(
@@ -401,6 +406,13 @@ class LegacyEmbeddingIdentityConfig(BaseModel):
         except (TypeError, ValueError):
             return True
 
+    @property
+    def sort_key(self) -> int:
+        """Open-ended eras sort last so bounded ones get first refusal."""
+        if self.applies_below_account_id is None:
+            return sys.maxsize
+        return self.applies_below_account_id
+
 
 class EmbeddingConfig(BaseModel):
     """
@@ -417,7 +429,7 @@ class EmbeddingConfig(BaseModel):
     dense: Optional[EmbeddingModelConfig] = Field(default=None)
     sparse: Optional[EmbeddingModelConfig] = Field(default=None)
     hybrid: Optional[EmbeddingModelConfig] = Field(default=None)
-    legacy: LegacyEmbeddingIdentityConfig = Field(
+    legacy: Union[LegacyEmbeddingIdentityConfig, List[LegacyEmbeddingIdentityConfig]] = Field(
         default_factory=LegacyEmbeddingIdentityConfig,
         description=(
             "Frozen identity for projects created before per-project embedding "
@@ -768,6 +780,28 @@ class EmbeddingConfig(BaseModel):
         embedder_class, param_builder = factory_registry[key]
         params = param_builder(config)
         return embedder_class(**params)
+
+    @property
+    def legacy_eras(self) -> List[LegacyEmbeddingIdentityConfig]:
+        """Historical eras, narrowest cutoff first.
+
+        Sorting rather than trusting file order means an era appended to the
+        end of the list still lands in the right place, so adding a model is
+        an append and never a re-ordering.
+        """
+        eras = self.legacy if isinstance(self.legacy, list) else [self.legacy]
+        return sorted(eras, key=lambda era: era.sort_key)
+
+    def era_for_unpinned(self, account_id: str) -> Optional[LegacyEmbeddingIdentityConfig]:
+        """The era an account with NO pin belongs to, or None for the default.
+
+        First era whose cutoff the account falls below wins. None means the
+        account postdates every recorded era, so the current default applies.
+        """
+        for era in self.legacy_eras:
+            if era.covers_account(account_id):
+                return era
+        return None
 
     def get_embedder_for(self, identity):
         """Build (or reuse) the embedder for a specific pinned identity.
