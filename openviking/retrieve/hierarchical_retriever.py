@@ -22,7 +22,10 @@ from openviking.retrieve.memory_lifecycle import hotness_score
 from openviking.retrieve.retrieval_stats import get_stats_collector
 from openviking.server.identity import RequestContext, Role
 from openviking.storage import VikingDBManager, VikingDBManagerProxy
-from openviking.storage.project_embedding import resolve_embedder
+from openviking.storage.project_embedding import (
+    get_project_embedding_pins,
+    resolve_embedder,
+)
 from openviking.storage.viking_fs import get_viking_fs
 from openviking.telemetry import get_current_telemetry
 from openviking.utils.time_utils import parse_iso_datetime
@@ -92,6 +95,32 @@ class HierarchicalRetriever:
                 f"[HierarchicalRetriever] Rerank not configured, using vector search only with threshold={self.threshold}"
             )
 
+    async def _resolve_query_embedder(self, ctx) -> Optional[Any]:
+        """Return the embedder for THIS project's vector space.
+
+        A query embedded by a different model than the stored vectors raises
+        no error and logs nothing -- it just returns the wrong neighbours. So
+        an un-migrated project must keep querying with the model its vectors
+        were built with, even after the server default moves on.
+
+        Only override when a pin store exists. Without one (library use) there
+        is no per-project storage to consult and the caller's own embedder is
+        the only correct answer; rebuilding from config would silently discard
+        it. Mirrors TextEmbeddingHandler._resolve_for_account.
+        """
+        if self.embedder is None or get_project_embedding_pins() is None:
+            return self.embedder
+        try:
+            return await resolve_embedder(ctx.account_id)
+        except Exception as err:
+            logger.warning(
+                "Failed to resolve per-project embedder for account %s (%s); "
+                "falling back to the default embedder",
+                ctx.account_id,
+                err,
+            )
+            return self.embedder
+
     async def retrieve(
         self,
         query: TypedQuery,
@@ -141,17 +170,7 @@ class HierarchicalRetriever:
         # produces no error and no log -- just quietly wrong neighbours -- so
         # this resolution is what keeps an un-migrated project searchable
         # after the server default moves on.
-        query_embedder = self.embedder
-        if query_embedder is not None:
-            try:
-                query_embedder = await resolve_embedder(ctx.account_id)
-            except Exception as err:
-                logger.warning(
-                    "Failed to resolve per-project embedder for account %s (%s); "
-                    "falling back to the default embedder",
-                    ctx.account_id,
-                    err,
-                )
+        query_embedder = await self._resolve_query_embedder(ctx)
         if query_embedder:
             result: EmbedResult = await embed_compat(query_embedder, query.query, is_query=True)
             query_vector = result.dense_vector

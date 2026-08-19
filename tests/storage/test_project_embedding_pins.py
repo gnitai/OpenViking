@@ -285,3 +285,87 @@ async def test_handler_without_pin_store_uses_its_own_embedder(monkeypatch):
 
     assert embedder is own
     assert dim == 1024
+
+
+# ------------------------------------------------------------- query path
+
+
+@pytest.mark.asyncio
+async def test_query_is_embedded_with_the_projects_pinned_model(monkeypatch):
+    """The path that degrades silently if it is missed.
+
+    A code-4 query vector searched against code-3 stored vectors returns
+    neighbours with no error and no log. An un-migrated project must keep
+    querying with the model its vectors were built with.
+    """
+    from openviking.retrieve.hierarchical_retriever import HierarchicalRetriever
+    from openviking.storage import project_embedding
+
+    agfs = _FakeSyncAGFS()
+    store = project_embedding.init_project_embedding_pins(_FakeVikingFS(agfs))
+    try:
+        config = _config()
+        config.embedding.get_embedder_for = lambda identity: SimpleNamespace(model=identity.model)
+        monkeypatch.setattr(
+            "openviking_cli.utils.config.get_openviking_config",
+            lambda: config,
+        )
+        await store.ensure_pinned("new-project")
+
+        default_embedder = SimpleNamespace(model="server-default")
+        retriever = HierarchicalRetriever(storage=None, embedder=default_embedder)
+
+        old = await retriever._resolve_query_embedder(SimpleNamespace(account_id="old-project"))
+        new = await retriever._resolve_query_embedder(SimpleNamespace(account_id="new-project"))
+
+        assert old.model == "voyage/voyage-code-3"
+        assert new.model == "voyage/voyage-code-4"
+    finally:
+        project_embedding._PINS = None
+
+
+@pytest.mark.asyncio
+async def test_query_keeps_caller_embedder_without_a_pin_store():
+    """Library use has no per-project storage; the caller's embedder stands."""
+    from openviking.retrieve.hierarchical_retriever import HierarchicalRetriever
+    from openviking.storage import project_embedding
+
+    project_embedding._PINS = None
+    own = SimpleNamespace(model="caller-supplied")
+    retriever = HierarchicalRetriever(storage=None, embedder=own)
+
+    resolved = await retriever._resolve_query_embedder(SimpleNamespace(account_id="whatever"))
+
+    assert resolved is own
+
+
+# ------------------------------------------------------------------ ovpack
+
+
+def test_ovpack_labels_exports_with_the_projects_model(monkeypatch):
+    """An export must record the space its vectors are actually in.
+
+    Labelling from live config would stamp a code-3 project's export as
+    code-4, making it non-restorable into the very project it came from.
+    """
+    from openviking.storage.ovpack.vectors import (
+        current_embedding_metadata,
+        embedding_snapshot_metadata,
+    )
+
+    config = _config()
+    config.embedding.dense.input = "text"
+    config.embedding.dense.query_param = None
+    config.embedding.dense.document_param = None
+    config.embedding.dense.get_effective_dimension = lambda: 1024
+    monkeypatch.setattr(
+        "openviking_cli.utils.config.get_openviking_config",
+        lambda: config,
+    )
+    legacy = EmbeddingIdentity(provider="openai", model="voyage/voyage-code-3", dimension=1024)
+
+    # Live config alone would say code-4 for both.
+    assert embedding_snapshot_metadata(None)["model"] == "voyage/voyage-code-4"
+    assert embedding_snapshot_metadata(None, legacy)["model"] == "voyage/voyage-code-3"
+    assert current_embedding_metadata(legacy)["model"] == "voyage/voyage-code-3"
+    assert current_embedding_metadata(legacy)["dimensions"] == 1024

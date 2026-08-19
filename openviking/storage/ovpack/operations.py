@@ -62,6 +62,7 @@ from openviking.storage.ovpack.vectors import (
     read_dense_vectors,
     restore_vector_snapshot,
 )
+from openviking.storage.project_embedding import resolve_identity
 from openviking.utils.embedding_utils import vectorize_directory_meta, vectorize_file
 from openviking_cli.exceptions import ConflictError, InvalidArgumentError, NotFoundError
 from openviking_cli.utils.logger import get_logger
@@ -325,6 +326,7 @@ async def import_ovpack(
                 dense_vectors,
                 vector_store=vector_store,
                 vector_mode=vector_action_mode,
+                identity=await resolve_identity(ctx.account_id),
             )
         if parent != "wfs://":
             await _ensure_parent_exists(viking_fs, parent, ctx)
@@ -455,7 +457,9 @@ async def _write_ovpack_archive(
         zf.writestr(f"{base_name}/{OVPACK_INTERNAL_DIR}/", "")
         zf.writestr(internal_zip_path(base_name, OVPACK_INDEX_RECORDS_PATH), index_bytes)
 
-        dense_snapshot = build_dense_snapshot_manifest(index_records, dense_values)
+        dense_snapshot = build_dense_snapshot_manifest(
+            index_records, dense_values, await resolve_identity(ctx.account_id)
+        )
         if dense_snapshot is not None:
             dense_bytes, dense_manifest = dense_snapshot
             manifest["index"]["dense"] = dense_manifest
@@ -664,6 +668,7 @@ async def restore_ovpack(
             dense_vectors,
             vector_store=vector_store,
             vector_mode=vector_action_mode,
+            identity=await resolve_identity(ctx.account_id),
         )
 
         for existing_root in existing_roots:
