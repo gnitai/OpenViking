@@ -150,14 +150,27 @@ class OpenAIRerankClient(RerankBase):
         neither. Without this the spend lands as an unattributed, untagged row
         and is invisible in any per-user or per-feature view.
 
-        Built through :func:`apply_llm_request_metadata` so the gating matches
-        the embedder's exactly, then lifted out of the OpenAI-SDK ``extra_body``
-        envelope that helper writes into: this client posts a raw JSON body, and
-        ``metadata`` belongs at its top level, which is where the proxy reads it.
+        Built through :func:`apply_llm_request_metadata`, then lifted out of the
+        OpenAI-SDK ``extra_body`` envelope that helper writes into: this client
+        posts a raw JSON body, and ``metadata`` belongs at its top level, which
+        is where the proxy reads it.
 
-        Returns an empty dict when there is nothing to say -- off the W proxy
-        with no credential bound, no ``metadata`` key is sent at all.
+        Nothing is sent anywhere but the W proxy. A bound credential says the
+        *request* is W-routed; it says nothing about where *this client* points,
+        and a deployment can route chat through the proxy while reranking against
+        a vendor directly. Rerank bodies are vendor-specific schemas -- Voyage,
+        Cohere, DashScope -- and an unknown field is rejected outright by some of
+        them, which here would fail the call, get swallowed by the caller's
+        fallback, and silently cost ranking quality. Since no vendor reads this
+        field anyway, the destination alone decides, and an unset
+        ``OPENVIKING_LLM_PROXY_HOSTS`` means nothing is volunteered.
+
+        This is stricter than the embedder's equivalent gate, which allows any
+        OpenAI-compatible gateway because embedding bodies are one shared schema.
         """
+        if not self._is_w_proxy():
+            return {}
+
         carrier: Dict[str, object] = {}
         apply_llm_request_metadata(
             carrier,
@@ -165,7 +178,7 @@ class OpenAIRerankClient(RerankBase):
             # A search may name no user -- an unauthenticated probe, an internal
             # health query -- and that spend is still ours to account for. Label
             # it against the W proxy even with no user to name.
-            tag_without_credentials=self._is_w_proxy(),
+            tag_without_credentials=True,
         )
         extra_body = carrier.get("extra_body") or {}
         return extra_body.get("metadata") or {}

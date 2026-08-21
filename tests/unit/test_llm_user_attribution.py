@@ -692,6 +692,20 @@ class TestRerankAttribution:
 
         assert "metadata" not in body
 
+    def test_a_bound_credential_does_not_leak_a_user_to_a_vendor(self, w_proxy_env, bound_user):
+        """The destination decides, not the request.
+
+        A bound credential says the *request* is W-routed; it says nothing about
+        where this client points, and a deployment can route chat through the
+        proxy while reranking against a vendor directly. Sending the identifier
+        anyway would hand a W user id to a third party -- and, on a service that
+        rejects unknown fields, fail every authenticated search's rerank into the
+        caller's silent vector-score fallback.
+        """
+        body = _rerank_body("https://vendor.example.com/v1/rerank")
+
+        assert "metadata" not in body
+
     def test_tag_needs_the_env_to_name_the_proxy(self, monkeypatch):
         """Unset ``OPENVIKING_LLM_PROXY_HOSTS`` and nothing is volunteered.
 
