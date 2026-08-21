@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from openviking.models.embedder import OpenAIDenseEmbedder
+from openviking.models.embedder.openai_embedders import W_PROXY_HOSTS_ENV_VAR
 from openviking.models.llm_credentials import (
     apply_llm_credentials,
     apply_llm_request_metadata,
@@ -27,6 +28,10 @@ from openviking.models.llm_credentials import (
 from openviking.models.vlm.backends.openai_vlm import OpenAIVLM
 from openviking.storage.queuefs.embedding_msg import EmbeddingMsg
 
+#: Stand-in for whatever base URL a deployment points its embedder at. The real
+#: hostnames belong to the operator's environment, never to this repository.
+_PROXY_BASE_URL = "https://proxy.example.com/v1"
+
 
 @pytest.fixture
 def bound_user():
@@ -36,6 +41,19 @@ def bound_user():
         yield
     finally:
         reset_llm_credentials(token)
+
+
+@pytest.fixture
+def w_proxy_env(monkeypatch):
+    """Name :data:`_PROXY_BASE_URL` as the proxy, as a deployment's env would."""
+    monkeypatch.setenv(W_PROXY_HOSTS_ENV_VAR, _PROXY_BASE_URL)
+
+
+def _is_proxy(api_base: str) -> bool:
+    """Whether an embedder built for ``api_base`` would treat it as the proxy."""
+    return OpenAIDenseEmbedder(
+        model_name="m", api_key="sk-test", api_base=api_base, dimension=8
+    )._is_w_proxy()
 
 
 def _jwt(payload: dict) -> str:
@@ -143,6 +161,27 @@ class TestApplyLLMUserMetadata:
         kwargs = {}
         apply_llm_request_metadata(kwargs, feature_tag="feature:x")
         assert kwargs == {}
+
+    def test_caller_that_knows_it_is_on_w_tags_unattributed_work(self):
+        """Bootstrap and reindex traffic has no user, but is still ours to label."""
+        kwargs = {}
+        apply_llm_request_metadata(kwargs, feature_tag="feature:x", tag_without_credentials=True)
+        assert kwargs == {"extra_body": {"metadata": {"feature_tags": ["feature:x"]}}}
+
+    def test_knowing_it_is_on_w_does_not_invent_a_tag(self):
+        """The override widens who gets tagged, not what gets sent."""
+        kwargs = {}
+        apply_llm_request_metadata(kwargs, tag_without_credentials=True)
+        assert kwargs == {}
+
+    def test_bound_user_still_named_when_tagging_unattributed_work(self, bound_user):
+        """The override is a floor on the tag, never a ceiling on the user."""
+        kwargs = {}
+        apply_llm_request_metadata(kwargs, feature_tag="feature:x", tag_without_credentials=True)
+        assert kwargs["extra_body"]["metadata"] == {
+            "user_id": "3122",
+            "feature_tags": ["feature:x"],
+        }
 
     def test_never_touches_auth(self, bound_user):
         """Embedding routes authenticate with the proxy's own key, not the JWT."""
@@ -414,6 +453,122 @@ class TestEmbedderAttribution:
             api_key="sk-test",
             api_base="https://example-resource.openai.azure.com",
             provider="azure",
+            dimension=8,
+        )
+        embedder.embed("hello")
+
+        call_kwargs = mock_client.embeddings.create.call_args.kwargs
+        assert "extra_body" not in call_kwargs
+
+    @patch("openviking.models.embedder.openai_embedders.openai.OpenAI")
+    def test_w_proxy_labels_work_that_names_no_user(self, mock_openai_class, w_proxy_env):
+        """The bug this gate exists for.
+
+        Preset-directory bootstrap and session creation embed text outside any
+        request that carried a JWT, so nothing is bound. Tying the tag to a
+        credential dropped it from those rows entirely; against the proxy the
+        destination alone is enough to warrant the label.
+        """
+        mock_client = _make_mock_embedding_client()
+        mock_openai_class.return_value = mock_client
+
+        embedder = OpenAIDenseEmbedder(
+            model_name="voyage/voyage-code-3",
+            api_key="sk-test",
+            api_base=_PROXY_BASE_URL,
+            dimension=8,
+        )
+        embedder.embed("Agent-level global data storage.")
+
+        call_kwargs = mock_client.embeddings.create.call_args.kwargs
+        assert call_kwargs["extra_body"]["metadata"] == {
+            "feature_tags": ["feature:context-indexing:embedding"],
+        }
+
+    @patch("openviking.models.embedder.openai_embedders.openai.OpenAI")
+    def test_w_proxy_still_names_the_user_when_one_is_bound(
+        self, mock_openai_class, w_proxy_env, bound_user
+    ):
+        mock_client = _make_mock_embedding_client()
+        mock_openai_class.return_value = mock_client
+
+        embedder = OpenAIDenseEmbedder(
+            model_name="voyage/voyage-code-3",
+            api_key="sk-test",
+            api_base=_PROXY_BASE_URL,
+            dimension=8,
+        )
+        embedder.embed("hello")
+
+        call_kwargs = mock_client.embeddings.create.call_args.kwargs
+        assert call_kwargs["extra_body"]["metadata"] == {
+            "user_id": "3122",
+            "feature_tags": ["feature:context-indexing:embedding"],
+        }
+
+    @patch("openviking.models.embedder.openai_embedders.openai.OpenAI")
+    def test_unnamed_proxy_leaves_unattributed_traffic_untagged(
+        self, mock_openai_class, monkeypatch
+    ):
+        """The cost of holding deployment hostnames out of the source.
+
+        With nothing named, the destination is just another OpenAI-compatible
+        gateway and the tag falls back to riding on a bound credential. Each
+        environment has to name its own proxy to get bootstrap rows labelled.
+        """
+        # State the premise rather than inheriting it from whoever runs this.
+        monkeypatch.delenv(W_PROXY_HOSTS_ENV_VAR, raising=False)
+        mock_client = _make_mock_embedding_client()
+        mock_openai_class.return_value = mock_client
+
+        embedder = OpenAIDenseEmbedder(
+            model_name="voyage/voyage-code-3",
+            api_key="sk-test",
+            api_base=_PROXY_BASE_URL,
+            dimension=8,
+        )
+        embedder.embed("hello")
+
+        call_kwargs = mock_client.embeddings.create.call_args.kwargs
+        assert "extra_body" not in call_kwargs
+
+    def test_every_environment_can_be_named_at_once(self, monkeypatch):
+        """One image ships to production and staging; both must be recognised."""
+        monkeypatch.setenv(
+            W_PROXY_HOSTS_ENV_VAR,
+            "https://proxy.example.com/v1,https://proxy.staging.example.com/v1",
+        )
+
+        assert _is_proxy("https://proxy.example.com/v1") is True
+        assert _is_proxy("https://proxy.staging.example.com/v1") is True
+        assert _is_proxy("https://other.example.com/v1") is False
+
+    def test_proxy_hosts_are_read_as_hosts_however_they_are_written(self, monkeypatch):
+        """Env and config carry these as base URLs as often as bare hosts."""
+        monkeypatch.setenv(
+            W_PROXY_HOSTS_ENV_VAR, " , http://a.example.com , b.example.com:8443/v1 "
+        )
+
+        assert _is_proxy("https://a.example.com/v1") is True
+        assert _is_proxy("https://b.example.com/v1") is True
+        assert _is_proxy("https://A.EXAMPLE.COM/v1") is True
+        assert _is_proxy("https://other.example.com/v1") is False
+
+    @patch("openviking.models.embedder.openai_embedders.openai.OpenAI")
+    def test_third_party_gateway_is_not_tagged_without_a_credential(self, mock_openai_class):
+        """The reason this is a host gate and not an unconditional tag.
+
+        Ark is the embedding endpoint every shipped example config points at. It
+        has no spend log that reads a feature tag, so an untagged, unbound call
+        there must stay exactly as bare as it was before the tag existed.
+        """
+        mock_client = _make_mock_embedding_client()
+        mock_openai_class.return_value = mock_client
+
+        embedder = OpenAIDenseEmbedder(
+            model_name="doubao-embedding",
+            api_key="sk-test",
+            api_base="https://ark.cn-beijing.volces.com/api/v3",
             dimension=8,
         )
         embedder.embed("hello")

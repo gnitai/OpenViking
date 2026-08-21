@@ -152,6 +152,7 @@ def get_llm_credentials() -> Optional[LLMCredentials]:
 def apply_llm_request_metadata(
     kwargs: Dict[str, Any],
     feature_tag: Optional[str] = None,
+    tag_without_credentials: bool = False,
 ) -> None:
     """Merge W request metadata into ``extra_body["metadata"]`` in place.
 
@@ -168,21 +169,30 @@ def apply_llm_request_metadata(
     Traffic that skips the gateway has to write it directly, so this plays the
     part the gateway would have played.
 
+    The two halves are gated differently, because they answer to different
+    things. ``user_id`` is a W identifier, so it rides on a bound credential and
+    appears only when one exists. A feature tag describes the *call site*, not
+    the caller: work with no user behind it -- preset-directory bootstrap, a ROOT
+    reindex -- is still worth labelling, and gating the tag on a credential is
+    exactly what left those rows untagged. So a caller that knows it is talking
+    to the W proxy passes ``tag_without_credentials`` to label unattributed
+    traffic too. Callers that cannot know their destination is W leave it False,
+    and nothing is sent unless a credential is bound.
+
     ``metadata`` is a parameter LiteLLM consumes itself, so it never reaches the
-    upstream model provider. No-op when no credential is bound -- W identifiers
-    belong only on W-routed traffic.
+    upstream model provider.
     """
     creds = get_llm_credentials()
-    if creds is None:
+    if creds is None and not tag_without_credentials:
         return
-    # A ROOT reindex has no user but is still worth labelling by feature.
-    if not creds.user_id and not feature_tag:
+    user_id = creds.user_id if creds is not None else None
+    if not user_id and not feature_tag:
         return
 
     extra_body = dict(kwargs.get("extra_body") or {})
     metadata = dict(extra_body.get("metadata") or {})
-    if creds.user_id:
-        metadata[_USER_METADATA_KEY] = str(creds.user_id)
+    if user_id:
+        metadata[_USER_METADATA_KEY] = str(user_id)
     if feature_tag:
         tags = list(metadata.get(_FEATURE_TAGS_METADATA_KEY) or [])
         if feature_tag not in tags:

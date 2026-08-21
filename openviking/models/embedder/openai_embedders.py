@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0
 """OpenAI Embedder Implementation"""
 
+import os
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 
@@ -25,6 +26,55 @@ logger = get_logger(__name__)
 # First-party endpoints that reject unknown embedding-body fields outright.
 # Everything else reachable through this backend is an OpenAI-compatible gateway.
 _STRICT_BODY_SCHEMA_HOSTS = {"api.openai.com"}
+
+
+#: Comma-separated endpoints, as bare hosts or full base URLs, of the W LLM
+#: proxy this deployment routes through. Its spend log is the sole consumer of
+#: the feature tag below, so the tag is attached by destination rather than by
+#: caller -- the same call the VLM backend makes when it matches its gateway by
+#: URL. The embedding route is a plain ``/v1``, indistinguishable from any other
+#: OpenAI-compatible gateway by path, so the host is what identifies it.
+#:
+#: There is deliberately no built-in default: deployment hostnames are the
+#: operator's, not this project's. Unset (every deployment that does not route
+#: through such a proxy) the tag falls back to riding on a bound credential, so
+#: nothing is sent anywhere that would not have received it before.
+W_PROXY_HOSTS_ENV_VAR = "OPENVIKING_LLM_PROXY_HOSTS"
+
+
+def _normalize_host(value: str) -> str:
+    """Reduce a base URL or bare host to a lowercase hostname, "" if unreadable.
+
+    Config and env alike carry these as full base URLs about as often as bare
+    hosts, and a port or trailing path is common in both. Parse rather than
+    compare literally, so ``https://proxy.example.com/v1`` and
+    ``proxy.example.com`` name the same endpoint.
+    """
+    value = value.strip()
+    if not value:
+        return ""
+    if "//" not in value:
+        # urlparse reads a scheme-less string as a path, finding no host in it.
+        value = f"//{value}"
+    try:
+        return (urlparse(value).hostname or "").lower()
+    except ValueError:
+        return ""
+
+
+def _w_proxy_hosts() -> set:
+    """Proxy hosts named by the environment; empty when none are.
+
+    Read per call rather than frozen at import so a test can set the variable
+    without reloading the module, and so a process that learns its environment
+    late still honours it.
+    """
+    hosts = set()
+    for entry in os.environ.get(W_PROXY_HOSTS_ENV_VAR, "").split(","):
+        host = _normalize_host(entry)
+        if host:
+            hosts.add(host)
+    return hosts
 
 
 # Feature label for embedding spend at the W proxy. A sub-tag of the indexing
@@ -290,11 +340,34 @@ class OpenAIDenseEmbedder(DenseEmbedderBase):
         # Embeddings go to the W LLM proxy under its own service key rather than
         # the caller's JWT, and skip the gateway that would otherwise label them,
         # so the proxy can infer neither who the work is for nor what it is for.
-        # Attach both so the spend log stays attributable and filterable. No-op
-        # when no W credential is bound (every non-W deployment).
+        # Attach both so the spend log stays attributable and filterable. Against
+        # the proxy the tag goes on regardless; anywhere else this is a no-op
+        # until a W credential is bound, which off W never happens.
         if self._accepts_request_metadata():
-            apply_llm_request_metadata(kwargs, feature_tag=EMBEDDING_FEATURE_TAG)
+            apply_llm_request_metadata(
+                kwargs,
+                feature_tag=EMBEDDING_FEATURE_TAG,
+                # Vectors get built for work nobody asked for by name -- preset
+                # directories on first boot, a ROOT reindex -- and those rows are
+                # still ours to account for. Against the W proxy, label them even
+                # with no user to name.
+                tag_without_credentials=self._is_w_proxy(),
+            )
         return kwargs
+
+    def _api_host(self) -> str:
+        """Lowercased hostname of ``api_base``, or "" when there is none to read."""
+        return _normalize_host(self.api_base or "")
+
+    def _is_w_proxy(self) -> bool:
+        """True when this embedder points at the W LLM proxy.
+
+        Only that proxy reads the feature tag, so only it is sent one -- matching
+        how the VLM backend withholds its own tag from every non-gateway
+        provider. Everywhere else the tag would be an unknown body field bought
+        for nothing.
+        """
+        return self._api_host() in _w_proxy_hosts()
 
     def _accepts_request_metadata(self) -> bool:
         """True when this endpoint tolerates a ``metadata`` field on the body.
@@ -309,11 +382,8 @@ class OpenAIDenseEmbedder(DenseEmbedderBase):
         """
         if self._provider == "azure" or not self.api_base:
             return False
-        try:
-            host = (urlparse(self.api_base).hostname or "").lower()
-        except ValueError:
-            return False
-        return host not in _STRICT_BODY_SCHEMA_HOSTS
+        host = self._api_host()
+        return bool(host) and host not in _STRICT_BODY_SCHEMA_HOSTS
 
     def _should_send_dimensions(self) -> bool:
         # Preserve existing behavior for official OpenAI embeddings: only custom
