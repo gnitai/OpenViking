@@ -387,6 +387,7 @@ Supported Voyage text embedding models include:
 - `voyage-4-lite`
 - `voyage-4`
 - `voyage-4-large`
+- `voyage-code-4`
 - `voyage-code-3`
 - `voyage-context-3`
 - `voyage-3`

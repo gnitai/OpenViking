@@ -799,11 +799,11 @@ async def test_import_ovpack_restores_required_dense_vector_snapshot(
     }
     monkeypatch.setattr(
         "openviking.storage.ovpack.vectors.embedding_snapshot_metadata",
-        lambda dimensions: {**embedding_metadata, "dimensions": dimensions},
+        lambda dimensions, identity=None: {**embedding_metadata, "dimensions": dimensions},
     )
     monkeypatch.setattr(
         "openviking.storage.ovpack.vectors.current_embedding_metadata",
-        lambda: embedding_metadata,
+        lambda identity=None: embedding_metadata,
     )
 
     await export_ovpack(
@@ -1013,6 +1013,4 @@ async def test_import_top_level_scope_package_requires_root_target(
         manifest=manifest,
     )
     with pytest.raises(InvalidArgumentError, match=r"root name does not match zip root"):
-        await import_ovpack(
-            FakeVikingFS(), str(temp_ovpack_path), "wfs://resources", request_ctx
-        )
+        await import_ovpack(FakeVikingFS(), str(temp_ovpack_path), "wfs://resources", request_ctx)

@@ -21,6 +21,7 @@ VOYAGE_MODEL_DIMENSIONS = {
     "voyage-4-lite": 1024,
     "voyage-4-large": 1024,
     "voyage-code-3": 1024,
+    "voyage-code-4": 1024,
     "voyage-context-3": 1024,
     "voyage-finance-2": 1024,
     "voyage-law-2": 1024,
@@ -35,6 +36,7 @@ VOYAGE_MODEL_ALLOWED_DIMENSIONS = {
     "voyage-4-lite": {256, 512, 1024, 2048},
     "voyage-4-large": {256, 512, 1024, 2048},
     "voyage-code-3": {256, 512, 1024, 2048},
+    "voyage-code-4": {256, 512, 1024, 2048},
 }
 
 

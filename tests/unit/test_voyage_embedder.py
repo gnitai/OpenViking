@@ -31,6 +31,7 @@ class TestVoyageDenseEmbedder:
         assert VOYAGE_MODEL_DIMENSIONS["voyage-4"] == 1024
         assert VOYAGE_MODEL_DIMENSIONS["voyage-4-large"] == 1024
         assert VOYAGE_MODEL_DIMENSIONS["voyage-code-3"] == 1024
+        assert VOYAGE_MODEL_DIMENSIONS["voyage-code-4"] == 1024
 
     def test_custom_dimension(self):
         embedder = VoyageDenseEmbedder(

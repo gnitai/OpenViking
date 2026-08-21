@@ -631,7 +631,7 @@ class VikingVectorIndexBackend:
     async def create_collection(self, name: str, schema: Dict[str, Any]) -> bool:
         return await self._get_default_backend().create_collection(name, schema)
 
-    async def ensure_collection(self, *, ctx: RequestContext) -> bool:
+    async def ensure_collection(self, *, ctx: RequestContext, identity: Any = None) -> bool:
         """Apply the full context-collection schema to the context's namespace.
 
         Unlike ``create_collection`` (which always targets the default backend),
@@ -646,7 +646,11 @@ class VikingVectorIndexBackend:
         from openviking.storage.collection_schemas import build_context_schema
 
         backend = self._get_backend_for_context(ctx)
-        schema = build_context_schema(self._config)
+        # Shape the namespace from the project's pinned dimension when we have
+        # one. Falling back to the global config here would re-apply a changed
+        # dimension to an existing project's namespace on every fresh process.
+        dimension = getattr(identity, "dimension", None) if identity is not None else None
+        schema = build_context_schema(self._config, dimension=dimension)
         return await backend.create_collection(self._collection_name, schema)
 
     async def drop_collection(self) -> bool:

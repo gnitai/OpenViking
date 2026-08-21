@@ -74,7 +74,14 @@ def ensure_dense_snapshot_supported(vector_store=None) -> None:
         )
 
 
-def embedding_snapshot_metadata(dimensions: int | None) -> dict[str, Any]:
+def embedding_snapshot_metadata(dimensions: int | None, identity: Any = None) -> dict[str, Any]:
+    """Describe the vector space an export's vectors were produced in.
+
+    ``identity`` is the exporting project's pin. Without it this would record
+    whatever the server currently defaults to, which for a project still on an
+    older model mislabels the export and makes it non-restorable once the
+    default moves on.
+    """
     metadata: dict[str, Any] = {}
     try:
         from openviking_cli.utils.config import get_openviking_config
@@ -85,12 +92,21 @@ def embedding_snapshot_metadata(dimensions: int | None) -> dict[str, Any]:
             metadata = {
                 "provider": model_cfg.provider,
                 "model": model_cfg.model,
+                # input/query/document params are transport settings shared by
+                # every project, so they stay on live config.
                 "input": model_cfg.input,
                 "query_param": model_cfg.query_param,
                 "document_param": model_cfg.document_param,
             }
+            if identity is not None:
+                metadata["provider"] = identity.provider
+                metadata["model"] = identity.model
             if dimensions is None:
-                dimensions = model_cfg.get_effective_dimension()
+                dimensions = (
+                    identity.dimension
+                    if identity is not None
+                    else model_cfg.get_effective_dimension()
+                )
     except Exception:
         pass
 
@@ -102,6 +118,7 @@ def embedding_snapshot_metadata(dimensions: int | None) -> dict[str, Any]:
 def build_dense_snapshot_manifest(
     index_records: list[dict[str, Any]],
     dense_values: list[float],
+    identity: Any = None,
 ) -> tuple[bytes, dict[str, Any]] | None:
     if not dense_values:
         return None
@@ -128,7 +145,7 @@ def build_dense_snapshot_manifest(
         "byte_order": "little",
         "dimensions": dense_dimensions,
         "sha256": sha256_hex(dense_bytes),
-        "embedding": embedding_snapshot_metadata(dense_dimensions),
+        "embedding": embedding_snapshot_metadata(dense_dimensions, identity),
     }
 
 
@@ -155,7 +172,14 @@ def read_dense_vectors(
     return vectors
 
 
-def current_embedding_metadata() -> dict[str, Any]:
+def current_embedding_metadata(identity: Any = None) -> dict[str, Any]:
+    """The vector space an import would land in.
+
+    ``identity`` is the DESTINATION project's pin -- the space the restored
+    vectors have to be comparable with. Comparing against live config instead
+    would reject every export made by a project still on an older model, and
+    silently re-embed vectors that were in fact perfectly compatible.
+    """
     try:
         from openviking_cli.utils.config import get_openviking_config
 
@@ -164,18 +188,22 @@ def current_embedding_metadata() -> dict[str, Any]:
         if not model_cfg:
             return {}
         return {
-            "provider": model_cfg.provider,
-            "model": model_cfg.model,
+            "provider": identity.provider if identity is not None else model_cfg.provider,
+            "model": identity.model if identity is not None else model_cfg.model,
             "input": model_cfg.input,
             "query_param": model_cfg.query_param,
             "document_param": model_cfg.document_param,
-            "dimensions": model_cfg.get_effective_dimension(),
+            "dimensions": (
+                identity.dimension if identity is not None else model_cfg.get_effective_dimension()
+            ),
         }
     except Exception:
         return {}
 
 
-def _embedding_snapshot_compatible(manifest: dict[str, Any]) -> tuple[bool, str]:
+def _embedding_snapshot_compatible(
+    manifest: dict[str, Any], identity: Any = None
+) -> tuple[bool, str]:
     dense_info = manifest_dense_info(manifest)
     if dense_info is None:
         return False, "missing dense vector snapshot"
@@ -184,7 +212,7 @@ def _embedding_snapshot_compatible(manifest: dict[str, Any]) -> tuple[bool, str]
     if not isinstance(package_embedding, dict):
         return False, "missing embedding metadata"
 
-    current_embedding = current_embedding_metadata()
+    current_embedding = current_embedding_metadata(identity)
     if not current_embedding:
         return False, "current embedding metadata is unavailable"
 
@@ -204,6 +232,7 @@ def choose_vector_restore_action(
     *,
     vector_store,
     vector_mode: str,
+    identity: Any = None,
 ) -> str:
     if vector_mode == "recompute":
         return "recompute"
@@ -240,7 +269,7 @@ def choose_vector_restore_action(
             raise InvalidArgumentError("Vector restore requires a writable vector store")
         return "recompute"
 
-    compatible, reason = _embedding_snapshot_compatible(manifest)
+    compatible, reason = _embedding_snapshot_compatible(manifest, identity)
     if not compatible:
         if vector_mode == "require":
             raise InvalidArgumentError(

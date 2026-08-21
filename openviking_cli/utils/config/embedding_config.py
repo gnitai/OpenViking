@@ -1,8 +1,27 @@
 # Copyright (c) 2026 Beijing Volcano Engine Technology Co., Ltd.
 # SPDX-License-Identifier: AGPL-3.0
-from typing import Any, Literal, Optional, cast
+import hashlib
+import sys
+from typing import Any, List, Literal, Optional, Union, cast
 
 from pydantic import BaseModel, Field, model_validator
+
+# Embedder instances keyed by EmbeddingIdentity.cache_key. Embedders are
+# stateless HTTP clients, so one per distinct vector space is enough no matter
+# how many projects share it.
+_EMBEDDER_CACHE: dict[str, Any] = {}
+
+
+def _credential_fingerprint(model_cfg: Any) -> str:
+    """Stable digest of the settings that decide WHERE a model is reached.
+
+    Hashed rather than stored raw so an api_key never lands in a dict key.
+    """
+    material = "|".join(
+        str(getattr(model_cfg, field, None))
+        for field in ("api_base", "api_key", "api_version", "extra_headers")
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
 class EmbeddingModelConfig(BaseModel):
@@ -351,6 +370,63 @@ class EmbeddingCircuitBreakerConfig(BaseModel):
         return self
 
 
+class LegacyEmbeddingIdentityConfig(BaseModel):
+    """One historical era: a vector space, and which accounts are in it.
+
+    This is DATA ABOUT THE PAST, not a model choice. It is read verbatim and
+    never derived from the live ``dense`` block: if it inherited provider or
+    dimension from live config, a future config-only model change would
+    silently re-point every unpinned legacy project at the new vector space.
+
+    Eras only ever describe accounts with NO pin on disk. Pinned accounts are
+    resolved from their pin and are unaffected by anything here, so this list
+    stops growing as soon as every live account carries a pin.
+    """
+
+    provider: str = Field(
+        default="openai", description="Provider the legacy vectors were made with"
+    )
+    model: str = Field(
+        default="voyage/voyage-code-3", description="Model the legacy vectors were made with"
+    )
+    dimension: int = Field(default=1024, gt=0, description="Dimension of the legacy vectors")
+    applies_below_account_id: Optional[int] = Field(
+        default=None,
+        description=(
+            "Numeric account-id cutoff. An unpinned account whose id parses as an "
+            "integer BELOW this belongs to the legacy vector space; at or above it, "
+            "the account is new and takes the current default. Set this to an id "
+            "safely ABOVE the highest account that existed when the model changed -- "
+            "erring high only leaves a few new projects on the older model (harmless, "
+            "they stay self-consistent), while erring low silently points existing "
+            "projects at a vector space their data is not in. Leave unset to treat "
+            "every unpinned account as legacy."
+        ),
+    )
+
+    model_config = {"extra": "forbid"}
+
+    def covers_account(self, account_id: str) -> bool:
+        """True when an unpinned ``account_id`` should resolve to legacy.
+
+        Non-numeric ids never satisfy the cutoff, so they fall to legacy -- the
+        safe direction for an account that may already hold vectors.
+        """
+        if self.applies_below_account_id is None:
+            return True
+        try:
+            return int(str(account_id).strip()) < self.applies_below_account_id
+        except (TypeError, ValueError):
+            return True
+
+    @property
+    def sort_key(self) -> int:
+        """Open-ended eras sort last so bounded ones get first refusal."""
+        if self.applies_below_account_id is None:
+            return sys.maxsize
+        return self.applies_below_account_id
+
+
 class EmbeddingConfig(BaseModel):
     """
     Embedding configuration, supports OpenAI, VolcEngine, VikingDB, Jina, Gemini, Voyage, or LiteLLM APIs.
@@ -366,6 +442,17 @@ class EmbeddingConfig(BaseModel):
     dense: Optional[EmbeddingModelConfig] = Field(default=None)
     sparse: Optional[EmbeddingModelConfig] = Field(default=None)
     hybrid: Optional[EmbeddingModelConfig] = Field(default=None)
+    legacy: Union[LegacyEmbeddingIdentityConfig, List[LegacyEmbeddingIdentityConfig]] = Field(
+        default_factory=list,
+        description=(
+            "Vector spaces used before the current one, oldest first, each ending "
+            "at an account-id cutoff. Consulted ONLY for accounts with no pin on "
+            "disk. Defaults to empty: a deployment that has never changed its "
+            "embedding model has no history, so every unpinned account belongs to "
+            "the current default. Declare an era only when you actually change "
+            "models and older accounts still hold the previous model's vectors."
+        ),
+    )
     circuit_breaker: EmbeddingCircuitBreakerConfig = Field(
         default_factory=EmbeddingCircuitBreakerConfig
     )
@@ -710,6 +797,81 @@ class EmbeddingConfig(BaseModel):
         embedder_class, param_builder = factory_registry[key]
         params = param_builder(config)
         return embedder_class(**params)
+
+    @property
+    def legacy_eras(self) -> List[LegacyEmbeddingIdentityConfig]:
+        """Historical eras, narrowest cutoff first.
+
+        Sorting rather than trusting file order means an era appended to the
+        end of the list still lands in the right place, so adding a model is
+        an append and never a re-ordering.
+        """
+        eras = self.legacy if isinstance(self.legacy, list) else [self.legacy]
+        return sorted(eras, key=lambda era: era.sort_key)
+
+    def era_for_unpinned(self, account_id: str) -> Optional[LegacyEmbeddingIdentityConfig]:
+        """The era an account with NO pin belongs to, or None for the default.
+
+        First era whose cutoff the account falls below wins. None means the
+        account postdates every recorded era, so the current default applies.
+        """
+        for era in self.legacy_eras:
+            if era.covers_account(account_id):
+                return era
+        return None
+
+    def get_embedder_for(self, identity):
+        """Build (or reuse) the embedder for a specific pinned identity.
+
+        The identity fixes provider/model/dimension -- the things that decide
+        which vector space you land in. Everything else (api_base, api_key,
+        headers, input mode, retry settings) is taken from LIVE config, so
+        rotating a key or moving the proxy stays a global operation.
+
+        Instances are cached per identity, not per project: they are stateless
+        HTTP clients, and a fleet on two models needs exactly two of them.
+        """
+        base = self.hybrid or self.dense
+        if base is None:
+            raise ValueError("No dense/hybrid embedding configuration to derive an embedder from")
+
+        # Key on the credentials too, not just the identity. The config object
+        # can be replaced in-process (set_openviking_config / reset_instance),
+        # and an identity-only key would keep handing back an embedder bound to
+        # the old key or endpoint -- contradicting the promise above that
+        # rotating a key is a global operation.
+        cache_key = f"{identity.cache_key}|{_credential_fingerprint(base)}"
+        cached = _EMBEDDER_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
+        # Copy live config, then override only the identity-bearing fields.
+        overridden = base.model_copy(
+            update={
+                "provider": identity.provider,
+                "model": identity.model,
+                "dimension": identity.dimension,
+            }
+        )
+        embedder_type = "hybrid" if self.hybrid is not None else "dense"
+        embedder = self._create_embedder(identity.provider, embedder_type, overridden)
+
+        # A composite hybrid (separate sparse model) must stay composite, or
+        # documents pinned to hybrid retrieval lose their sparse half.
+        if self.hybrid is None and self.dense is not None and self.sparse is not None:
+            from openviking.models.embedder import CompositeHybridEmbedder
+            from openviking.models.embedder.base import DenseEmbedderBase, SparseEmbedderBase
+
+            sparse_embedder = self._create_embedder(
+                self._require_provider(self.sparse.provider), "sparse", self.sparse
+            )
+            embedder = CompositeHybridEmbedder(
+                cast(DenseEmbedderBase, embedder),
+                cast(SparseEmbedderBase, sparse_embedder),
+            )
+
+        _EMBEDDER_CACHE[cache_key] = embedder
+        return embedder
 
     def get_embedder(self):
         """Get embedder instance based on configuration.

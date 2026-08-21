@@ -22,6 +22,7 @@ import asyncio
 from typing import Awaitable, Callable
 
 from openviking.server.identity import RequestContext
+from openviking.storage.project_embedding import ensure_project_pinned
 
 # Initializer signature: takes a RequestContext, performs the bootstrap.
 ProjectInitializer = Callable[[RequestContext], Awaitable[None]]
@@ -60,6 +61,12 @@ def build_default_initializer(service) -> ProjectInitializer:
     """Build the standard initializer: preset dirs + schema-applied namespace."""
 
     async def _init(ctx: RequestContext) -> None:
+        # Pin the embedding identity FIRST. A project's vector space is decided
+        # once, here, and every later embed (ingest and query) resolves through
+        # it -- so it must exist before the namespace is shaped or anything is
+        # written. For a project that already has a pin this just reads it back.
+        identity = await ensure_project_pinned(ctx.account_id)
+
         # Apply the schema-bearing collection to the project's vector namespace
         # BEFORE creating preset directories. Directory init auto-generates L0/L1
         # sidecars whose embeddings are written to the vector store; if the
@@ -67,7 +74,12 @@ def build_default_initializer(service) -> ProjectInitializer:
         # writes target a namespace with empty Fields and fail (logged as
         # "Collection ... does not exist"), losing the preset-dir/memory-scaffold
         # sidecars. Ensuring the collection first makes those writes succeed.
-        await service.vikingdb_manager.ensure_collection(ctx=ctx)
+        #
+        # The namespace is shaped from the PROJECT's dimension, not the live
+        # config's: an older project keeps the vector width its data already
+        # has, which is what lets a future model with a different dimension be
+        # adopted by config alone.
+        await service.vikingdb_manager.ensure_collection(ctx=ctx, identity=identity)
         await service.initialize_account_directories(ctx)
         await service.initialize_user_directories(ctx)
 

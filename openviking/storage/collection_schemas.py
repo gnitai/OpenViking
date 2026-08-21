@@ -22,8 +22,8 @@ from openviking.server.identity import RequestContext, Role
 from openviking.storage.errors import (
     CollectionNotFoundError,
     EmbeddingConfigurationError,
-    EmbeddingRebuildRequiredError,
 )
+from openviking.storage.project_embedding import get_project_embedding_pins
 from openviking.storage.queuefs.embedding_msg import EmbeddingMsg
 from openviking.storage.queuefs.named_queue import DequeueHandlerBase
 from openviking.storage.viking_vector_index_backend import VikingVectorIndexBackend
@@ -135,7 +135,7 @@ class CollectionSchemas:
         }
 
 
-def build_context_schema(config: Any) -> Dict[str, Any]:
+def build_context_schema(config: Any, dimension: Optional[int] = None) -> Dict[str, Any]:
     """Build the context-collection schema dict from a VectorDB backend config.
 
     Single source of truth for the unified context-collection schema. Both the
@@ -158,7 +158,10 @@ def build_context_schema(config: Any) -> Dict[str, Any]:
     name = getattr(config, "name", None)
     if not name:
         raise ValueError("Vector DB collection name is required")
-    vector_dim = getattr(config, "dimension", 0)
+    # An explicit dimension comes from a project's pinned embedding identity
+    # and wins over the global config, so an existing project keeps the vector
+    # width its stored data actually has.
+    vector_dim = dimension if dimension else getattr(config, "dimension", 0)
     return CollectionSchemas.context_collection(name, vector_dim)
 
 
@@ -312,10 +315,26 @@ async def init_context_collection(storage) -> bool:
         )
         return False
 
-    raise EmbeddingRebuildRequiredError(
-        "Existing collection embedding metadata does not match current configuration. "
-        "Rebuild is required before using the current embedding model."
+    # Per-project pins -- not this check -- are what keep each project in its
+    # own vector space now. The global metadata records the DEFAULT for new
+    # projects, so a deliberate config change must not block startup: the
+    # existing projects it used to protect are protected by their own pins,
+    # and refusing to boot here would take the whole fleet down for a change
+    # that is correct for every project except this bookkeeping record.
+    logger.warning(
+        "Default-collection embedding metadata %s does not match current config %s. "
+        "Updating the recorded default; existing projects keep their pinned identity.",
+        existing_embedding_meta,
+        embedding_meta,
     )
+    if hasattr(storage, "update_collection_description"):
+        await storage.update_collection_description(
+            _encode_collection_description(
+                base_description or "Unified context collection",
+                embedding_meta,
+            )
+        )
+    return False
 
 
 class TextEmbeddingHandler(DequeueHandlerBase):
@@ -362,6 +381,27 @@ class TextEmbeddingHandler(DequeueHandlerBase):
     def _initialize_embedder(self, config: "OpenVikingConfig"):
         """Initialize the embedder instance from config."""
         self._embedder = config.embedding.get_embedder()
+
+    async def _resolve_for_account(self, account_id: str):
+        """Return (embedder, expected_dim) for the project this message belongs to.
+
+        One handler drains messages for every account, so the embedder cannot
+        be a construction-time constant: an old project's new chunks must keep
+        being embedded with the model its existing vectors were built with,
+        even after the server default moves on.
+
+        With no pin store (library/embedded use, and unit tests) there is no
+        per-project storage to consult, so the handler's own embedder stands.
+        """
+        pins = get_project_embedding_pins()
+        if pins is None:
+            return self._embedder, self._vector_dim
+
+        identity = await pins.resolve(account_id)
+        from openviking_cli.utils.config import get_openviking_config
+
+        embedder = get_openviking_config().embedding.get_embedder_for(identity)
+        return embedder, identity.dimension
 
     def _log_breaker_open_reenqueue_summary(self) -> None:
         """Log a throttled warning when embeddings are re-enqueued due to an open circuit breaker."""
@@ -511,15 +551,28 @@ class TextEmbeddingHandler(DequeueHandlerBase):
                     report_error_args = (error_msg, data)
                     return None
 
-                # Initialize embedder if not already initialized
-                if not self._embedder:
-                    from openviking_cli.utils.config import get_openviking_config
-
-                    config = get_openviking_config()
-                    self._initialize_embedder(config)
+                # Resolve the embedder from the PROJECT this message belongs
+                # to, not from the handler's construction-time config. One
+                # handler drains messages for every account, so a global
+                # embedder here would embed an old project's new chunks with
+                # whatever model the server currently defaults to -- silently
+                # mixing vector spaces inside that project's namespace.
+                account_id_for_embed = inserted_data.get("account_id") or "default"
+                try:
+                    embedder, vector_dim = await self._resolve_for_account(account_id_for_embed)
+                except Exception as resolve_err:
+                    error_msg = self._embedding_error_msg(
+                        embedding_msg,
+                        f"Failed to resolve embedding identity: {resolve_err}",
+                    )
+                    logger.error(error_msg)
+                    self._merge_request_stats(embedding_msg.telemetry_id, error_count=1)
+                    request_failed_message = error_msg
+                    report_error_args = (error_msg, data)
+                    return None
 
                 # Generate embedding vector(s)
-                if self._embedder:
+                if embedder:
                     try:
                         import time as _time
 
@@ -531,7 +584,7 @@ class TextEmbeddingHandler(DequeueHandlerBase):
                         creds_token = bind_llm_user_id(embedding_msg.llm_user_id)
                         try:
                             result: EmbedResult = await embed_compat(
-                                self._embedder, embedding_msg.message, is_query=False
+                                embedder, embedding_msg.message, is_query=False
                             )
                         finally:
                             reset_llm_credentials(creds_token)
@@ -613,11 +666,11 @@ class TextEmbeddingHandler(DequeueHandlerBase):
                     if result.dense_vector:
                         inserted_data["vector"] = result.dense_vector
                         # Validate vector dimension
-                        if len(result.dense_vector) != self._vector_dim:
+                        if len(result.dense_vector) != vector_dim:
                             error_msg = self._embedding_error_msg(
                                 embedding_msg,
                                 "Dense vector dimension mismatch: "
-                                f"expected {self._vector_dim}, got {len(result.dense_vector)}",
+                                f"expected {vector_dim}, got {len(result.dense_vector)}",
                             )
                             logger.error(error_msg)
                             self._merge_request_stats(embedding_msg.telemetry_id, error_count=1)
