@@ -25,6 +25,10 @@ from openviking.models.llm_credentials import (
     get_llm_credentials,
     reset_llm_credentials,
 )
+from openviking.models.rerank.openai_rerank import (
+    RERANK_FEATURE_TAG,
+    OpenAIRerankClient,
+)
 from openviking.models.vlm.backends.openai_vlm import OpenAIVLM
 from openviking.storage.queuefs.embedding_msg import EmbeddingMsg
 
@@ -641,3 +645,68 @@ class TestVLMAttribution:
         assert call_kwargs["extra_body"]["metadata"] == {"user_id": "3122"}
         assert call_kwargs["extra_body"]["project_id"] == "project-7"
         assert call_kwargs["extra_headers"]["Authorization"] == "Bearer jwt-abc"
+
+
+def _rerank_body(api_base: str) -> dict:
+    """Post one rerank batch through a mocked transport, return the sent body."""
+    client = OpenAIRerankClient(api_key="sk-test", api_base=api_base, model_name="rerank-test")
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"results": [{"index": 0, "relevance_score": 0.5}]}
+    with patch(
+        "openviking.models.rerank.openai_rerank.requests.post", return_value=response
+    ) as post:
+        client.rerank_batch("query", ["doc"])
+    return post.call_args.kwargs["json"]
+
+
+class TestRerankAttribution:
+    """Rerank runs during a search but reaches the proxy under the service key.
+
+    Same shape as the embedder's problem and the same fix, with one difference
+    that matters: this client posts a raw JSON body rather than going through
+    the OpenAI SDK, so ``metadata`` sits at the body's top level instead of
+    inside an ``extra_body`` envelope.
+    """
+
+    def test_tags_unattributed_rerank_against_the_proxy(self, w_proxy_env):
+        """A search naming no user still says what the spend was for."""
+        body = _rerank_body(_PROXY_BASE_URL)
+
+        assert body["metadata"] == {"feature_tags": [RERANK_FEATURE_TAG]}
+
+    def test_carries_the_bound_user_and_the_tag(self, w_proxy_env, bound_user):
+        """With a credential bound the row is attributable as well as tagged."""
+        body = _rerank_body(_PROXY_BASE_URL)
+
+        assert body["metadata"]["user_id"] == "3122"
+        assert body["metadata"]["feature_tags"] == [RERANK_FEATURE_TAG]
+
+    def test_sends_no_metadata_to_a_non_proxy_rerank_service(self, w_proxy_env):
+        """Off the proxy with no credential, the body gains no unknown field.
+
+        Some rerank services reject unknown body fields outright, and none but
+        the W proxy reads this one -- so it is not sent on spec.
+        """
+        body = _rerank_body("https://vendor.example.com/v1/rerank")
+
+        assert "metadata" not in body
+
+    def test_tag_needs_the_env_to_name_the_proxy(self, monkeypatch):
+        """Unset ``OPENVIKING_LLM_PROXY_HOSTS`` and nothing is volunteered.
+
+        The deployment's hostnames are the only source of truth for what is a W
+        proxy; with none declared, an unattributed rerank stays unlabelled
+        rather than guessing.
+        """
+        monkeypatch.delenv(W_PROXY_HOSTS_ENV_VAR, raising=False)
+
+        assert "metadata" not in _rerank_body(_PROXY_BASE_URL)
+
+    def test_query_and_documents_are_untouched(self, w_proxy_env):
+        """Attribution rides alongside the request; it does not reshape it."""
+        body = _rerank_body(_PROXY_BASE_URL)
+
+        assert body["model"] == "rerank-test"
+        assert body["query"] == "query"
+        assert body["documents"] == ["doc"]
