@@ -44,6 +44,17 @@ PERMANENT_API_ERROR_PATTERNS = (
     "accountoverdue",
 )
 
+# Credential / entitlement failures: a subset of the permanent patterns that
+# is specific to the *caller's* credentials (bad or expired token, forbidden,
+# overdue account) rather than to one request's content (400).
+AUTH_API_ERROR_PATTERNS = (
+    "401",
+    "403",
+    "forbidden",
+    "unauthorized",
+    "accountoverdue",
+)
+
 QUOTA_EXCEEDED_PATTERNS = (
     "quotaexceeded",  # also 429
     "quota limit",
@@ -118,6 +129,23 @@ def classify_api_error(error: Exception) -> str:
 def is_quota_exceeded_api_error(error: Exception) -> bool:
     """Return True if the error indicates an account quota has been exceeded."""
     return classify_api_error(error) == ERROR_CLASS_QUOTA_EXCEEDED
+
+
+def is_auth_api_error(error: Exception) -> bool:
+    """True for credential/entitlement failures (401/403/unauthorized/...).
+
+    These are permanent for every subsequent call made with the same
+    credentials, so callers may abort a batch on the first one.
+    """
+    texts = [str(error)]
+    if error.__cause__ is not None:
+        texts.append(str(error.__cause__))
+    for text in texts:
+        text_lower = text.lower()
+        for pattern in AUTH_API_ERROR_PATTERNS:
+            if pattern in text_lower:
+                return True
+    return False
 
 
 def is_retryable_api_error(error: Exception) -> bool:

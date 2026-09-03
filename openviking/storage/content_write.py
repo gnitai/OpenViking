@@ -541,7 +541,14 @@ class ContentWriteCoordinator:
 
         root_uri = uri
         if parts[0] == "resources":
-            if len(parts) >= 2:
+            # Refresh semantics from the changed file's own directory. The
+            # parent-refresh roll-up regenerates every ancestor overview
+            # afterwards, so anchoring at ``resources/<name>`` only made a
+            # single-file write re-walk the whole resource tree (hundreds of
+            # files per write on a large nested tree).
+            if len(parts) >= 3:
+                root_uri = VikingURI.build(*parts[:-1])
+            elif len(parts) == 2:
                 root_uri = VikingURI.build("resources", parts[1])
         elif parts[0] == "user":
             try:

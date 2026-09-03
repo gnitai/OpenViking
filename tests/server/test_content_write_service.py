@@ -830,3 +830,38 @@ async def test_create_mode_regression_append_unchanged(monkeypatch):
     )
 
     assert result["mode"] == "append"
+
+
+@pytest.mark.asyncio
+async def test_resource_write_refresh_scopes_to_changed_files_directory():
+    """A write deep inside a resource tree must refresh semantics from the changed
+    file's own directory, not from the top-level ``resources/<name>`` root.
+
+    Anchoring at ``wfs://resources/code`` made every single-file write re-walk
+    every resource under that root (hundreds of files per write in prod); the
+    parent-refresh roll-up already regenerates ancestor overviews."""
+    ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
+    file_uri = "wfs://resources/code/repo/acme-main/src/App.jsx"
+    coordinator = ContentWriteCoordinator(
+        viking_fs=_FakeVikingFS(
+            file_uri=file_uri, root_uri="wfs://resources/code/repo/acme-main/src"
+        )
+    )
+
+    root_uri = await coordinator._resolve_root_uri(file_uri, ctx=ctx)
+
+    assert root_uri == "wfs://resources/code/repo/acme-main/src"
+
+
+@pytest.mark.asyncio
+async def test_resource_write_refresh_keeps_top_level_resource_root():
+    """A file directly under ``resources/<name>`` keeps that resource as its root."""
+    ctx = RequestContext(user=UserIdentifier.the_default_user(), role=Role.USER)
+    file_uri = "wfs://resources/demo/doc.md"
+    coordinator = ContentWriteCoordinator(
+        viking_fs=_FakeVikingFS(file_uri=file_uri, root_uri="wfs://resources/demo")
+    )
+
+    root_uri = await coordinator._resolve_root_uri(file_uri, ctx=ctx)
+
+    assert root_uri == "wfs://resources/demo"
