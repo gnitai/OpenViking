@@ -12,10 +12,23 @@ from openviking.storage.queuefs.semantic_sidecar import write_semantic_sidecars
 from openviking.storage.transaction import NO_LOCK, LockLease, get_lock_manager
 from openviking.storage.viking_fs import get_viking_fs
 from openviking.telemetry.request_wait_tracker import get_request_wait_tracker
+from openviking.utils.model_retry import is_auth_api_error
 from openviking_cli.utils import VikingURI
 from openviking_cli.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class SemanticRunAborted(Exception):
+    """The DAG stopped early because an LLM call failed with an auth-class
+    error (401/403). ``cause`` is that error. Raised out of ``run`` so the
+    processor fails just this request — it is a per-caller credential problem,
+    not an API outage, so it must not trip the shared circuit breaker or be
+    re-enqueued."""
+
+    def __init__(self, cause: Exception) -> None:
+        super().__init__(f"semantic run aborted on auth error: {cause}")
+        self.cause = cause
 
 # Session-internal files that should never be summarized by the semantic pipeline.
 # These are canonical archives (e.g. session transcripts) whose content provides
@@ -105,6 +118,11 @@ class SemanticDagExecutor:
         self._lock = lock
         self._is_code_repo = is_code_repo
         self._changes = changes or {}
+        # First auth-class LLM error (401/403). Once set, remaining file and
+        # directory tasks skip their LLM calls, nothing is written or embedded,
+        # and ``run`` raises ``SemanticRunAborted`` instead of "completing"
+        # with empty semantics for every file.
+        self._fatal_error: Optional[Exception] = None
         self._skip_vectorization = skip_vectorization
         self._coalesce_key = coalesce_key
         self._coalesce_version = coalesce_version
@@ -190,6 +208,8 @@ class SemanticDagExecutor:
         try:
             await self._dispatch_dir(root_uri, parent_uri=None)
             await self._root_done.wait()
+            if self._fatal_error is not None:
+                raise SemanticRunAborted(self._fatal_error)
         except Exception:
             await self._lock.close()
             raise
@@ -522,12 +542,25 @@ class SemanticDagExecutor:
                         self._file_change_status[file_path] = True
             else:
                 self._file_change_status[file_path] = True
+            if summary_dict is None and self._fatal_error is not None:
+                # A sibling already hit an auth error: don't burn another
+                # call that will fail the same way.
+                need_vectorize = False
+                summary_dict = {"name": file_name, "summary": ""}
             if summary_dict is None:
                 summary_dict = await self._processor._generate_single_file_summary(
                     file_path, llm_sem=self._llm_sem, ctx=self._ctx
                 )
         except Exception as e:
-            logger.warning(f"Failed to generate summary for {file_path}: {e}")
+            if is_auth_api_error(e):
+                if self._fatal_error is None:
+                    self._fatal_error = e
+                    logger.error(
+                        f"Auth error from LLM summarizing {file_path}; aborting semantic run: {e}"
+                    )
+                need_vectorize = False
+            else:
+                logger.warning(f"Failed to generate summary for {file_path}: {e}")
             summary_dict = {"name": file_name, "summary": ""}
         finally:
             self._stats.done_nodes += 1
@@ -692,7 +725,12 @@ class SemanticDagExecutor:
         try:
             overview = None
             abstract = None
-            if self._incremental_update:
+            if self._fatal_error is not None:
+                # Aborting: never write partial sidecars or embed anything.
+                need_vectorize = False
+                branch = "aborted"
+                overview, abstract = "", ""
+            elif self._incremental_update:
                 _t = time.monotonic()
                 children_changed = await self._check_dir_children_changed(
                     dir_uri, node.file_paths, node.children_dirs
@@ -720,7 +758,7 @@ class SemanticDagExecutor:
                 llm_ms = (time.monotonic() - _t) * 1000
                 abstract = self._processor._extract_abstract_from_overview(overview)
                 overview, abstract = self._processor._enforce_size_limits(overview, abstract)
-            else:
+            elif branch != "aborted":
                 branch = "unchanged_reread"
 
             # Write directly, protected by the outer semantic lock. Bound the
@@ -729,12 +767,13 @@ class SemanticDagExecutor:
             # spent queued on the write semaphore.
             _t = time.monotonic()
             try:
-                async with self._write_sem:
-                    wrote = await self._write_directory_semantics(
-                        dir_uri, overview, abstract, timing=sidecar_timing
-                    )
-                if not wrote:
-                    need_vectorize = False
+                if branch != "aborted":
+                    async with self._write_sem:
+                        wrote = await self._write_directory_semantics(
+                            dir_uri, overview, abstract, timing=sidecar_timing
+                        )
+                    if not wrote:
+                        need_vectorize = False
             except Exception:
                 logger.info(f"[SemanticDag] {dir_uri} write failed, skipping")
             sidecar_ms = (time.monotonic() - _t) * 1000
