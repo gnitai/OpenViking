@@ -30,7 +30,11 @@ from openviking.prompts import render_prompt
 from openviking.server.identity import RequestContext, Role
 from openviking.storage.errors import LockAcquisitionError
 from openviking.storage.queuefs.named_queue import DequeueHandlerBase
-from openviking.storage.queuefs.semantic_dag import DagStats, SemanticDagExecutor
+from openviking.storage.queuefs.semantic_dag import (
+    DagStats,
+    SemanticDagExecutor,
+    SemanticRunAborted,
+)
 from openviking.storage.queuefs.semantic_lock import SemanticLockScope
 from openviking.storage.queuefs.semantic_msg import SemanticMsg, build_semantic_coalesce_key
 from openviking.storage.queuefs.semantic_queue import is_semantic_msg_stale
@@ -493,6 +497,19 @@ class SemanticProcessor(DequeueHandlerBase):
                     await self._requeue_semantic_msg_after_error(msg, data, e)
                 else:
                     self.report_error(str(e), data)
+                return None
+
+            if isinstance(e, SemanticRunAborted):
+                # Per-caller credential failure: fail this request only. Not an
+                # API outage, so leave the shared circuit breaker alone and do
+                # not re-enqueue (it would fail identically).
+                logger.error(f"Semantic run aborted, dropping message: {e}")
+                if msg is not None:
+                    self._merge_request_stats(msg.telemetry_id, error_count=1)
+                    get_request_wait_tracker().mark_semantic_failed(
+                        msg.telemetry_id, msg.id, str(e.cause)
+                    )
+                self.report_error(str(e.cause), data)
                 return None
 
             error_class = classify_api_error(e)

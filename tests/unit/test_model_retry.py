@@ -10,6 +10,7 @@ from openviking.utils.model_retry import (
     ERROR_CLASS_QUOTA_EXCEEDED,
     ERROR_CLASS_TRANSIENT,
     classify_api_error,
+    is_auth_api_error,
     is_quota_exceeded_api_error,
     retry_async,
     retry_sync,
@@ -154,3 +155,23 @@ def test_retry_sync_does_not_retry_input_too_large():
         retry_sync(_call, max_retries=5)
 
     assert attempts["count"] == 1
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Error code: 401 - {'code': 'INVALID_BEARER_TOKEN'}",
+        "Error code: 403 - forbidden",
+        "Unauthorized",
+    ],
+)
+def test_is_auth_api_error_matches_credential_failures(message):
+    assert is_auth_api_error(RuntimeError(message)) is True
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Error code: 400 - bad request", "Error code: 503 - unavailable", "boom"],
+)
+def test_is_auth_api_error_ignores_other_errors(message):
+    assert is_auth_api_error(RuntimeError(message)) is False
