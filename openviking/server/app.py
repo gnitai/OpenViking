@@ -49,6 +49,7 @@ from openviking.server.routers import (
     watches_router,
     webdav_router,
 )
+from openviking.server.routers.raw_files import router as raw_files_router
 from openviking.service.core import OpenVikingService
 from openviking.service.task_tracker import get_task_tracker
 from openviking_cli.exceptions import OpenVikingError
@@ -531,6 +532,7 @@ def create_app(
     app.include_router(tasks_router)
     app.include_router(watches_router)
     app.include_router(webdav_router)
+    app.include_router(raw_files_router)
     app.include_router(bot_router, prefix="/bot/v1")
 
     # OAuth 2.1: when enabled, mount the official MCP SDK auth routes
