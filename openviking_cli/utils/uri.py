@@ -39,7 +39,8 @@ class VikingURI:
         "agent",
         "session",
     }
-    PUBLIC_SCOPES = frozenset(LISTABLE_SCOPES)
+    # `files` is addressable through the API but never listed at the root.
+    PUBLIC_SCOPES = frozenset(LISTABLE_SCOPES | {"files"})
     INTERNAL_SCOPES = frozenset({"temp", "queue", "upload"})
     # All valid scopes that can be addressed by the URI parser/storage internals.
     # Public API handlers must not use this as their external whitelist.
