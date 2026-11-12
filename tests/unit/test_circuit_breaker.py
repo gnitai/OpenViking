@@ -165,6 +165,29 @@ class TestCircuitBreaker:
         with pytest.raises(CircuitBreakerOpen):
             cb.check()
 
+    def test_bad_request_does_not_trip_immediately(self):
+        """A 400 is about one request's content, so one of them must not stop every caller."""
+        cb = CircuitBreaker(failure_threshold=5)
+
+        cb.record_failure(
+            Exception(
+                'Error code: 400 - {"code":20015,"message":"The parameter is invalid. '
+                'Please check again.","data":null}'
+            )
+        )
+
+        cb.check()  # Should not raise
+
+    def test_consecutive_bad_requests_trip_at_threshold(self):
+        """Every call failing with 400 is a config problem, so the threshold still applies."""
+        cb = CircuitBreaker(failure_threshold=3)
+
+        for _ in range(3):
+            cb.record_failure(Exception("Error code: 400 - bad request"))
+
+        with pytest.raises(CircuitBreakerOpen):
+            cb.check()
+
     def test_input_too_large_does_not_trip_or_increment(self):
         """Test row-specific input errors do not affect global circuit state."""
         cb = CircuitBreaker(failure_threshold=1)

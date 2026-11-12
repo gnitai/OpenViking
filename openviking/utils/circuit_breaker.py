@@ -12,6 +12,7 @@ from openviking.utils.model_retry import (
     ERROR_CLASS_PERMANENT,
     ERROR_CLASS_QUOTA_EXCEEDED,
     classify_api_error,
+    is_auth_api_error,
 )
 from openviking_cli.utils.logger import get_logger
 
@@ -32,10 +33,11 @@ class CircuitBreakerOpen(Exception):
 class CircuitBreaker:
     """Thread-safe circuit breaker for API call protection.
 
-    Trips after ``failure_threshold`` consecutive failures (or immediately for
-    permanent errors like 403/401). After ``reset_timeout`` seconds, allows one
-    probe request (HALF_OPEN). If the probe succeeds, the breaker closes; if it
-    fails, the breaker reopens.
+    Trips after ``failure_threshold`` consecutive failures, or immediately for
+    credential or quota errors, which fail every later call too. A 400 is about one
+    request's content, so it only counts toward the threshold. After
+    ``reset_timeout`` seconds, allows one probe request (HALF_OPEN). If the probe
+    succeeds, the breaker closes; if it fails, the breaker reopens.
     """
 
     def __init__(
@@ -114,7 +116,9 @@ class CircuitBreaker:
                 )
                 return
 
-            if error_class in (ERROR_CLASS_PERMANENT, ERROR_CLASS_QUOTA_EXCEEDED):
+            if error_class == ERROR_CLASS_QUOTA_EXCEEDED or (
+                error_class == ERROR_CLASS_PERMANENT and is_auth_api_error(error)
+            ):
                 self._state = _STATE_OPEN
                 self._current_reset_timeout = self._base_reset_timeout
                 logger.info(f"Circuit breaker tripped immediately on {error_class} error: {error}")

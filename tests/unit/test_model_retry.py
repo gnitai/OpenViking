@@ -132,6 +132,11 @@ def test_quota_exceeded_case_insensitive():
     "message",
     [
         "BadRequestError: 400 maximum context length is 8192 tokens",
+        (
+            "Error code: 400 - You passed 40961 input tokens and requested 0 output tokens. "
+            "However, the model's context length is only 40960 tokens, resulting in a maximum "
+            "input length of 40960 tokens. Please reduce the length of the input prompt."
+        ),
         "Error code: 413 - Payload Too Large",
         (
             "Error code: 500 - {'error': {'code': 500, 'message': "

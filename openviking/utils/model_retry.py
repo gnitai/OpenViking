@@ -31,6 +31,7 @@ INPUT_TOO_LARGE_PATTERNS = (
     "input length exceeds",
     "exceeds the context length",
     "exceeds the max input length",
+    "maximum input length",
     "is too large to process",
     "expected maxlength",
 )
