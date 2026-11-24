@@ -36,7 +36,7 @@ from openviking.parse.parsers.constants import (
 )
 from openviking.parse.parsers.upload_utils import upload_directory
 from openviking.utils import is_github_url, parse_code_hosting_url
-from openviking.utils.code_hosting_utils import _domain_matches
+from openviking.utils.code_hosting_utils import _domain_matches, _gitlab_project_parts
 from openviking_cli.utils.config import get_openviking_config
 from openviking_cli.utils.logger import get_logger
 
@@ -290,7 +290,9 @@ class CodeRepositoryParser(BaseParser):
                 base_parts = path_parts[: git_index + 1]
 
             config = get_openviking_config()
-            if _domain_matches(parsed, config.code.github_domains + config.code.gitlab_domains):
+            if _domain_matches(parsed, config.code.gitlab_domains):
+                base_parts = _gitlab_project_parts(path_parts)
+            elif _domain_matches(parsed, config.code.github_domains):
                 base_parts = path_parts[:2]
             base_path = "/" + "/".join(base_parts)
             return parsed._replace(path=base_path, query="", fragment="").geturl()

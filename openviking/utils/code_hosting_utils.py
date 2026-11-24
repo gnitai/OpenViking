@@ -106,6 +106,73 @@ def _is_azure_devops_browse_url(query: str) -> bool:
     return "path" in parse_qs(query, keep_blank_values=True)
 
 
+# Path segments that follow owner/repo on GitHub/GitLab pages that are not a repo root.
+_NON_REPO_PATHS = {
+    "blob",
+    "commit",
+    "commits",
+    "issues",
+    "merge_requests",
+    "pull",
+    "pulls",
+    "raw",
+    "releases",
+    "wiki",
+}
+
+
+# GitLab top-level paths that are site pages, never a user or group namespace.
+_GITLAB_RESERVED_ROOTS = {
+    "-",
+    "admin",
+    "api",
+    "dashboard",
+    "explore",
+    "groups",
+    "help",
+    "oauth",
+    "profile",
+    "projects",
+    "search",
+    "snippets",
+    "users",
+}
+
+
+def _gitlab_project_parts(path_parts: list[str]) -> list[str]:
+    """Return the GitLab project path parts (``group/subgroup/.../project``).
+
+    GitLab namespaces nest, so the project is everything before the ``/-/``
+    delimiter. Without one, a legacy route segment followed by more path
+    (``owner/repo/tree/<ref>``, ``owner/repo/issues/12``) past the first two parts
+    ends the project path; otherwise the whole path is the project, so a project
+    named like a route (``group/docs/wiki``) still resolves.
+    """
+    if "-" in path_parts:
+        return path_parts[: path_parts.index("-")]
+    # ponytail: a project named like a route AND followed by more path on a legacy
+    # (no "/-/") link is still misread; GitLab's own URLs always carry the delimiter.
+    routes = _NON_REPO_PATHS | {"tree"}
+    end = next(
+        (i for i, p in enumerate(path_parts[:-1]) if i >= 2 and p in routes),
+        len(path_parts),
+    )
+    return path_parts[:end]
+
+
+def _org_repo(path_parts: list[str], gitlab: bool) -> Optional[str]:
+    """Sanitized ``org/repo``; a nested GitLab namespace folds into ``org``."""
+    if gitlab:
+        path_parts = _gitlab_project_parts(path_parts)
+    if len(path_parts) < 2:
+        return None
+    if gitlab:
+        org, repo = "/".join(path_parts[:-1]), path_parts[-1]
+    else:
+        org, repo = path_parts[0], path_parts[1]
+    return f"{_sanitize_segment(org)}/{_sanitize_segment(repo.removesuffix('.git'))}"
+
+
 def parse_code_hosting_url(url: str) -> Optional[str]:
     """Parse code hosting platform URL to get org/repo path.
 
@@ -132,16 +199,8 @@ def parse_code_hosting_url(url: str) -> Optional[str]:
                 return "/".join(
                     _sanitize_segment(part.removesuffix(".git")) for part in azure_repo_parts
                 )
-        if len(path_parts) < 2:
-            return None
-        # Take only first 2 segments (consistent with HTTP branch)
-        org = path_parts[0]
-        repo = path_parts[1]
-        if repo.endswith(".git"):
-            repo = repo[:-4]
-        org = _sanitize_segment(org)
-        repo = _sanitize_segment(repo)
-        return f"{org}/{repo}"
+        gitlab = host_part in get_openviking_config().code.gitlab_domains
+        return _org_repo(path_parts, gitlab)
 
     if not url.startswith(("http://", "https://", "git://", "ssh://")):
         return None
@@ -160,16 +219,9 @@ def parse_code_hosting_url(url: str) -> Optional[str]:
         return None
 
     # For code hosting URLs with org/repo structure
-    if _domain_matches(parsed, all_domains) and len(path_parts) >= 2:
-        # Take first two parts: org/repo
-        org = path_parts[0]
-        repo = path_parts[1]
-        if repo.endswith(".git"):
-            repo = repo[:-4]
-        # Sanitize both parts
-        org = _sanitize_segment(org)
-        repo = _sanitize_segment(repo)
-        return f"{org}/{repo}"
+    if _domain_matches(parsed, all_domains):
+        gitlab = _domain_matches(parsed, get_openviking_config().code.gitlab_domains)
+        return _org_repo(path_parts, gitlab)
 
     return None
 
@@ -285,35 +337,23 @@ def is_git_repo_url(url: str) -> bool:
                     return False
                 return True
 
-        # GitLab routes the ref/blob/etc. behind a "/-/" delimiter segment:
-        # owner/repo/-/tree/<ref>, owner/repo/-/blob/<ref>/<path>, owner/repo/-/issues.
-        # Only a bare repo or a "/-/tree/<ref>" / "/-/commit/<sha>" is cloneable; anything
-        # else after the delimiter is a non-repo page. (Subgroups — dash != 2 — are not
-        # handled here: downstream normalization assumes owner/repo, so reject them rather
-        # than clone the wrong repo.)
-        if _extract_host(url) in config.code.gitlab_domains and "-" in path_parts:
-            dash = path_parts.index("-")
-            after = path_parts[dash + 1 :]
-            if dash != 2:
+        # GitLab: the project path may be nested (group/subgroup/.../repo) and routes
+        # sit behind a "/-/" delimiter: repo/-/tree/<ref>, repo/-/blob/<ref>/<path>,
+        # repo/-/issues. Only a bare repo, "/-/tree/<ref>", "/-/commit/<sha>" or a
+        # legacy "repo/tree/<ref>" is cloneable; anything else is a non-repo page.
+        if _extract_host(url) in config.code.gitlab_domains:
+            project = _gitlab_project_parts(path_parts)
+            rest = path_parts[len(project) :]
+            if len(project) < 2 or project[0] in _GITLAB_RESERVED_ROOTS:
                 return False
-            return (not after) or after[0] in {"tree", "commit"}
+            if rest[:1] == ["-"]:
+                return len(rest) == 1 or rest[1] in {"tree", "commit"}
+            return not rest or (rest[0] == "tree" and len(rest) == 2)
 
-        non_repo_paths = {
-            "blob",
-            "commit",
-            "commits",
-            "issues",
-            "merge_requests",
-            "pull",
-            "pulls",
-            "raw",
-            "releases",
-            "wiki",
-        }
         if (
-            _extract_host(url) in config.code.github_domains + config.code.gitlab_domains
+            _extract_host(url) in config.code.github_domains
             and len(path_parts) >= 3
-            and path_parts[2] in non_repo_paths
+            and path_parts[2] in _NON_REPO_PATHS
         ):
             return False
 
