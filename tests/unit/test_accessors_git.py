@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from openviking.parse.accessors import GitAccessor
+from openviking.parse.parsers.code.code import CodeRepositoryParser
 from openviking.utils import code_hosting_utils
 
 
@@ -96,6 +97,8 @@ class TestGitAccessor:
         [
             "https://github.com/volcengine/OpenViking/tree/main",
             "https://github.com/volcengine/OpenViking/tree/abc1234",
+            "https://github.com/volcengine/OpenViking/tree/feature/login",
+            "https://gitlab.com/org/repo/tree/feature/login",
         ],
     )
     def test_can_handle_github_with_ref(self, accessor: GitAccessor, source: str) -> None:
@@ -123,6 +126,73 @@ class TestGitAccessor:
             accessor._normalize_repo_url("ssh://git@github.com:443/volcengine/OpenViking/tree/main")
             == "ssh://git@github.com:443/volcengine/OpenViking"
         )
+
+    @pytest.mark.parametrize("cls", [GitAccessor, CodeRepositoryParser])
+    @pytest.mark.parametrize(
+        ("source", "kwargs", "expected"),
+        [
+            # Everything after "tree" is the ref; a branch name may contain "/".
+            (
+                "https://github.com/o/r/tree/feature/login",
+                {},
+                ("https://github.com/o/r", "feature/login", None),
+            ),
+            (
+                "https://github.com/o/r/tree/feature/login",
+                {"ref": "feature/login"},
+                ("https://github.com/o/r", "feature/login", None),
+            ),
+            (
+                "https://github.com/o/r/tree/feature%2Flogin",
+                {},
+                ("https://github.com/o/r", "feature/login", None),
+            ),
+            (
+                "https://gitlab.com/o/r/-/tree/feature/login",
+                {},
+                ("https://gitlab.com/o/r", "feature/login", None),
+            ),
+            (
+                "https://gitlab.com/o/r/tree/feature/login",
+                {},
+                ("https://gitlab.com/o/r", "feature/login", None),
+            ),
+            (
+                "https://gitlab.com/g/s/r/tree/feature/login",
+                {},
+                ("https://gitlab.com/g/s/r", "feature/login", None),
+            ),
+            (
+                "https://gitlab.com/g/s/r/-/tree/feature/login",
+                {},
+                ("https://gitlab.com/g/s/r", "feature/login", None),
+            ),
+            (
+                "https://github.com/o/r/tree/abc1234",
+                {},
+                ("https://github.com/o/r", None, "abc1234"),
+            ),
+            (
+                "https://gitlab.com/o/r/-/commit/abc1234",
+                {},
+                ("https://gitlab.com/o/r", None, "abc1234"),
+            ),
+            # The route word is read where it sits, not anywhere in the path: a repo
+            # named "commit", or a "commit" segment inside a branch name, is not a SHA.
+            (
+                "https://github.com/o/commit/tree/main",
+                {},
+                ("https://github.com/o/commit", "main", None),
+            ),
+            (
+                "https://github.com/o/r/tree/fix/commit/abc1234",
+                {"ref": "fix/commit/abc1234"},
+                ("https://github.com/o/r", "fix/commit/abc1234", None),
+            ),
+        ],
+    )
+    def test_parse_repo_source_reads_ref_after_route(self, cls, source, kwargs, expected) -> None:
+        assert cls()._parse_repo_source(source, **kwargs) == expected
 
     @pytest.mark.parametrize(
         ("url", "expected"),
@@ -275,9 +345,9 @@ class TestGitAccessor:
         env = captured["env"]
         assert env is not None
         assert env["GIT_CONFIG_KEY_0"] == "http.https://github.com/.extraHeader"
-        expected = "Authorization: Basic " + base64.b64encode(
-            b"x-access-token:SUPERSECRET"
-        ).decode()
+        expected = (
+            "Authorization: Basic " + base64.b64encode(b"x-access-token:SUPERSECRET").decode()
+        )
         assert env["GIT_CONFIG_VALUE_0"] == expected
         # The raw token is base64-wrapped, never in cleartext on the command line.
         assert "SUPERSECRET" not in env["GIT_CONFIG_KEY_0"]

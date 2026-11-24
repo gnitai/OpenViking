@@ -280,8 +280,25 @@ def test_is_git_repo_url_https_blob():
     assert is_git_repo_url("https://github.com/org/repo/blob/main/file.py") is False
 
 
-def test_is_git_repo_url_github_tree_path_with__git_segment():
-    assert is_git_repo_url("https://github.com/org/repo/tree/main/_git/config") is False
+def test_is_git_repo_url_github_path_with__git_segment():
+    # The Azure DevOps "_git" rule must not make a GitHub path a repo.
+    assert is_git_repo_url("https://github.com/org/repo/_git/config") is False
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/org/repo/tree/feature/login",
+        "https://github.com/org/repo/tree/release/2026/q4",
+        "https://gitlab.com/owner/repo/tree/feature/login",
+        "https://gitlab.com/owner/repo/-/tree/feature/login",
+        "https://gitlab.com/group/subgroup/repo/tree/feature/login",
+        "https://gitlab.com/group/subgroup/repo/-/tree/feature/login",
+    ],
+)
+def test_is_git_repo_url_tree_ref_with_slashes(url):
+    # A branch name may contain "/", so everything after "tree" is the ref.
+    assert is_git_repo_url(url) is True
 
 
 def test_is_git_repo_url_unknown_domain():

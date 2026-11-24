@@ -340,7 +340,8 @@ def is_git_repo_url(url: str) -> bool:
         # GitLab: the project path may be nested (group/subgroup/.../repo) and routes
         # sit behind a "/-/" delimiter: repo/-/tree/<ref>, repo/-/blob/<ref>/<path>,
         # repo/-/issues. Only a bare repo, "/-/tree/<ref>", "/-/commit/<sha>" or a
-        # legacy "repo/tree/<ref>" is cloneable; anything else is a non-repo page.
+        # legacy "repo/tree/<ref>" is cloneable (a branch may contain "/"); anything else
+        # is a non-repo page.
         if _extract_host(url) in config.code.gitlab_domains:
             project = _gitlab_project_parts(path_parts)
             rest = path_parts[len(project) :]
@@ -348,7 +349,7 @@ def is_git_repo_url(url: str) -> bool:
                 return False
             if rest[:1] == ["-"]:
                 return len(rest) == 1 or rest[1] in {"tree", "commit"}
-            return not rest or (rest[0] == "tree" and len(rest) == 2)
+            return not rest or (rest[0] == "tree" and len(rest) >= 2)
 
         if (
             _extract_host(url) in config.code.github_domains
@@ -360,8 +361,8 @@ def is_git_repo_url(url: str) -> bool:
         # owner/repo
         if len(path_parts) == 2:
             return True
-        # owner/repo/tree/<ref> (branch name or commit SHA)
-        if len(path_parts) == 4 and path_parts[2] == "tree":
+        # owner/repo/tree/<ref> (branch name or commit SHA; a branch may contain "/")
+        if len(path_parts) >= 4 and path_parts[2] == "tree":
             return True
         return False
 

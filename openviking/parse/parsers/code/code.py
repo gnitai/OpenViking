@@ -258,22 +258,23 @@ class CodeRepositoryParser(BaseParser):
         return branch, commit
 
     def _parse_ref_from_path(self, path: str) -> Tuple[Optional[str], Optional[str]]:
+        """Parse (branch, commit) from owner/repo/tree/<ref> or owner/repo/-/commit/<sha>.
+
+        The route word follows the repo path, so it is only looked for from the third
+        segment on. A branch name may contain "/", so everything after "tree" is the ref.
+        """
+        # ponytail: a tree/<ref>/<subdir> URL with no explicit ref reads as one long
+        # branch and fails to clone; match the path against `git ls-remote` if it matters.
         parts = [p for p in path.split("/") if p]
-        branch = None
-        commit = None
-        if "commit" in parts:
-            idx = parts.index("commit")
-            if idx + 1 < len(parts):
-                commit = parts[idx + 1]
-        if "tree" in parts:
-            idx = parts.index("tree")
-            if idx + 1 < len(parts):
-                ref = unquote(parts[idx + 1])
-                if self._looks_like_sha(ref):
-                    commit = ref
-                else:
-                    branch = ref
-        return branch, commit
+        idx = next((i for i, p in enumerate(parts) if i >= 2 and p in ("tree", "commit")), None)
+        if idx is None or idx + 1 >= len(parts):
+            return None, None
+        if parts[idx] == "commit":
+            return None, parts[idx + 1]
+        ref = unquote("/".join(parts[idx + 1 :]))
+        if self._looks_like_sha(ref):
+            return None, ref
+        return ref, None
 
     @staticmethod
     def _looks_like_sha(ref: str) -> bool:
