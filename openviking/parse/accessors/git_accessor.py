@@ -22,6 +22,7 @@ from openviking.utils import is_github_url, is_gitlab_url, parse_code_hosting_ur
 from openviking.utils.code_hosting_utils import (
     _domain_matches,
     _extract_azure_devops_repo_parts,
+    _gitlab_project_parts,
     is_code_hosting_url,
     is_git_repo_url,
     validate_git_ssh_uri,
@@ -293,7 +294,9 @@ class GitAccessor(DataAccessor):
                 if azure_repo_parts:
                     base_parts = path_parts[: len(azure_repo_parts) + 1]
 
-            if _domain_matches(parsed, config.code.github_domains + config.code.gitlab_domains):
+            if _domain_matches(parsed, config.code.gitlab_domains):
+                base_parts = _gitlab_project_parts(path_parts)
+            elif _domain_matches(parsed, config.code.github_domains):
                 base_parts = path_parts[:2]
             base_path = "/" + "/".join(base_parts)
             return parsed._replace(path=base_path, query="", fragment="").geturl()
@@ -578,12 +581,13 @@ class GitAccessor(DataAccessor):
         """Download a GitLab repo as a ZIP archive and extract it."""
         repo_name = self._get_repo_name(repo_url)
 
-        # Build archive URL from owner/repo path components.
+        # Build archive URL from the (normalized) project path. The namespace may be
+        # nested (group/subgroup/...), so the repo is the last segment, not the second.
         # GitLab archive URL format: https://gitlab.com/{owner}/{repo}/-/archive/{ref}/{repo}-{ref}.zip
         parsed = urlparse(repo_url)
         path_parts = [p for p in parsed.path.split("/") if p]
-        owner = path_parts[0]
-        repo_raw = path_parts[1]
+        owner = "/".join(path_parts[:-1])
+        repo_raw = path_parts[-1]
         # Strip .git suffix for the archive URL
         repo_slug = repo_raw[:-4] if repo_raw.endswith(".git") else repo_raw
 

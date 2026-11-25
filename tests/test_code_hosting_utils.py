@@ -317,7 +317,63 @@ def test_is_git_repo_url_gitlab_bare_repo():
     assert is_git_repo_url("https://gitlab.com/owner/repo") is True
 
 
-def test_is_git_repo_url_gitlab_subgroup_tree_out_of_scope():
-    # Subgroups (dash != 2) are intentionally rejected — downstream normalization
-    # assumes owner/repo, so cloning would target the wrong repo.
-    assert is_git_repo_url("https://gitlab.com/group/subgroup/repo/-/tree/master") is False
+# GitLab namespaces nest (group/subgroup/.../project); the project path is
+# everything before the "/-/" delimiter, or the whole path when there is none.
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://gitlab.com/group/subgroup/repo/-/tree/master",
+        "https://gitlab.com/a/b/c/repo/-/tree/feature/x",
+        "https://gitlab.com/group/subgroup/repo/-/commit/abc1234",
+        "https://gitlab.com/group/subgroup/repo",
+        "https://gitlab.com/group/subgroup/repo.git",
+        # a project whose name is also a legacy route word, linked with no branch
+        "https://gitlab.com/group/docs/wiki",
+        "https://gitlab.com/group/sub/releases",
+    ],
+)
+def test_is_git_repo_url_gitlab_subgroup_repo(url):
+    assert is_git_repo_url(url) is True
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        # GitLab's reserved top-level paths are site pages, never projects.
+        "https://gitlab.com/help/user/project/repository/index.md",
+        "https://gitlab.com/explore/projects/trending",
+        "https://gitlab.com/dashboard/projects/starred",
+        "https://gitlab.com/users/sign_in",
+        # legacy (no "/-/") route pages under a project
+        "https://gitlab.com/owner/repo/issues/12",
+        "https://gitlab.com/group/sub/repo/blob/main/file.py",
+    ],
+)
+def test_is_git_repo_url_gitlab_site_and_legacy_pages(url):
+    assert is_git_repo_url(url) is False
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://gitlab.com/group/subgroup/repo/-/blob/master/file.py",
+        "https://gitlab.com/group/subgroup/repo/-/issues",
+        "https://gitlab.com/group/subgroup/repo/-/merge_requests/1",
+    ],
+)
+def test_is_git_repo_url_gitlab_subgroup_non_repo_page(url):
+    assert is_git_repo_url(url) is False
+
+
+def test_parse_code_hosting_url_gitlab_subgroup_keeps_project_not_subgroup():
+    # The full namespace folds into the org segment so the result stays "org/repo".
+    assert (
+        parse_code_hosting_url("https://gitlab.com/group/subgroup/repo/-/tree/master")
+        == "group_subgroup/repo"
+    )
+    assert parse_code_hosting_url("https://gitlab.com/a/b/c/repo.git") == "a_b_c/repo"
+    assert parse_code_hosting_url("git@gitlab.com:group/subgroup/repo.git") == "group_subgroup/repo"
+
+
+def test_parse_code_hosting_url_github_still_two_segments():
+    assert parse_code_hosting_url("https://github.com/org/repo/tree/main") == "org/repo"

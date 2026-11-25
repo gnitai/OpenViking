@@ -125,6 +125,68 @@ class TestGitAccessor:
         )
 
     @pytest.mark.parametrize(
+        ("url", "expected"),
+        [
+            (
+                "https://gitlab.com/group/subgroup/repo/-/tree/master",
+                "https://gitlab.com/group/subgroup/repo",
+            ),
+            ("https://gitlab.com/a/b/c/repo", "https://gitlab.com/a/b/c/repo"),
+            ("https://gitlab.com/owner/repo/-/tree/main", "https://gitlab.com/owner/repo"),
+            ("https://gitlab.com/owner/repo/tree/main", "https://gitlab.com/owner/repo"),
+        ],
+    )
+    def test_normalize_repo_url_gitlab_keeps_full_project_path(
+        self, accessor: GitAccessor, url: str, expected: str
+    ) -> None:
+        """A GitLab subgroup project must not be truncated to its first two segments
+        (that would clone the subgroup, i.e. the wrong repo)."""
+        assert accessor._normalize_repo_url(url) == expected
+
+    def test_code_parser_normalize_repo_url_gitlab_keeps_full_project_path(self) -> None:
+        from openviking.parse.parsers.code.code import CodeRepositoryParser
+
+        assert (
+            CodeRepositoryParser()._normalize_repo_url(
+                "https://gitlab.com/group/subgroup/repo/-/tree/master"
+            )
+            == "https://gitlab.com/group/subgroup/repo"
+        )
+
+    @pytest.mark.asyncio
+    async def test_access_gitlab_subgroup_downloads_the_project_archive(
+        self, accessor: GitAccessor, monkeypatch
+    ) -> None:
+        """End to end through access(): the subgroup URL is recognised as a repo and the
+        archive is fetched from the full project path."""
+        captured: dict = {}
+
+        def _fake_urlopen(req, timeout=None):
+            captured["url"] = req.full_url
+            raise OSError("stop after capturing the URL")
+
+        async def _fake_clone(url, target_dir, branch=None, commit=None, git_auth_token=None):
+            captured["clone_url"] = url
+            captured["branch"] = branch
+            return "group_subgroup/repo"
+
+        monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen)
+        monkeypatch.setattr(accessor, "_git_clone", _fake_clone)
+
+        source = "https://gitlab.com/group/subgroup/repo/-/tree/master"
+        assert accessor.can_handle(source) is True
+        res = await accessor.access(source, git_auth_token="TOK")
+        try:
+            assert captured["url"] == (
+                "https://gitlab.com/group/subgroup/repo/-/archive/master/repo-master.zip"
+            )
+            # ZIP failed (stubbed) -> clone fallback must target the same project.
+            assert captured["clone_url"] == "https://gitlab.com/group/subgroup/repo"
+            assert captured["branch"] == "master"
+        finally:
+            res.cleanup()
+
+    @pytest.mark.parametrize(
         "source",
         [
             "/path/to/repo.git",
